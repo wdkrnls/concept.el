@@ -926,13 +926,13 @@ relationship has a colon at the beginning of the statement."
       (let ((opening-bracket (string (char-after (point)))))
         (when (equal opening-bracket "{")
           (replace-regexp-in-region "| +{" "| [" (line-beginning-position) (line-end-position))
-          (replace-regexp-in-region "} *" "]" (line-beginning-position) (line-end-position)))
+          (replace-regexp-in-region "} *$" "]" (line-beginning-position) (line-end-position)))
         (when (equal opening-bracket "[")
           (replace-regexp-in-region "| +\\[" "| ‘" (line-beginning-position) (line-end-position))
-          (replace-regexp-in-region "\\] *" "’" (line-beginning-position) (line-end-position)))
+          (replace-regexp-in-region "\\] *$" "’" (line-beginning-position) (line-end-position)))
         (when (equal opening-bracket "‘")
           (replace-regexp-in-region "| +‘" "| {" (line-beginning-position) (line-end-position))
-          (replace-regexp-in-region "’ *" "}" (line-beginning-position) (line-end-position)))))))
+          (replace-regexp-in-region "’ *$" "}" (line-beginning-position) (line-end-position)))))))
 
 (defun concept-insert-include-line ()
   "Insert an include line.
