@@ -121,7 +121,7 @@ These editing tools include:
 
 * a variety of text-completion interfaces
 * parser validation implemented via a `peg` parsing expression grammar
-* hyper-linking to external documents
+* hyper-linking to external documents and image files
 * whole file scanning provided through `imenu`
 * document navigation and re-organization system provided through `outline` just like `org` mode
 * a search interface and query language provided through `consult`
