@@ -27,29 +27,36 @@
 ;;; Commentary:
 
 ;; Concept.el is a plain-text conceptual knowledge editor for Emacs.
-;; It is based on some of the ideas from the psychologists David
-;; Ausibel and Joseph D. Novak who studied how to best learn for
-;; understanding. However, unlike Novak's more free-form concept maps,
-;; which can be created using the non-free program: cmaptools
-;; (https://cmap.ihmc.us/cmaptools/), concept.el takes the approach
-;; that concept maps should not be separated from the concrete pieces
-;; of knowledge from which we can infer their existence. The abstract
-;; is best understood first by example.
+;; It is based on some of the ideas of the psychologists David Ausibel
+;; and Joseph D. Novak who studied how to best learn for
+;; understanding. Novak especially focused on exploring how David
+;; Ausibel's ideas related to concept maps. Novak-style concept maps
+;; can be concstructed using the non-free program: cmaptools
+;; (https://cmap.ihmc.us/cmaptools/). His maps focus exclusively on
+;; the relationships between abstract concepts only. concept.el takes
+;; a different approach. It aims to keep concept maps tied to the
+;; concrete pieces of knowledge from which we can infer their
+;; existence. It holds that the abstract is often best understood
+;; first by example.
 ;;
 ;; In Novak's conception of concept maps, their use is limited to the
 ;; reflective period of learning after consuming what Ausibel calls
 ;; advanced organizers. This package assumes a wider role for concept
-;; maps, and as such expects concept maps to become far larger and
-;; more comprehensive than is feasible via graphical editors like
-;; cmaptools. Note that the authors of `concept.el' have never used
+;; maps. It expects that concept maps will become far larger and more
+;; comprehensive than what is feasible to show in a single diagram. In
+;; contrast, a graphical editor like cmaptools seeks only a
+;; diagram. Note that the authors of `concept.el' have never used
 ;; cmaptools. We are basing our assessment entirely off of the
 ;; pictures of concept maps produced by that software.
 ;;
-;; Concept maps are one large file with a `.map' extension that follow
-;; a specific regular text format. They contain only plain text, but
-;; they support a rich interaction model including a kind of
-;; hyper-link capability (`C-c f') which works for a variety of file
-;; formats that are understood by Emacs.
+;; Concept maps in concept.el are one large file with a `.map'
+;; extension that follow a specific regular text format. They contain
+;; only plain text, but they support a rich interaction model
+;; including a kind of hyper-link capability (`C-c f') which works for
+;; a variety of file formats that are understood by Emacs. The goal of
+;; creating concept maps is better understanding. Following Ausibel's
+;; theory, new understanding comes from integrating new concepts with
+;; old ones.
 ;;
 ;; Understanding is an iterative process, so as your concept maps grow
 ;; in complexity, `concept.el' provides powerful tools for sifting
@@ -58,8 +65,32 @@
 ;; concepts, relating them to each other, and grounding them in
 ;; concrete facts, explicit examples, and external references. To keep
 ;; concept maps from quickly growing unweildy, there are many tools
-;; for probing them from within Emacs. These features can be
-;; discovered by reading the source code, below.
+;; for probing them from within Emacs. In particular, `concept.el'
+;; provides powerful features for searching through related
+;; ideas.
+
+;; What are ideas? Ideas propose groups of jointly interesting
+;; relationships between concepts. What makes two ideas related? They
+;; should have concepts in common, especially their subjects, but also
+;; their objects and the relationships between them. Think of an idea
+;; as a paragraph. Not just any paragraph, but a paragraph focused
+;; towards picking out the conceptual aspects of a
+;; situation. `concept.el' provides two small query "languages" for
+;; finding related ideas. These are presented through live previews
+;; via an interface built on top of consult.el.
+;;
+;; The first query language builds up a list of substrings which
+;; should match inside the set of concepts involved in the idea. Each
+;; different substring is separated by a semicolon. The second query
+;; language is based on subject~relationship~object triples. These
+;; enable tighter queries, but their development is necessarily more
+;; involved. These features can be discovered by reading the source
+;; code, below.
+;;
+;; There is an example concept map included which is used to
+;; illustrate the features of the package and eventually will be used
+;; to test many of it features. The search features, especially, need
+;; extensive testing.
 
 ;;; Code:
 
