@@ -1,0 +1,105 @@
+~ attribute-groups
+| :capture
+| concrete-pieces-of-knolwedge
+~ concepts
+| :include
+| single-concepts
+| multiple-concepts
+@ understanding
+| note:
+| {Concepts are things.}
+| {Thus, these relationships are implied by SMT.}
+| derived-from:
+| {SMT}
+~ concepts
+| :include
+| core-concepts
+| categorized-concepts
+| defined-concepts
+~ concepts
+| :include
+| subjects
+| objects
+@ understanding
+| note:
+| {All ideas have one and only one subject.}
+| {The subject is given first and indicated with a tilde: ~.}
+@ understanding
+| note:
+| {In english grammar, a simple sentence has a subject, a verb, and an object.}
+| {Here ideas correspond roughly to multiple related simple sentences.}
+~ concrete-pieces-of-knolwedge
+| :include
+| relevant-concrete-pieces-of-knolwedge
+| irrelevant-concrete-pieces-of-knolwedge
+~ concrete-pieces-of-knowledge
+| :include
+| facts
+| references
+| thoughts
+~ defined-concepts
+| :include
+| well-defined-concepts
+| ill-defined-concepts
+~ ideas
+| :hold
+| relationship-blocks
+| resource-blocks
+~ pieces
+| :include
+| pieces-of-knowledge
+| pieces-of-intuition
+~ pieces-of-knowledge
+| :include
+| abstract-pieces-of-knolwedge
+| concrete-pieces-of-knolwedge
+@ understanding
+| note:
+| {It's hard to comprehend abstract ideas without considering the many concrete examples which hint at them.}
+~ relationship-blocks
+| :hold
+| relationship-groups
+~ relationship-blocks
+| :capture
+| relationships-between-concepts
+~ relationship-groups
+| :hold
+| multiple-objects
+| :share
+| single-relationships
+@ understanding
+| note:
+| {Keywords beginning in colons signify the start of a new relationship group.}
+~ relationships
+| :include
+| relationships-between-mental-objects
+| relationships-between-physical-objects
+~ relationships
+| :include
+| single-relationships
+| multiple-relationships
+~ relationships-between-mental-objects
+| :include
+| relationships-between-concepts
+~ resource-blocks
+| :hold
+| attribute-groups
+@ understanding
+| note:
+| {Keywords ending in colons signify the start of a new attribute group.}
+~ single-things
+| :include
+| single-concepts
+~ things
+| :include
+| concepts
+| relationships
+~ things
+| :include
+| single-things
+| multiple-things
+@ understanding
+| note:
+| {Understanding is based on contrast.}
+| idea:
+| {SMT}
