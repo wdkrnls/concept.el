@@ -115,7 +115,7 @@ The text format is pretty straightforward. A concept map is a text file with a `
 
 Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. For domain experts it might seem unnecessary, but for highly multi-disciplinary situations, this can be a life saver for many people working together on a large project. The best plan can only emerge once you have a comprehensive view of the possibilities. A concept map is meant to be quite comprehensive, atleast within a specific domain.
 
-The text format used by `concept.el` is designed to be familiar and comfortable to people with experience writing a little bit of lisp code. Note that concepts, resources, relationships, and attribute keywords are intended to be assigned identifiers which look a lot like lisp symbols. This should be familiar to most people using Emacs as their editor. Once you accept this restriction on naming, you buy into a set of constraints which facilitate the creation of a bunch of very useful editing tools for making concept maps quickly.
+The text format used by `concept.el` is designed to be familiar and comfortable to people with experience writing a little bit of lisp code. Note that concepts, resources, relationships, and attribute keywords are intended to be assigned identifiers which look a lot like lisp symbols. This should be familiar to most people using Emacs as their editor. Once you accept this restriction on naming, you buy into a set of constraints which facilitate the creation of a bunch of very useful editing tools for making huge concept maps quickly.
 
 These editing tools include:
 
@@ -125,6 +125,8 @@ These editing tools include:
 * whole file scanning provided through `imenu`
 * document navigation and re-organization system provided through `outline` just like `org` mode
 * a search interface and query language provided through `consult`
+
+Together they make it feasible to develop and productively explore concept maps with hundreds of thousands of concepts and even more relationships between them.
 
 ## Installation
 
