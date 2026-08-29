@@ -248,7 +248,7 @@ It could be tighted by leveraging anchors. `^` means that the name starts with `
 ^und~^no
 ```
 
-It could also be tightened by adding more clauses to the query.
+It could also be tightened by adding more clauses to the query. This is done via adding a `:` clause separator. You can use as many clauses as you need.
 
 ```
 und~no:~from$
