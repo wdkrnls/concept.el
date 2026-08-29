@@ -4,7 +4,7 @@
 
 ## Introduction
 
-Conceptual knowledge is the often underappreciated third form knowledge which underlies the more commonly studied procedural and relational forms of knowledge. Those more celebrated forms of knowledge answer the questions:
+Conceptual knowledge is the often underappreciated third form knowledge which underlies the more commonly studied relational and procedural forms of knowledge. Those more celebrated forms of knowledge answer the questions:
 
 * What is the case?
 * How is it done?
