@@ -166,11 +166,11 @@ Now type `M-o` again to make a new subject line automatically filled out with `v
 
 Note that just like with resources, you could also auto-complete against all *relationship blocks*. Just press `C-c y c` on a new line between existing ideas.
 
-## Making abstract ideas concrete with resources
+## Making abstract ideas concrete with resource blocks
 
-You can enter resource blocks by typing @ on a new line (e.g. created with `C-j`  or by `M-j` (or even `M-i` in many cases) followed by `M-r` to cycle until a `@` appears. Alternatively, if you want to start from an existing resource, you can press `C-c y r` to auto-complete across all existing resource entries.
+You can enter *resource blocks* by typing @ on a new line (e.g. created with `C-j`  or by `M-j` (or even `M-i` in many cases) followed by `M-r` to cycle until a `@` appears. Alternatively, if you want to start from an existing resource, you can press `C-c y r` to auto-complete across all existing resource entries.
 
-It can be very convenient to use (e.g. tempel or tempo) templates to insert resource blocks. In my `init.el` configuration file I have bound the following tempel configuration for concept maps.
+It can be very convenient to use (e.g. tempel or tempo) templates to insert *resource blocks*. In my `init.el` configuration file I have bound the following tempel configuration for concept maps.
 
 ```
 (defun tempel-setup-capf ()
@@ -191,7 +191,7 @@ It can be very convenient to use (e.g. tempel or tempo) templates to insert reso
 
 You can use `M-i` to make new attribute group keywords. However, by default these show up as `note:`. You'll have to edit these using standard text editing commands. Type `C-r note:`. Press `ENTER`. Now press `M-d` to delete the word. You could also run M-x `concept-goto-last-attribute` followed by `C-M-b` and then M-x `zap-up-to-char` and enter `:`. Then press `ENTER`. Reorganizing existing attribute groups, or expository data lines can be done with `M-<up>` (up arrow key) and `M-<down>` (down arrow key). The same commands also work with conceptual *relationship blocks*.
 
-Once you have your resource block written the way you like it, Pressing `C-c f` can be used on exposition lines inside of the following attribute groups out of the box.
+Once you have your *resource block* written the way you like it, Pressing `C-c f` can be used on exposition lines inside of the following attribute groups out of the box.
 
 * `file:`
 * `url:`
@@ -234,7 +234,7 @@ This matches the ideas about `relationship-blocks` and `resource-blocks`. The re
 ~hold~group
 ```
 
-The resource block queries work just the same as these relationship triple queries. The query below finds all the `understanding` resources with `note:` keywords:
+The *resource block* queries work just the same as these relationship triple queries. The query below finds all the `understanding` resources with `note:` keywords:
 
 ```
 und~no
