@@ -6,10 +6,12 @@
 
 Conceptual knowledge is the often underappreciated third form knowledge which underlies the more commonly studied procedural and relational forms of knowledge. Those more celebrated forms of knowledge answer the questions:
 
-* "What is?"
-* "How to?"
+* What is the case?
+* How is it done?
 
-However, their specifications seem to come from nowhere. Their underlying genius resides somehow in our heads. Defining effective procedures or coherent relational databases requires firm grounding in domain knowledge. That knowledge is largely conceptual. It doesn't involve calculation, but it captures and organizes patterns in reality which we intuitively map into our own verbal reasoning. 
+However, their specifications seem to come from nowhere. Their underlying genius resides somehow in our heads. Defining effective procedures or coherent relational databases requires firm grounding in domain knowledge. That knowledge is largely conceptual. It doesn't involve calculation, but it captures and organizes patterns in reality which we intuitively map into our own verbal reasoning. It could be thought of as answering the question:
+
+* What does it mean?
 
 In this computer age, conceptual knowledge is still largely captured in free-form documents such as scientific articles or blog tutorials. While modern search tools powered by probabilistic models and artificial intelligence can help us sort through such documents, this package proposes a radically different way of expressing that knowledge: through organizing it in a computer-friendly format from the get-go.
 
@@ -128,12 +130,44 @@ These editing tools include:
 
 Install via ELPA (eventually!).
 
+## Searching through concept maps
+
+There is one hard dependency not provided out of the box with Emacs: the `consult.el` package on ELPA. Many of the commands in `consult.el` are useful in their own right for exploring concept maps: `consult-line` in particular, but that can only search across individual lines. In `concept.el`, the underlying functionality of `consult.el` is used to implement a convenient interface for searching through conceptual relationships and supporting resources at the block level. `C-c s` starts searches across conceptual relationship blocks, while `C-c C-s` starts searches through resource blocks.
+
+Both search interfaces feature a query language based around triples. Conceptual relationship blocks have an additional simpler query language which makes finding ideas that involve certain combinations of phrases anywhere inside of them easy. Take for example the query below which matches 3 ideas from the concept map example shown above in this document. Note that the `@` signals `DO NOT MATCH`.
+
+```
+concept;relationship;@group
+```
+
+The subjects for those matches are:
+
+```
+~ things
+~ relationships-between-mental-objects
+~ relationship-blocks
+```
+
+An example of a relationship search would be:
+
+```
+~@include
+```
+
+This matches the 6 ideas that don't have `:include` relationships. Note the single `~`. This means that the subject and object concepts can be anything. Again, the `@` means `DO NOT MATCH`. Here is a more involved example query.
+
+```
+block~hold~group
+```
+
+This matches the ideas about `relationship-blocks` and `resource-blocks`.
+
 ## Future Plans and Related Projects
 
-There is one hard dependency not provided out of the box with Emacs: the `consult.el` package on ELPA. Many of the commands in `consult.el` are useful in their own right for exploring concept maps: `consult-line` in particular, but that can only search across individual lines. In `concept.el`, the underlying functionality of `consult.el` is used to implement a convenient interface for search through conceptual relationships and supporting resources more wholistically. In the future it would be nice if this dependency could be made optional. The problem is that I just don't see how to effectively explore a large concept map without it's interactive preview features.
+In the future it would be nice if this dependency on `consult.el` could be made optional. The problem is that I just don't see how to effectively explore a large concept map without it's interactive preview features.
 
-A companion package very useful for editing concept maps in `concept.el` is the `tempel` template editor. In the future, I want to propose a patch to that tool which enables it to automatically recognize project-specific templates.
+A companion package very useful for editing concept maps in `concept.el` is the `tempel` snippet template editor. In the future, I want to propose a patch to that tool which enables it to automatically recognize project-specific templates.
 
-One way a programmer might think of a concept map (as imagined in concept.el) is as a language grammar. Or. The package could use some tools which probe the implicit conceptual relationships and help make them into explicit conceptual relationships. However, such a feature might be better served by `conceptuel`, an R package which takes as input the tabular output generated by `concept-map-export-to-table`.
+One way a programmer might think of a concept map (as imagined in `concept.el`) is as a language grammar. Or. The package could use some tools which probe the implicit conceptual relationships and help make them into explicit conceptual relationships. However, such a feature might be better served by `conceptuel`, an R package which takes as input the tabular output generated by `concept-map-export-to-table`.
 
-Concept maps should be meaningful to many people, not just their creators. To make that a reality, `concept.el` should gain features which make it easier to merge two concept maps together. One possible way this could be done is through achieving a canonical sorting of ideas based on their subjects and possibly their length. Some code to this effect has already been included, but it is currently non-functional.
+Concept maps should be meaningful to many people, not just their creators. To make that a reality, `concept.el` should gain features which make it easier to merge two concept maps together. One possible way this could be done is through achieving a canonical sorting of ideas based on their subjects and possibly their length. Some code to this effect has already been included, but it is not completely functional.
