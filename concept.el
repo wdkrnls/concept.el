@@ -2313,8 +2313,20 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
         (line-move-visual nil))
     (cond ((concept-on-resource-line)
            (concept-insert-note-block))
-          ((concept-on-exposition-line)
+          ((and (concept-on-exposition-line)
+                (or (concept-on-last-line-in-block-p)
+                    (save-excursion
+                      (ignore-errors
+                        (forward-line)
+                        (concept-on-attribute-line)))))
            (concept-insert-note-block))
+          ((and (concept-on-exposition-line)
+                (save-excursion
+                  (ignore-errors
+                    (forward-line)
+                    (concept-on-exposition-line))))
+           (newline)
+           (insert "| note:"))
           ((and (concept-on-focus-line)
                 (concept-on-blank-line))
            (concept-insert-last-concept-as-focus))
