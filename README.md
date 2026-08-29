@@ -152,7 +152,7 @@ definition: of-knowledge
 
 ## Navigating through concept maps
 
-Concept maps inherit from `outline-minor-mode`. This gives a whole suite of keyboard shortcuts and M-x commands which automatically work with concept maps. Navigating up and down is implemented with `M-n` and `M-p`. Otherwise, you can press `C-c C-n` or `C-c C-p` for a more advanced contextual method of navigating through concept maps. This can be useful for finding ideas or resources with certain interesting features. For example, you might want to find ideas with conceptual relationship blocks having two relationships instead of one. To do that, place your cursor on the nearest subject line. Then press `C-c C-n`. You will be prompted for the number of objects you want there to be since there is one relationship for each subject-verb-object triple.
+Concept maps inherit from `outline-minor-mode`. This gives a whole suite of keyboard shortcuts and M-x commands which automatically work with concept maps. Navigating up and down is implemented with `M-n` and `M-p`. Otherwise, you can press `C-c C-n` or `C-c C-p` for a more advanced contextual method of navigating through concept maps. This can be useful for finding ideas or resources with certain interesting features. For example, you might want to find ideas with conceptual *relationship blocks* having two relationships instead of one. To do that, place your cursor on the nearest subject line. Then press `C-c C-n`. You will be prompted for the number of objects you want there to be since there is one relationship for each subject-verb-object triple.
 
 If you want to look for ideas with a certain number of relationship groups, press `C-c C-n` from a relationship group line. Similarly, if you want to go forward to the next resource group with a desired number of data lines, place the cursor on a resource line.
 
@@ -164,7 +164,7 @@ There is ubiquitous `TAB` completion. Before we can show it, though we need to c
 
 Now type `M-o` again to make a new subject line automatically filled out with `very-hot-stuff`. Now press `M-i`. Now press `M-1 M-.` to enter `stuff`. Now complete it with `-that-has-many-layers`. Therefore, you have typed out `stuff-that-has-many-layers`. Now press `M-i` followed by `C-.`. `C-.` inserts the last object line instead of the last subject line. As you might imagine, `C-1 C-.` inserts the last word of the last object, just as `M-1 M-.` inserts the last word of the last subject. Now press `C-s many` followed by `M-DEL` to kill the word `many`. Replace it with few. Now press `M-i` again. Toggle it into a subject concept by cycling the first character with `M-r` until it is a `~`. Now press `C-M-.` to insert the previous subject. Well, that way is confusing and a bit hard to remember. Navigate to the beginning of the line with `C-M-b` and kill the rest of the line with `C-k`. Now press `TAB` and filter down to the last concept just by typing under the completing-read selection is the concept you want.
 
-Note that just like with resources, you could also auto-complete against all relationship blocks. Just press `C-c y c` on a new line between existing ideas.
+Note that just like with resources, you could also auto-complete against all *relationship blocks*. Just press `C-c y c` on a new line between existing ideas.
 
 ## Making abstract ideas concrete with resources
 
@@ -189,7 +189,7 @@ It can be very convenient to use (e.g. tempel or tempo) templates to insert reso
 (require 'tempel)
 ```
 
-You can use `M-i` to make new attribute group keywords. However, by default these show up as `note:`. You'll have to edit these using standard text editing commands. Type `C-r note:`. Press `ENTER`. Now press `M-d` to delete the word. You could also run M-x `concept-goto-last-attribute` followed by `C-M-b` and then M-x `zap-up-to-char` and enter `:`. Then press `ENTER`. Reorganizing existing attribute groups, or expository data lines can be done with `M-<up>` (up arrow key) and `M-<down>` (down arrow key). The same commands also work with conceptual relationship blocks.
+You can use `M-i` to make new attribute group keywords. However, by default these show up as `note:`. You'll have to edit these using standard text editing commands. Type `C-r note:`. Press `ENTER`. Now press `M-d` to delete the word. You could also run M-x `concept-goto-last-attribute` followed by `C-M-b` and then M-x `zap-up-to-char` and enter `:`. Then press `ENTER`. Reorganizing existing attribute groups, or expository data lines can be done with `M-<up>` (up arrow key) and `M-<down>` (down arrow key). The same commands also work with conceptual *relationship blocks*.
 
 Once you have your resource block written the way you like it, Pressing `C-c f` can be used on exposition lines inside of the following attribute groups out of the box.
 
@@ -200,9 +200,9 @@ Once you have your resource block written the way you like it, Pressing `C-c f` 
 
 ## Searching through concept maps
 
-There is one hard dependency not provided out of the box with Emacs: the `consult.el` package on ELPA. Many of the commands in `consult.el` are useful in their own right for exploring concept maps: `consult-line` in particular, but that can only search across individual lines. In `concept.el`, the underlying functionality of `consult.el` is used to implement a convenient interface for searching through conceptual relationships and supporting resources at the block level. `C-c s` starts searches across conceptual relationship blocks, while `C-c C-s` starts searches through resource blocks.
+There is one hard dependency not provided out of the box with Emacs: the `consult.el` package on ELPA. Many of the commands in `consult.el` are useful in their own right for exploring concept maps: `consult-line` in particular, but that can only search across individual lines. In `concept.el`, the underlying functionality of `consult.el` is used to implement a convenient interface for searching through conceptual relationships and supporting resources at the block level. `C-c s` starts searches across conceptual *relationship blocks*, while `C-c C-s` starts searches through *resource blocks*.
 
-Both search interfaces feature a query language based around triples. Conceptual relationship blocks have an additional simpler query language which makes finding ideas that involve certain combinations of phrases anywhere inside of them easy. Take for example the query below which matches 3 ideas from the concept map example shown above in this document. Note that the `@` signals `DO NOT MATCH`.
+Both search interfaces feature a query language based around triples. Conceptual *relationship blocks* have an additional simpler query language which makes finding ideas that involve certain combinations of phrases anywhere inside of them easy. Take for example the query below which matches 3 ideas from the concept map example shown above in this document. Note that the `@` signals `DO NOT MATCH`.
 
 ```
 concept;relationship;@group
