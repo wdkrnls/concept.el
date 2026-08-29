@@ -377,6 +377,36 @@ with similar names next to each other."
 	(outline-move-subtree-down 1))))
     (setq max-iter (1- max-iter))))
 
+(defun concept-data-partial-sort (&optional max-iter)
+  "Interactive tool for automatically reordering concepts or examples.
+
+Emacs provides `outline-forward-same-level' and
+`outline-move-subtree-down' procedures out of the box. These are
+enough to implement a naive sorting algorithm for interactively
+reordering concepts seeking a canonical ordering.
+
+A canonical ordering is useful for avoiding semantically spurious diffs,
+e.g., in commits to version control systems. It is also useful for
+reducing the difficulty of refactoring concept maps. It places ideas
+with similar names next to each other."
+  (interactive "P")
+  (when (and (concept-on-data-concept-line)
+             (< 1 (concept-data-concept-count)))
+    (when (null max-iter)
+      (setq max-iter 10001))
+    (concept-goto-first-data-concept-in-group)
+    (while (< 0 max-iter)
+      (let ((a (concept-current-concept)))
+	    (b (concept-next-data-concept)))
+        (cond
+         ((or (null a) (null b))
+	  (concept--goto-first-heading))
+         ((string< a b)
+	  (outline-forward-same-level 1))
+         (t
+	  (outline-move-subtree-down 1))))
+      (setq max-iter (1- max-iter))))
+
 (defun concept--split-string-by-bare-tilde (str)
   "Split STR by ~, but don't split at ~ inside [~]."
   (let ((result '())
@@ -500,10 +530,13 @@ would work on any buffer with trailing blank characters."
         (string-trim (buffer-substring-no-properties (point) (line-end-position)))))))
 
 (defun concept-next-concept (&optional arg)
-  "Get the next concept before the current position if on a data line."
+  "Get the next concept from the current position if on a data line.
+This procedure takes an option argument ARG which advances multiple concepts at a time."
   (when (not arg)
     (setq arg 1))
-  (when (concept-on-data-line)
+  (when (and (concept-in-relationship-block)
+             (or (concept-on-focus-line)
+                 (concept-on-data-line)))
     (save-excursion
       (let ((i 0)
             (conc nil))
@@ -513,14 +546,6 @@ would work on any buffer with trailing blank characters."
             (forward-char 1)
             (setq conc (buffer-substring-no-properties (point) (line-end-position)))))
         conc))))
-
-(defun concept-next-data-concept ()
-  "Get the last concept before the current position if on a data line."
-  (when (concept-on-data-line)
-    (save-excursion
-      (when (re-search-forward "^~" nil t)
-        (forward-char 1)
-        (buffer-substring-no-properties (point) (line-end-position))))))
 
 (defun concept-last-data-concept ()
   "Get the last concept before the current position if on a data line."
@@ -558,7 +583,8 @@ would work on any buffer with trailing blank characters."
          (k            (if (numberp arg) arg 0))
          (last-part    (concept-remove-part last-concept k)))
     (when last-concept
-      (when (concept-on-data-line)
+      (when (or (concept-on-data-line)
+                (concept-on-focus-line))
         (insert last-part)))))
 
 (defun concept-insert-next-concept-as-data ()
@@ -604,6 +630,16 @@ would work on any buffer with trailing blank characters."
       (let ((last-part    (concept-remove-part last-concept k)))
         (end-of-line)
         (insert last-part)))))
+
+(defun concept-insert-next-concept-as-focus (arg)
+  "Insert the next concept mentioned into the current focus."
+  (interactive "P")
+  (let ((next-concept (concept-next-concept))
+        (k            (if (numberp arg) arg 0)))
+    (when next-concept
+      (let ((next-part    (concept-remove-part next-concept k)))
+        (end-of-line)
+        (insert next-part)))))
 
 (defun concept-insert-last-concept-as-data ()
   "Repeat the last related data concept again as the starting text
@@ -1246,6 +1282,12 @@ Sort these names in order of usage frequency."
            (start 2)
            (entry (string-trim (substring-no-properties line start end))))
       entry)))
+
+(defun concept-next-data-concept ()
+  "Get the next data concept and return it a as a string."
+  (save-excursion
+    (concept-goto-next-data-concept)
+    (concept-current-concept)))
 
 (defun concept-current-focus ()
   "Get the current focus concept as a string."
@@ -2257,7 +2299,7 @@ Place each relationship into its own block."
   (interactive "P")
   (let ((k (if (numberp arg) arg 0)))
     (if (concept-on-focus-line)
-        (concept-insert-last-concept-as-focus-2 k)
+        (concept-insert-next-concept-as-focus k)
       (concept-insert-next-concept-as-data-2 k))))
 
 (defun concept-insert-include-dwim (&optional prompt)
@@ -2273,6 +2315,9 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
            (concept-insert-note-block))
           ((concept-on-exposition-line)
            (concept-insert-note-block))
+          ((and (concept-on-focus-line)
+                (concept-on-blank-line))
+           (concept-insert-last-concept-as-focus))
           ((concept-on-focus-line)
            (when (concept-on-last-line-p)
              (end-of-line)
