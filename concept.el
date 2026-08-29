@@ -1326,6 +1326,7 @@ Sort these names in order of usage frequency."
 
 Choose the new concept from initially ordered list of all resources."
   (interactive)
+  ;; TODO: remove blank concept from choices in completing read
   (when (concept-on-concept-line)
     (let* ((choices (concept-find-all-concepts))
            (current (concept-current-concept))
@@ -1348,8 +1349,7 @@ Choose the new concept from initially ordered list of all resources."
         (insert pick)
         (when (looking-at "~")
           (insert "\n"))
-        (delete-horizontal-space)
-        ))))
+        (delete-horizontal-space)))))
 
 (defun concept-change-exposition ()
   "Replace the current exposition data with another having the same attribute elsewhere in the file"

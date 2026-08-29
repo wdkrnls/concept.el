@@ -230,10 +230,16 @@ This matches the 6 ideas that don't have `:include` relationships. Note the sing
 block~hold~group
 ```
 
-This matches the ideas about `relationship-blocks` and `resource-blocks`. The related query below should give the same matches as this one. It just allows the subject to be anything.
+This matches the ideas about `relationship-blocks` and `resource-blocks`. The related query below should give the same matches as this one. The only difference is that it allows the subject to be anything.
 
 ```
 ~hold~group
+```
+
+We can further allow the relationship block to be anything, and on this simple concept map we get the same answer.
+
+```
+~~group
 ```
 
 The *resource block* queries work just the same as these relationship triple queries. The query below finds all the `understanding` resources with `note:` keywords:
@@ -262,7 +268,7 @@ Execute `C-c C-v` to check whether your concept map conforms to the expected con
 
 ## Future Plans and Related Projects
 
-There are still some bugs to clear up with the query language. It would be nice to have a test suite implemented which checks that basic searches work as intended.
+There are still some bugs to clear up with the query language. In particular, it would be nice to allow general regular expression searches. However, at the moment this is impossible since regular expressions are already used to implement the search tools now. Regular expressions that match regular expressions are a bit too tricky for the current implementation. A more sophisticated method would be required. Whatever the implemntation and feature set of the search functionality, It would be nice to have an exhaustive test suite implemented which checks that basic searches work as intended.
 
 In the future it would be nice if this dependency on `consult.el` could be made optional. The problem is that I just don't see how to effectively explore a large concept map without it's interactive preview features.
 
