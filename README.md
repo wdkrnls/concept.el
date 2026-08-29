@@ -113,7 +113,7 @@ The text format is pretty straightforward. A concept map is a text file with a `
 | thoughts
 ```
 
-Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. For domain experts it might seem unnecessary, but for highly multi-disciplinary situations, this can be a life saver for many people working together on a large project. The best plan can only emerge once you have a comprehensive view of the possibilities. A concept map is meant to be quite comprehensive, atleast within a specific domain.
+Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. For domain experts it might seem unnecessary, but for highly multi-disciplinary situations, this can be a life saver for many people working together on a large project. The best plan can only emerge once you have a comprehensive view of the possibilities. A concept map is meant to be quite comprehensive, at least within a specific domain.
 
 The text format used by `concept.el` is designed to be familiar and comfortable to people with experience writing a little bit of lisp code. Note that concepts, resources, relationships, and attribute keywords are intended to be assigned identifiers which look a lot like lisp symbols. This should be familiar to most people using Emacs as their editor. Once you accept this restriction on naming, you buy into a set of constraints which facilitate the creation of a bunch of very useful editing tools for making huge concept maps quickly.
 
@@ -248,7 +248,7 @@ The *resource block* queries work just the same as these relationship triple que
 und~no
 ```
 
-It could be tighted by leveraging anchors. `^` means that the name starts with `u`.
+It could be tightened by leveraging anchors. `^` means that the name starts with `u`.
 
 ```
 ^und~^no
@@ -268,7 +268,7 @@ Execute `C-c C-v` to check whether your concept map conforms to the expected con
 
 ## Future Plans and Related Projects
 
-There are still some bugs to clear up with the query language. In particular, it would be nice to allow general regular expression searches. However, at the moment this is impossible since regular expressions are already used to implement the search tools now. Regular expressions that match regular expressions are a bit too tricky for the current implementation. A more sophisticated method would be required. Whatever the implemntation and feature set of the search functionality, It would be nice to have an exhaustive test suite implemented which checks that basic searches work as intended.
+There are still some bugs to clear up with the query language. In particular, it would be nice to allow general regular expression searches. However, at the moment this is impossible since regular expressions are already used to implement the search tools now. Regular expressions that match regular expressions are a bit too tricky for the current implementation. A more sophisticated method would be required. Whatever the implementation and feature set of the search functionality, It would be nice to have an exhaustive test suite implemented which checks that basic searches work as intended.
 
 In the future it would be nice if this dependency on `consult.el` could be made optional. The problem is that I just don't see how to effectively explore a large concept map without it's interactive preview features.
 
