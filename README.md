@@ -130,6 +130,12 @@ These editing tools include:
 
 Install via ELPA (eventually!).
 
+## Editing tools for concept maps
+
+There is ubiquitous `TAB` completion. Before we can show it, though we need to create a new concept. Navigate to the beginning of the buffer with `M-<`. Then press `C-o`. This makes a new idea block by creating a new subject line. Type out `stuff`. Then, press `M-i`. This inserts an `:include` relationship and creates an object concept line. Press `M-i` again and it will enter `stuff` again automatically. `M-.` will do the same, while `C-M-.` will add the following subject instead. The difference between `M-i` and `M-.` is that `M-.` and `C-M-.` will always enter these concepts, while `M-n` does different things depending on where on the line or where in the idea you are. It tries to help you do what you mean, while `M-.` tries to be specific. Enter `cool-stuff` by moving the cursor to the beginning of the concept. This can be done with `C-M-b` which is a built-in editor shortcut for `backward-sexp`. Otherwise you could just type `M-b` repeatedly until you get there. Now type out `cool-`. From hear you can type `M-i` and it will make a new line for you. Now type out `hot-` followed by `M-.` to write `hot-stuff`. Now press `M-o` to make a new subject line filled in automatically with `hot-stuff`. Press `M-i` again and type out `very-` followed by `M-.` to write `very-hot-stuff`.
+
+Now type `M-o` again to make a new subject line automatically filled out with `very-hot-stuff`. Now press `M-i`. Now press `M-1 M-.` to enter `stuff`. Now complete it with `-that-has-many-layers`. Therefore, you have typed out `stuff-that-has-many-layers`. Now press `M-i` followed by `C-.`. `C-.` inserts the last object line instead of the last subject line. Now press `C-s many` followed by `M-DEL` to kill the word `many`. Replace it with few. Now press `M-i` again. Toggle it into a subject concept by cycling the first character with `M-r` until it is a `~`. Now press `C-M-.` to insert the previous subject. Well, that way is confusing and a bit hard to remember. Navigate to the beginning of the line with `C-M-b` and kill the rest of the line with `C-k`. Now press `TAB` and filter down to the last concept just by typing under the completing-read selection is the concept you want.
+
 ## Searching through concept maps
 
 There is one hard dependency not provided out of the box with Emacs: the `consult.el` package on ELPA. Many of the commands in `consult.el` are useful in their own right for exploring concept maps: `consult-line` in particular, but that can only search across individual lines. In `concept.el`, the underlying functionality of `consult.el` is used to implement a convenient interface for searching through conceptual relationships and supporting resources at the block level. `C-c s` starts searches across conceptual relationship blocks, while `C-c C-s` starts searches through resource blocks.
@@ -160,9 +166,39 @@ This matches the 6 ideas that don't have `:include` relationships. Note the sing
 block~hold~group
 ```
 
-This matches the ideas about `relationship-blocks` and `resource-blocks`.
+This matches the ideas about `relationship-blocks` and `resource-blocks`. The related query below should give the same matches as this one. It just allows the subject to be anything.
+
+```
+~hold~group
+```
+
+The resource block queries work just the same as these relationship triple queries. The query below finds all the `understanding` resources with `note:` keywords:
+
+```
+und~no
+```
+
+It could be tighted by leveraging anchors. `^` means that the name starts with `u`.
+
+```
+^und~^no
+```
+
+It could also be tightened by adding more clauses to the query.
+
+```
+und~no:~from$
+```
+
+This one only matches the one idea with a `derived-from:` keyword. The `$` means that the name ends with `m`.
+
+## Checking the concept map syntax
+
+Execute `C-c C-v` to check whether your concept map conforms to the expected concept map syntax. If it doesn't, it will move the cursor to the first violation.
 
 ## Future Plans and Related Projects
+
+There are still some bugs to clear up with the query language. It would be nice to have a test suite implemented which checks that basic searches work as intended.
 
 In the future it would be nice if this dependency on `consult.el` could be made optional. The problem is that I just don't see how to effectively explore a large concept map without it's interactive preview features.
 
