@@ -4160,7 +4160,6 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "C-<up>")    #'concept-goto-last-thing)
 (define-key concept-mode-map (kbd "M-<down>")  #'concept-exchange-down-dwim)
 (define-key concept-mode-map (kbd "M-<up>")    #'concept-exchange-up-dwim)
-(define-key concept-mode-map (kbd "M-k")       #'concept-cleanup-map)
 (define-key concept-mode-map (kbd "C-c f")     #'concept-follow-dwim)
 (define-key concept-mode-map (kbd "C-c ~")     #'concept-next-double-heading)
 (define-key concept-mode-map (kbd "C-c y r")   #'concept-consult-yank-from-resources)
