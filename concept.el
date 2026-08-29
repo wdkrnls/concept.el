@@ -4044,6 +4044,32 @@ resource line."
          (concept-goto-next-data-concept))
         (t (error "This resource block condition should not have been reached!")))))
 
+(defun concept-edit-keyword ()
+  "Edit the name of the attribute group keyword for the current exposition line."
+  (interactive)
+  (when (concept-on-exposition-line)
+    (re-search-backward concept-attribute-group-name-regexp nil t)
+    (end-of-line)
+    (backward-sexp)
+    (zap-up-to-char 1 ?:)))
+
+(defun concept-edit-relationship ()
+  "Edit the name of the attribute group keyword for the current exposition line."
+  (interactive)
+  (when (concept-on-data-concept-line)
+    (re-search-backward concept-relationship-group-line-lite-regexp nil t)
+    (end-of-line)
+    (backward-sexp)
+    (kill-line)))
+
+(defun concept-edit-group-dwim ()
+  "Edit the parent group name for the piece of data at point."
+  (interactive)
+  (when (concept-on-data-concept-line)
+    (concept-edit-relationship))
+  (when (concept-on-exposition-line)
+    (concept-edit-keyword)))
+
 (defun concept-map-export-to-table (&optional sep)
   "Convert a concept map into a TSV table.
 This table is fairly convenient to work with from `igraph'."
@@ -4180,6 +4206,7 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "C-c M-r")   #'concept-cleanup-map)
 (define-key concept-mode-map (kbd "C-c C-v")   #'concept-map-check-parse)
 (define-key concept-mode-map (kbd "C-c C-t")   #'concept-map-export-to-table)
+(define-key concept-mode-map (kbd "C-c e")     #'concept-edit-group-dwim)
 
 (provide 'concept)
 ;;; concept.el ends here
