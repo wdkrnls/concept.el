@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 
-;; Author: Kyle Andrews <kyle.c.andrews@gmail.com>
+;; Author: Kyle Andrews <kyle.c.andrews@gmail.com>, Protesilaos <info@protesilaos.com>
 ;; Maintainer: Kyle Andrews <kyle.c.andrews@gmail.com>
 ;; URL: https://github.com/wdkrnls/concept.el
 ;; Version: 0.1.0
