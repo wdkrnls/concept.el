@@ -3617,10 +3617,10 @@ The query `old\;@new' matches all query blocks with old but not new terms.
                                  (not (concept-relationships-match-all second-parts)))
                             (and third-parts
                                  (not (concept-data-concepts-match-all third-parts)))))
-              (cond (first-parts
-                     (concept-goto-next-focus-with-any-of first-parts))
-                    (third-parts
+              (cond (third-parts
                      (concept-goto-next-focus-with-data-like third-parts))
+                    (first-parts
+                     (concept-goto-next-focus-with-any-of first-parts))
                     (second-parts
                      (concept-goto-next-focus-with-relationships-like second-parts))))
           (while (and (not (eobp))
