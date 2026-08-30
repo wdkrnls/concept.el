@@ -1,0 +1,18 @@
+<gexf xmlns="http://gexf.net/1.3"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://gexf.net/1.3
+                           http://gexf.net/1.3/gexf.xsd"
+       version="1.3">
+  <meta lastmodifieddate="2009-03-20">
+    <creator>Gephi.org</creator>
+    <description>A sample GEXF file</description>
+  </meta>
+  <graph mode="static" defaultedgetype="directed">
+    <nodes>
+    NNNN
+    </nodes>
+    <edges>
+    RRRR
+    </edges>
+  </graph>
+</gexf>

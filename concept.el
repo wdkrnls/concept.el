@@ -4215,10 +4215,16 @@ This table is fairly convenient to work with from `igraph'."
                 (insert "<edge source=\"" (number-to-string src)
                         "\" target=\""    tgt
                         "\" label=\""     lbl
-                        "\" />"))))))
+                        "\" />")))))
       (with-current-buffer gbuf
         (erase-buffer)
-        (insert-file-contents "gephi-template.gexf"))
+        (insert-file-contents
+         (expand-file-name
+          "gephi-template.gexf"
+          (or
+           load-file-name
+           (file-name-directory
+            (locate-library "concept"))))))
       (while (not (eobp))
         (let ((parent (concept-table-get-parent))
               (child  (concept-table-get-child))
@@ -4243,7 +4249,7 @@ This table is fairly convenient to work with from `igraph'."
         (beginning-of-line)
         (kill-line)
         (goto-char (point-min)))
-      (pop-to-buffer gbuf)))
+      (pop-to-buffer gbuf))))
 
 (defun concept-map-check-parse ()
   "Test whether the current concept map parses successfully.
