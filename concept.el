@@ -99,6 +99,10 @@
 (require 'consult)
 (require 'imenu)
 
+;;; Reference for internal resources
+
+(defconst concept-package-directory (file-name-directory load-file-name))
+
 ;;;; Visual interface to concept maps
 
 (defface concept-subject
@@ -4217,6 +4221,7 @@ This table is fairly convenient to work with from `igraph'."
          (expand-file-name
           "gephi-template.gexf"
           (or
+           concept-package-directory
            load-file-name
            (file-name-directory
             (locate-library "concept"))))))
