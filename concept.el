@@ -790,7 +790,8 @@ is blank, insert it. Otherwise, make a new line and insert it."
       (end-of-line))))
 
 (defun concept-repeat-dwim ()
-  "Repeat what I mean to repeat."
+  "Repeat what I mean to repeat.
+This largely operates below the current line."
   (interactive)
   (cond ((concept-on-focus-line)
          (concept-repeat-focus-concept))
@@ -798,10 +799,15 @@ is blank, insert it. Otherwise, make a new line and insert it."
          (re-search-backward "^~" nil t)
          (concept-repeat-focus-concept))
         ((concept-on-exposition-line)
-         (end-of-line)
-         (newline)
-         (insert "| {}")
-         (backward-char))
+         (concept-insert-note-block))
+        ((concept-on-resource-line)
+         (let ((resource (concept-current-resource)))
+           (outline-end-of-subtree)
+           (newline)
+           (insert "@ " resource)))
+        ((concept-on-attribute-line)
+         (outline-end-of-subtree)
+         (concept-insert-note-block))
         (t
          (concept-repeat-concept-as-focus))))
 
@@ -816,13 +822,33 @@ is blank, insert it. Otherwise, make a new line and insert it."
     (insert "| ")))
 
 (defun concept-add-dwim ()
-  "Add what I mean to add."
+  "Add what I mean to add.
+This largely operates above the current line."
   (interactive)
   (beginning-of-line)
   (let ((p (thing-at-point 'symbol t)))
-    (if (equal "|" p)
-        (concept-add-data)
-      (concept-add-concept))))
+    (cond ((concept-on-resource-line)
+           (previous-line)
+           (end-of-line)
+           (newline)
+           (insert "| "))
+     ((concept-in-relationship-block)
+           (if (equal "|" p)
+               (concept-add-data)
+             (concept-add-concept)))
+          ((and (concept-in-resource-block)
+                (save-excursion
+                  (previous-line)
+                  (concept-on-resource-line)))
+           (previous-line)
+           (end-of-line)
+           (concept-insert-note-block))
+          ((and (concept-in-resource-block)
+                (concept-on-data-line))
+           (concept-add-data)
+           (insert "{}")
+           (backward-char))
+          (t (concept-add-data)))))
 
 (defun concept-toggle-attribute-relationship ()
   "Toggle between an attribute and a relationship.
@@ -2313,18 +2339,27 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
         (line-move-visual nil))
     (cond ((concept-on-resource-line)
            (concept-insert-note-block))
+          ((concept-on-attribute-line)
+           (end-of-line)
+           (newline)
+           (insert "| {}")
+           (backward-char))
           ((and (concept-on-exposition-line)
                 (or (concept-on-last-line-in-block-p)
                     (save-excursion
                       (ignore-errors
                         (forward-line)
                         (concept-on-attribute-line)))))
-           (concept-insert-note-block))
+           (end-of-line)
+           (newline)
+           (insert "| {}")
+           (backward-char))
           ((and (concept-on-exposition-line)
                 (save-excursion
                   (ignore-errors
                     (forward-line)
                     (concept-on-exposition-line))))
+           (end-of-line)
            (newline)
            (insert "| note:"))
           ((and (concept-on-focus-line)
