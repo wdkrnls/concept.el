@@ -4156,6 +4156,95 @@ This table is fairly convenient to work with from `igraph'."
                 (t (error "This should never get triggered!"))))
         (pop-to-buffer nbuf)))))
 
+(defun concept-table-get--helper (field)
+  (when (and (string= (buffer-name) "*concept-map-export*")
+             (< 1 (line-number-at-pos (point))))
+    (let ((line (thing-at-point 'line t)))
+      (with-temp-buffer
+        (insert line)
+        (shell-command-on-region
+         (point-min)
+         (point-max)
+         (format "cut -f%d" field)
+         nil
+         t)
+        (string-trim-right
+         (buffer-string))))))
+
+(defun concept-table-get-parent ()
+  "Get parent concept name on TSV line."
+  (concept-table-get--helper 4))
+
+(defun concept-table-get-child ()
+  "Get parent concept name on TSV line."
+  (concept-table-get--helper 5))
+
+(defun concept-table-get-link ()
+  "Get parent concept name on TSV line."
+  (concept-table-get--helper 6))
+
+(defun concept-table-export-to-gexp ()
+  "Export the relationship block data in the exported TSV table to GEXP."
+  (interactive)
+  (when (string= (buffer-name) "*concept-map-export*")
+    (goto-char (point-min))
+    (forward-line)
+    (keep-lines "	relationship	" (line-beginning-position) (point-max))
+    (let* ((n 0)
+           (e 0)
+           (gbuf (get-buffer-create "*relationship-export-gexf*"))
+           (nodes (make-hash-table :test #'equal))
+           (make-node
+            (lambda (id label)
+              (with-current-buffer gbuf
+                (goto-char (point-min))
+                (search-forward "NNNN")
+                (beginning-of-line)
+                (open-line 1)
+                (forward-char 4)
+                (insert "<node id=\"" (number-to-string id)
+                        "\" label=\"" (string-replace "-" " " label)  "\" />"))))
+           (make-edge
+            (lambda (src tgt lbl)
+              (with-current-buffer gbuf
+                (goto-char (point-min))
+                (search-forward "EEEE")
+                (beginning-of-line)
+                (open-line 1)
+                (forward-char 4)
+                (insert "<edge source=\"" (number-to-string src)
+                        "\" target=\""    tgt
+                        "\" label=\""     lbl
+                        "\" />"))))))
+      (with-current-buffer gbuf
+        (erase-buffer)
+        (insert-file-contents "gephi-template.gexf"))
+      (while (not (eobp))
+        (let ((parent (concept-table-get-parent))
+              (child  (concept-table-get-child))
+              (link   (concept-table-get-link)))
+          (when (not (map-contains-key nodes parent))
+            (setq n (1+ n))
+            (puthash parent n nodes)
+            (funcall make-node n parent))
+          (when (not (map-contains-key nodes child))
+            (setq n (1+ n))
+            (puthash child n nodes)
+            (funcall make-node n child))
+          (let ((src (gethash parent nodes))
+                (tgt (gethash child  nodes)))
+            (funcall make-edge src tgt link))))
+      (with-current-buffer gbuf
+        (goto (point-min))
+        (search-forward "NNNN")
+        (beginning-of-line)
+        (kill-line)
+        (search-forward "RRRR")
+        (beginning-of-line)
+        (kill-line)
+        (goto-char (point-min)))
+      (pop-to-buffer gbuf)))
+
 (defun concept-map-check-parse ()
   "Test whether the current concept map parses successfully.
 If it doesn't parse, move the point to where the first failure is."
