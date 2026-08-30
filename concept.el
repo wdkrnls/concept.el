@@ -1234,20 +1234,15 @@ Sort these names in order of usage frequency."
   "Find all expositions for a specific attribute in a concept file.
 
 Sort these names in order of usage frequency."
-  (let ((pattern "^| *[{].+[}]$")
-        (expositions (make-hash-table :test 'equal)))
+  (let ((expositions (make-hash-table :test 'equal)))
     (save-excursion
       (goto-char (point-min))
-      (while (and (re-search-forward (format "^| *%s:" attribute) nil t)
-                  (re-search-forward pattern nil t))
-        (when (concept-on-exposition-line)
-          (let ((current-attrib (concept-current-attribute)))
-            (if (string-equal attribute current-attrib)
-              (let* ((line (thing-at-point 'line t))
-                     (end (string-match "}" line))
-                     (start (1+ (string-match "{" line)))
-                     (entry (string-trim (substring-no-properties line start end))))
-                (concept--increment-frequency entry expositions)))))))
+      (while (re-search-forward (format "^| *%s:" attribute) nil t)
+        (let ((current-data (concept-get-attribute-data))
+              (current-attrib (concept-current-attribute)))
+          (when (string-equal attribute current-attrib)
+            (dolist (entry current-data)
+              (concept--increment-frequency entry expositions))))))
     (let (counts '())
       (maphash (lambda (key count)
                  (push (cons key count) counts))
