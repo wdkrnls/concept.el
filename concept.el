@@ -98,10 +98,14 @@
 (require 'peg)
 (require 'consult)
 (require 'imenu)
+(require 'man)
 
 ;;; Reference for internal resources
 
-(defconst concept-package-directory (file-name-directory load-file-name))
+(defconst concept-package-directory
+  (or (and load-file-name
+           (file-name-directory load-file-name))
+      (locate-library "concept")))
 
 ;;;; Visual interface to concept maps
 
@@ -2992,8 +2996,8 @@ next version."
   (let* ((line (thing-at-point 'line t))
          (start (string-match "[{[‘]" line))
          (end   (string-match "[]}’] *$" line)))
-    (forward-line)
-    (substring-no-properties line (1+ start) end)))
+    (save-excursion
+      (substring-no-properties line (1+ start) end))))
 
 (defun concept-get-attribute-data ()
   "Get all the attribute data as a list of strings.
@@ -3003,8 +3007,9 @@ See also concept-get-attribute which gives a single string."
     (let ((data '()))
       (while (and (not (eobp))
                   (concept-on-exposition-line))
-        (push (concept-get-expository-data) data))
-      data)))
+        (push (concept-get-expository-data) data)
+        (forward-line))
+      (nreverse data))))
 
 (defun concept-get-child-concepts ()
   "Get all the child concepts under a relationship as a list of strings.
@@ -3964,6 +3969,46 @@ enough for now."
         (when (re-search-backward concept-attribute-group-name-regexp bnd t)
           (string-trim (substring-no-properties (match-string 1))))))))
 
+(defun concept--is-image-file (path)
+  (condition-case err
+      (image-type-from-file-name path)
+    (err
+     nil)))
+
+(defun concept--is-pdf (path)
+  (string= "pdf" (downcase (file-name-extension path))))
+
+(defun concept--is-file-binary-p (path)
+  (string-match-p
+   "charset=binary"
+   (shell-command-to-string
+    (format "file -i -- %s"
+            (shell-quote-argument (expand-file-name path buffer-file-name))))))
+
+(defvar concept-external-file-handlers
+  '(("video/x-matroska" . "mpv %s"))
+  "Tell Emacs how to open a special file type outside of Emacs.
+This is a list of cons pairs.")
+
+(defun concept-try-to-open-file-externally (path)
+  "Try and open a file externally."
+  (let* ((file
+          (if (file-name-absolute-p path)
+              path
+            (expand-file-name
+             path
+             (or (and buffer-file-name
+                      (file-name-directory buffer-file-name))
+                 default-directory))))
+         (mime-type (mailcap-file-name-to-mime-type file))
+         (command (or (cdr (assoc mime-type concept-external-file-handlers))
+                      (mailcap-mime-info mime-type))))
+    (when (not (file-exists-p file))
+        (user-error "The supplied file does not exist! <-: %s" file))
+    (if (not command)
+        (user-error "No program designated for MIME type %s" mime-type)
+      (call-process-shell-command (format command (shell-quote-argument file))))))
+
 (defun concept-follow-dwim ()
   "Follow the link it recognizes."
   (interactive)
@@ -3980,7 +4025,8 @@ enough for now."
       (beginning-of-line)
       (re-search-forward "[^| ]" (line-end-position) t)
       (forward-char)
-      (man-follow (thing-at-point 'word t))))
+      (let ((Man-notify-method 'pushy))
+        (man-follow (concept-get-expository-data)))))
     (when (and (concept-on-exposition-line)
              (string= "url" (concept-exposition-parent-key)))
       (save-excursion
@@ -3993,8 +4039,12 @@ enough for now."
     (save-excursion
       (beginning-of-line)
       (re-search-forward "[^| ]" (line-end-position) t)
-      (forward-char)
-      (concept-find-file))))
+      (let ((data (concept-get-expository-data)))
+        (if (or (not (concept--is-file-binary-p data))
+                (concept--is-image-file data)
+                (concept--is-pdf data))
+            (concept-find-file)
+          (concept-try-to-open-file-externally data))))))
 
 (defun concept-copy-current-file-path ()
   "Copy the current buffer's file path to the kill ring."
