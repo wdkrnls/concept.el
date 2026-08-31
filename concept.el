@@ -99,6 +99,7 @@
 (require 'consult)
 (require 'imenu)
 (require 'man)
+(require 'mailcap)
 
 ;;; Reference for internal resources
 
@@ -567,13 +568,20 @@ This procedure takes an option argument ARG which advances multiple concepts at 
 
 (defun concept-last-data-concept ()
   "Get the last concept before the current position if on a data line."
-  (when (concept-in-relationship-block)
-    (save-excursion
-      (previous-line)
-      (beginning-of-line)
-      (when (and (not (concept-on-relationship-line)))
-        (forward-char 2)
-        (buffer-substring-no-properties (point) (line-end-position))))))
+  (cond ((concept-in-resource-block)
+         (save-excursion
+           (concept-goto-current-focus)
+           (concept-goto-next-resource)
+           (previous-line)
+           (end-of-line)
+           (concept-current-concept)))
+        ((concept-in-relationship-block)
+         (save-excursion
+           (previous-line)
+           (beginning-of-line)
+           (when (and (not (concept-on-relationship-line)))
+             (forward-char 2)
+             (buffer-substring-no-properties (point) (line-end-position)))))))
 
 (defun concept-insert-concept-as-data ()
   "Repeat the current concept in focus as a data concept."
@@ -3990,8 +3998,19 @@ enough for now."
   "Tell Emacs how to open a special file type outside of Emacs.
 This is a list of cons pairs.")
 
+(defun concept-describe-symbol-follow (symbol)
+  "Follow *Help* buffers documenting Emacs symbols."
+  (describe-symbol (intern symbol))
+  (display-buffer (get-buffer "*Help*")))
+
+(defun concept-describe-package-follow (package)
+  "Follow *Help* buffers documenting Emacs symbols."
+  (describe-package (intern package))
+  (display-buffer (get-buffer "*Help*")))
+
 (defun concept-try-to-open-file-externally (path)
   "Try and open a file externally."
+  ;; TODO: See if you can just wrap around mailcap-view-file instead
   (let* ((file
           (if (file-name-absolute-p path)
               path
@@ -4034,17 +4053,29 @@ This is a list of cons pairs.")
         (re-search-forward "[^| ]" (line-end-position) t)
         (forward-char)
         (browse-url-at-point)))
-  (when (and (concept-on-exposition-line)
-             (string= "file" (concept-exposition-parent-key)))
-    (save-excursion
-      (beginning-of-line)
-      (re-search-forward "[^| ]" (line-end-position) t)
-      (let ((data (concept-get-expository-data)))
-        (if (or (not (concept--is-file-binary-p data))
-                (concept--is-image-file data)
-                (concept--is-pdf data))
-            (concept-find-file)
-          (concept-try-to-open-file-externally data))))))
+    (when (and (concept-on-exposition-line)
+               (string= "emacs-package" (concept-exposition-parent-key)))
+      (save-excursion
+        (beginning-of-line)
+        (re-search-forward "[^| ]" (line-end-position) t)
+        (concept-describe-package-follow (thing-at-point 'sexp t))))
+    (when (and (concept-on-exposition-line)
+               (string= "emacs-symbol" (concept-exposition-parent-key)))
+      (save-excursion
+        (beginning-of-line)
+        (re-search-forward "[^| ]" (line-end-position) t)
+        (concept-describe-symbol-follow (thing-at-point 'sexp t))))
+    (when (and (concept-on-exposition-line)
+               (string= "file" (concept-exposition-parent-key)))
+      (save-excursion
+        (beginning-of-line)
+        (re-search-forward "[^| ]" (line-end-position) t)
+        (let ((data (concept-get-expository-data)))
+          (if (or (not (concept--is-file-binary-p data))
+                  (concept--is-image-file data)
+                  (concept--is-pdf data))
+              (concept-find-file)
+            (concept-try-to-open-file-externally data))))))
 
 (defun concept-copy-current-file-path ()
   "Copy the current buffer's file path to the kill ring."
