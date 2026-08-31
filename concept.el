@@ -2339,6 +2339,73 @@ Place each relationship into its own block."
         (concept-insert-next-concept-as-focus k)
       (concept-insert-next-concept-as-data-2 k))))
 
+(defun concept-split-dwim ()
+  "Split the relationship block up into two ideas."
+  (interactive)
+  (cond ((and (concept-on-data-line)
+                (concept-on-concept-line)
+                (save-excursion
+                  (forward-line)
+                  (and (concept-on-data-line)
+                       (concept-on-concept-line))))
+           (when (not (concept-on-blank-line))
+             (let ((focus (concept-current-focus))
+                   (relationship (concept-current-relationship)))
+               (end-of-line)
+               (newline)
+               (insert "~ ")
+               (insert focus)
+               (newline)
+               (insert "| :")
+               (insert relationship))))))
+
+(defun concept-isolate-dwim ()
+  "Isolate the current thing into it's own block."
+  (interactive)
+  (cond ((and (concept-on-data-concept-line)
+                (or (save-excursion
+                      (forward-line)
+                      (concept-on-data-concept-line))
+                    (save-excursion
+                      (previous-line)
+                      (concept-on-data-concept-line))))
+           (when (not (concept-on-blank-line))
+             (let ((focus (concept-current-focus))
+                   (relationship (concept-current-relationship))
+                   (concept (concept-current-concept)))
+               (kill-whole-line)
+               (concept-goto-current-focus)
+               (beginning-of-line)
+               (newline)
+               (previous-line)
+               (insert "~ ")
+               (insert focus)
+               (newline)
+               (insert "| :")
+               (insert relationship)
+               (newline)
+               (insert "| " concept))))
+        ((and (concept-on-exposition-line)
+              (or (save-excursion
+                    (forward-line)
+                    (concept-on-exposition-line))
+                  (save-excursion
+                    (previous-line)
+                    (concept-on-exposition-line))))
+         (let ((resource (concept-current-resource-name))
+               (keyword  (concept-current-attribute))
+               (data     (string-trim-right (thing-at-point 'line t))))
+           (kill-whole-line)
+           (concept-goto-current-resource)
+           (previous-line)
+           (end-of-line)
+           (newline)
+           (insert "@ " resource)
+           (newline)
+           (insert "| " keyword ":")
+           (newline)
+           (insert data)))))
+
 (defun concept-insert-include-dwim (&optional prompt)
   "Do thing action which makes the most sense in the given concept editing situation.
 If on a focused concept, then insert an :include line. Otherwise insert a blank data line."
@@ -2395,15 +2462,9 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
                   (and (concept-on-data-line)
                        (concept-on-concept-line))))
            (when (not (concept-on-blank-line))
-             (let ((focus (concept-current-focus))
-                   (relationship (concept-current-relationship)))
                (end-of-line)
                (newline)
-               (insert "~ ")
-               (insert focus)
-               (newline)
-               (insert "| :")
-               (insert relationship))))
+               (insert "| ")))
           ((concept-on-data-line)
            (when (concept-on-last-line-p)
              (end-of-line)
@@ -3978,15 +4039,18 @@ enough for now."
           (string-trim (substring-no-properties (match-string 1))))))))
 
 (defun concept--is-image-file (path)
+  "Test if the file has an image file format Emacs recognizes."
   (condition-case err
       (image-type-from-file-name path)
     (err
      nil)))
 
 (defun concept--is-pdf (path)
+  "Test if the file looks like a PDF file."
   (string= "pdf" (downcase (file-name-extension path))))
 
 (defun concept--is-file-binary-p (path)
+  "Test if the file looks like a binary file."
   (string-match-p
    "charset=binary"
    (shell-command-to-string
@@ -4065,6 +4129,9 @@ This is a list of cons pairs.")
         (beginning-of-line)
         (re-search-forward "[^| ]" (line-end-position) t)
         (concept-describe-symbol-follow (thing-at-point 'sexp t))))
+    ;; TODO: Ideally mailcap-view-file handles all of
+    ;;       it. Unfortunately, by default image files open with
+    ;;       imagemagick even when Emacs has no problem viewing them.
     (when (and (concept-on-exposition-line)
                (string= "file" (concept-exposition-parent-key)))
       (save-excursion
@@ -4075,7 +4142,7 @@ This is a list of cons pairs.")
                   (concept--is-image-file data)
                   (concept--is-pdf data))
               (concept-find-file)
-            (concept-try-to-open-file-externally data))))))
+            (mailcap-view-file data))))))
 
 (defun concept-copy-current-file-path ()
   "Copy the current buffer's file path to the kill ring."
@@ -4276,7 +4343,8 @@ This table is fairly convenient to work with from `igraph'."
            (nodes (make-hash-table :test #'equal))
            (make-node
             (lambda (id label)
-              (with-current-buffer gbuf
+              ;; TODO: Would be nice to reference gbuf
+              (with-current-buffer (get-buffer "*relationship-export-gexf*")
                 (goto-char (point-min))
                 (search-forward "NNNN")
                 (beginning-of-line)
@@ -4286,7 +4354,8 @@ This table is fairly convenient to work with from `igraph'."
                         "\" label=\"" (string-replace "-" " " label)  "\" />"))))
            (make-edge
             (lambda (src tgt lbl)
-              (with-current-buffer gbuf
+              ;; TODO: Would be nice to reference gbuf
+              (with-current-buffer (get-buffer "*relationship-export-gexf*")
                 (goto-char (point-min))
                 (search-forward "EEEE")
                 (beginning-of-line)
@@ -4430,6 +4499,8 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "C-c C-v")   #'concept-map-check-parse)
 (define-key concept-mode-map (kbd "C-c C-t")   #'concept-map-export-to-table)
 (define-key concept-mode-map (kbd "C-c e")     #'concept-edit-group-dwim)
+(define-key concept-mode-map (kbd "M-;")       #'concept-split-dwim)
+(define-key concept-mode-map (kbd "C-;")       #'concept-isolate-dwim)
 
 (provide 'concept)
 ;;; concept.el ends here
