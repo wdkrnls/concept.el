@@ -291,6 +291,76 @@ These are subject concepts. They were called focus concepts.")
       (goto-char (point-min)))
     (display-buffer "*Concept Imenu Index*")))
 
+(defun concept--concept-word-count (name)
+  (with-temp-buffer
+    (insert name)
+    (count-words (point-min) (point-max))))
+
+(defun concept-word-count ()
+  "Count the number of words in the concept name at point."
+  (when (concept-on-concept-line)
+    (save-excursion
+      (end-of-line)
+      (re-search-backward "[[:alnum:]]")
+      (concept--concept-word-count (thing-at-point 'sexp t)))))
+
+(defun concept--common-substring-of-length (strings source length)
+  "Return a common substring of LENGTH, or nil.
+STRINGS should include SOURCE as its first element. SOURCE should be the
+shortest string."
+  (let ((candidates (make-hash-table :test #'equal))
+        (source-length (length source)))
+    ;; Initially, every substring of SOURCE is a candidate.
+    (dotimes (start (1+ (- source-length length)))
+      (puthash (substring source start (+ start length)) t candidates))
+    ;; Retain only candidates found in each remaining string.
+    (dolist (string (cdr strings))
+      (let ((found (make-hash-table :test #'equal))
+            (string-length (length string)))
+        (when (>= string-length length)
+          (dotimes (start (1+ (- string-length length)))
+            (let ((part (substring string start (+ start length))))
+              (when (gethash part candidates)
+                (puthash part t found)))))
+        (setq candidates found)))
+    ;; Return any surviving candidate.
+    (catch 'result
+      (maphash
+       (lambda (candidate _value)
+         (throw 'result candidate))
+       candidates)
+      nil)))
+
+(defun concept--longest-common-substring (strings)
+  "Return a longest substring common to every string in STRINGS.
+Comparison is exact and case-sensitive.  Return nil for an empty input
+list, and the empty string if no nonempty substring is shared."
+  (cond
+   ((null strings) nil)
+   ((null (cdr strings))
+    (car strings))
+   (t
+    ;; Put the shortest string first, which minimizes candidates.
+    (setq strings
+          (sort (copy-sequence strings)
+                (lambda (a b)
+                  (< (length a) (length b)))))
+    (let* ((source (car strings))
+           (low 0)
+           (high (1+ (length source)))
+           answer)
+      ;; Find the largest length for which a common substring exists.
+      (while (< (1+ low) high)
+        (let* ((middle (/ (+ low high) 2))
+               (candidate
+                (concept--common-substring-of-length
+                 strings source middle)))
+          (if candidate
+              (setq low middle
+                    answer candidate)
+            (setq high middle))))
+      (or answer "")))))
+
 (defvar concept-mode-map
   (let ((map (make-sparse-keymap)))
   (define-key map (kbd "M-N")   #'outline-move-subtree-down)
