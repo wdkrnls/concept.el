@@ -328,9 +328,12 @@ It provides bindings for quickly navigating concepts and examples.")
 
 (defun concept--goto-first-heading ()
   "Go back to the first heading in the region."
-  (condition-case nil
-      (outline-backward-same-level 99999)
-    (error nil)))
+  (beginning-of-buffer)
+  (condition-case err
+      (concept-goto-next-concept-block-or-stay)
+    (error
+     (re-search-forward "^~")
+     (beginning-of-line))))
 
 (defun concept--current-heading-text ()
   "Text for the currently selected line.
@@ -360,6 +363,31 @@ selected line then this will return nil.
 	     (outline-on-heading-p))
 	(concept--current-heading-text)))))
 
+(defun concept-next-focus ()
+  "Navigate to the next focus block"
+  (save-excursion
+    (concept-goto-current-focus)
+    (condition-case err
+        (progn (outline-forward-same-level 1)
+               (concept-current-focus))
+      (error nil))))
+
+(defun concept-map-idea-count ()
+  "Count the number of ideas in a concept map."
+  (save-excursion
+    (beginning-of-buffer)
+    (how-many "^~")))
+
+(defun concept-reverse-ideas ()
+  "Reverse the order of all the ideas in the buffer."
+  (interactive)
+  (let ((n (concept-map-idea-count)))
+    (when (< 1 n)
+      (dotimes (m (1- n))
+        (concept--goto-first-heading)
+        (dotimes (j (- n m 1))
+          (outline-move-subtree-down 1))))))
+
 (defun concept-partial-sort (&optional max-iter)
   "Interactive tool for automatically reordering concepts or examples.
 
@@ -372,50 +400,70 @@ A canonical ordering is useful for avoiding semantically spurious diffs,
 e.g., in commits to version control systems. It is also useful for
 reducing the difficulty of refactoring concept maps. It places ideas
 with similar names next to each other."
-  (interactive "P")
+  (interactive)
   (when (null max-iter)
     (setq max-iter 10001))
-  (while (< 0 max-iter)
-    (let ((a (concept--current-heading-text))
-	  (b (concept--next-heading-text)))
+  (concept--goto-first-heading)
+  (catch 'done
+    (let ((swapped nil))
+      (while (< 0 max-iter)
+        (let ((a (concept-current-focus))
+	      (b (concept-next-focus)))
       (cond
        ((or (null a) (null b))
+        (when (null swapped)
+          (throw 'done 'sorted))
+        (setq swapped nil)
 	(concept--goto-first-heading))
        ((string< a b)
 	(outline-forward-same-level 1))
+       ((string= a b)
+        (outline-forward-same-level 1))
        (t
+        (setq swapped t)
 	(outline-move-subtree-down 1))))
-    (setq max-iter (1- max-iter))))
+        (setq max-iter (1- max-iter)))
+      (throw 'done 'iterations-exhausted))))
+
+(defun concept-goto-first-data-concept-in-group ()
+  "Navigate back to the first data concept in the group."
+  (concept-goto-current-focus)
+  (concept-goto-next-concept))
 
 (defun concept-data-partial-sort (&optional max-iter)
   "Interactive tool for automatically reordering concepts or examples.
 
-Emacs provides `outline-forward-same-level' and
-`outline-move-subtree-down' procedures out of the box. These are
-enough to implement a naive sorting algorithm for interactively
-reordering concepts seeking a canonical ordering.
-
-A canonical ordering is useful for avoiding semantically spurious diffs,
-e.g., in commits to version control systems. It is also useful for
-reducing the difficulty of refactoring concept maps. It places ideas
-with similar names next to each other."
+The commands `concept-exchange-concept-up' and
+`concept-exchange-concept-down' are enough to implement a naive sorting
+algorithm for interactively reordering concepts seeking a canonical
+ordering. A canonical ordering is useful for avoiding semantically
+spurious diffs, e.g., in commits to version control systems. It is also
+useful for reducing the difficulty of refactoring concept maps. It
+places ideas with similar names next to each other."
   (interactive "P")
-  (when (and (concept-on-data-concept-line)
-             (< 1 (concept-data-concept-count)))
+  (when (and (concept-in-relationship-block)
+             (< 1 (concept-relationship-count)))
     (when (null max-iter)
       (setq max-iter 10001))
     (concept-goto-first-data-concept-in-group)
-    (while (< 0 max-iter)
-      (let ((a (concept-current-concept)))
-	    (b (concept-next-data-concept)))
-        (cond
-         ((or (null a) (null b))
-	  (concept--goto-first-heading))
-         ((string< a b)
-	  (outline-forward-same-level 1))
-         (t
-	  (outline-move-subtree-down 1))))
-      (setq max-iter (1- max-iter))))
+    (catch 'done
+        (let ((i 0)
+              (swapped nil))
+          (while (< i max-iter)
+            (let ((a (concept-current-concept))
+	          (b (concept-next-data-concept)))
+              (cond
+               ((concept-on-last-line-in-block-p)
+                (when (null swapped)
+                  (throw 'done 'sorted))
+                (setq swapped nil)
+                (concept-goto-first-data-concept-in-group))
+               ((string< a b)
+	        (concept-goto-next-data-concept))
+               (t
+                (setq swapped t)
+	        (concept-exchange-concept-down))))
+            (setq i (1+ i)))))))
 
 (defun concept--split-string-by-bare-tilde (str)
   "Split STR by ~, but don't split at ~ inside [~]."
@@ -1761,8 +1809,8 @@ concepts."
               (if (equal direction "up")
                   (previous-line)
                 (next-line))
-              (eq t (and (concept-on-data-line)
-                         (concept-on-concept-line))))
+              (and (concept-on-data-line)
+                   (concept-on-concept-line)))
         (if (equal direction "up")
             (progn
               (transpose-lines 1)
@@ -1943,7 +1991,7 @@ This could be another relationship group, a new idea which starts with a focus c
 (defun concept-move-attribute-down ()
   "Move the keyword and its data below the next keyword and its data."
   (interactive)
-  ;;  TODO: this seems like a copy of the defun two before this one
+  ;;  TODO: this seems like a copy of the defun two expressions before this one
   (let (current-start
         current-end
         current-keyword
@@ -2227,9 +2275,9 @@ resource line is found."
       (re-search-forward "^@ +" end t))))
 
 (defun concept-relationship-block-attribute-count ()
-  "Count the number of keywords inside of a relationship block.
-This starts at the focus line and increments every time a new
-keyword line is found."
+  "Count the number of relationship keywords inside of a relationship block.
+This starts at the focus line and increments every time a new relationship keyword
+line is found."
   (interactive)
   (let ((line-move-visual nil))
     (save-excursion
@@ -2244,7 +2292,7 @@ keyword line is found."
         n))))
 
 (defun concept-unique-relationship-block-attribute-count ()
-  "Count the number of unique relationship groups inside of a relationship block.
+  "Count the number of unique attribute group keywords inside of a resource block.
 This starts at the focus line and increments every time a unique
 relationship is found."
   (interactive)
@@ -2752,7 +2800,7 @@ the previous of this command which goes (backwards) in the other direction."
             (concept-unique-relationship-group-count)))
         (t (error "Unknown relationship group size state! Please stick to all, unique, or diff."))))
 
-(defun  concept-goto-previous-relationship-block-with-group-size (prefix)
+(defun concept-goto-previous-relationship-block-with-group-size (prefix)
   "Search for relationship blocks with certain numbers of relationship
 groups. This is useful for finding combinatorial relationships. See also
 the previous of this command which goes (backwards) in the other direction.
@@ -2860,6 +2908,10 @@ a relationship block. See also `concept-set-last-attribute-count-behavior'."
              concept-last-relationship-group-size-behavior)))
 
 (defun concept-make-last-attribute-count ()
+  "Dispatch to the right procedure for counting attributes."
+  ;; TODO: this talks about relationship blocks and attributes at the
+  ;; same time. These may need to be renamed to discuss resource
+  ;; blocks. However, looking at the code I am not so sure.
   (cond ((eq concept-last-attribute-count-behavior 'all)
          (concept-relationship-block-attribute-count))
         ((eq concept-last-attribute-count-behavior 'unique)
