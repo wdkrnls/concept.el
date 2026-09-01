@@ -100,6 +100,7 @@
 (require 'imenu)
 (require 'man)
 (require 'mailcap)
+(require 'xml)
 
 ;;; Reference for internal resources
 
@@ -4057,11 +4058,6 @@ enough for now."
     (format "file -i -- %s"
             (shell-quote-argument (expand-file-name path buffer-file-name))))))
 
-(defvar concept-external-file-handlers
-  '(("video/x-matroska" . "mpv %s"))
-  "Tell Emacs how to open a special file type outside of Emacs.
-This is a list of cons pairs.")
-
 (defun concept-describe-symbol-follow (symbol)
   "Follow *Help* buffers documenting Emacs symbols."
   (describe-symbol (intern symbol))
@@ -4072,28 +4068,17 @@ This is a list of cons pairs.")
   (describe-package (intern package))
   (display-buffer (get-buffer "*Help*")))
 
-(defun concept-try-to-open-file-externally (path)
-  "Try and open a file externally."
-  ;; TODO: See if you can just wrap around mailcap-view-file instead
-  (let* ((file
-          (if (file-name-absolute-p path)
-              path
-            (expand-file-name
-             path
-             (or (and buffer-file-name
-                      (file-name-directory buffer-file-name))
-                 default-directory))))
-         (mime-type (mailcap-file-name-to-mime-type file))
-         (command (or (cdr (assoc mime-type concept-external-file-handlers))
-                      (mailcap-mime-info mime-type))))
-    (when (not (file-exists-p file))
-        (user-error "The supplied file does not exist! <-: %s" file))
-    (if (not command)
-        (user-error "No program designated for MIME type %s" mime-type)
-      (call-process-shell-command (format command (shell-quote-argument file))))))
+(defun concept-describe-keybinding-follow (key)
+  "Follow *Help* buffers documenting Emacs keybindings."
+  (describe-key (kbd key))
+  (display-buffer (get-buffer "*Help*")))
 
 (defun concept-follow-dwim ()
-  "Follow the link it recognizes."
+  "Follow the link if it recognizes the attribute group keyword and the file type.
+If the keyword is `file' but the file is not one of the recognized types
+that can be opened from Emacs, then try and `mailcap-view-file' to open
+an external file viewer. It is recommended to configure these via
+modifying `mailcap-user-mime-data'."
   (interactive)
   (when (and (concept-on-exposition-line)
              (string= "info" (concept-exposition-parent-key)))
@@ -4129,9 +4114,12 @@ This is a list of cons pairs.")
         (beginning-of-line)
         (re-search-forward "[^| ]" (line-end-position) t)
         (concept-describe-symbol-follow (thing-at-point 'sexp t))))
-    ;; TODO: Ideally mailcap-view-file handles all of
-    ;;       it. Unfortunately, by default image files open with
-    ;;       imagemagick even when Emacs has no problem viewing them.
+    (when (and (concept-on-exposition-line)
+               (string= "emacs-keybinding" (concept-exposition-parent-key)))
+      (save-excursion
+        (beginning-of-line)
+        (re-search-forward "[^| ]" (line-end-position) t)
+        (concept-describe-keybinding-follow (concept-get-expository-data))))
     (when (and (concept-on-exposition-line)
                (string= "file" (concept-exposition-parent-key)))
       (save-excursion
@@ -4330,6 +4318,28 @@ This table is fairly convenient to work with from `igraph'."
   "Get parent concept name on TSV line."
   (concept-table-get--helper 6))
 
+(defvar concept-gephi-template
+  "<gexf xmlns=\"http://gexf.net/1.3\"
+       xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"
+       xsi:schemaLocation=\"http://gexf.net/1.3
+                           http://gexf.net/1.3/gexf.xsd\"
+       version=\"1.3\">
+  <meta lastmodifieddate=\"2009-03-20\">
+    <creator>Gephi.org</creator>
+    <description>A sample GEXF file</description>
+  </meta>
+  <graph mode=\"static\" defaultedgetype=\"directed\">
+    <nodes>
+    NNNN
+    </nodes>
+    <edges>
+    RRRR
+    </edges>
+  </graph>
+</gexf>
+"
+  "Gephi GEXF template")
+
 (defun concept-table-export-to-gexp ()
   "Export the relationship block data in the exported TSV table to GEXP."
   (interactive)
@@ -4339,42 +4349,38 @@ This table is fairly convenient to work with from `igraph'."
     (keep-lines "	relationship	" (line-beginning-position) (point-max))
     (let* ((n 0)
            (e 0)
+           (tbuf  (buffer-name))
            (gbuf (get-buffer-create "*relationship-export-gexf*"))
            (nodes (make-hash-table :test #'equal))
            (make-node
-            (lambda (id label)
-              ;; TODO: Would be nice to reference gbuf
-              (with-current-buffer (get-buffer "*relationship-export-gexf*")
-                (goto-char (point-min))
-                (search-forward "NNNN")
-                (beginning-of-line)
-                (open-line 1)
-                (forward-char 4)
-                (insert "<node id=\"" (number-to-string id)
-                        "\" label=\"" (string-replace "-" " " label)  "\" />"))))
+            (lambda (id lbl)
+              ;; TODO: Would be nice to directly reference the lexical gbuf
+              (let ((gbuf (get-buffer "*relationship-export-gexf*")))
+                (with-current-buffer gbuf
+                  (goto-char (point-min))
+                  (search-forward "NNNN")
+                  (beginning-of-line)
+                  (open-line 1)
+                  (insert "    ")
+                  (insert "<node id=\"" (number-to-string id)
+                          "\" label=\"" (string-replace "-" " " (xml-escape-string lbl))  "\" />")))))
            (make-edge
             (lambda (src tgt lbl)
-              ;; TODO: Would be nice to reference gbuf
-              (with-current-buffer (get-buffer "*relationship-export-gexf*")
-                (goto-char (point-min))
-                (search-forward "EEEE")
-                (beginning-of-line)
-                (open-line 1)
-                (forward-char 4)
-                (insert "<edge source=\"" (number-to-string src)
-                        "\" target=\""    tgt
-                        "\" label=\""     lbl
-                        "\" />")))))
+              ;; TODO: Would be nice to directly reference the lexical gbuf
+              (let ((gbuf (get-buffer "*relationship-export-gexf*")))
+                (with-current-buffer gbuf
+                  (goto-char (point-min))
+                  (search-forward "RRRR")
+                  (beginning-of-line)
+                  (open-line 1)
+                  (insert "    ")
+                  (insert "<edge source=\"" (number-to-string src)
+                          "\" target=\""    (number-to-string tgt)
+                          "\" label=\""     (xml-escape-string lbl)
+                          "\" />"))))))
       (with-current-buffer gbuf
         (erase-buffer)
-        (insert-file-contents
-         (expand-file-name
-          "gephi-template.gexf"
-          (or
-           concept-package-directory
-           load-file-name
-           (file-name-directory
-            (locate-library "concept"))))))
+        (insert concept-gephi-template))
       (while (not (eobp))
         (let ((parent (concept-table-get-parent))
               (child  (concept-table-get-child))
@@ -4389,15 +4395,14 @@ This table is fairly convenient to work with from `igraph'."
             (funcall make-node n child))
           (let ((src (gethash parent nodes))
                 (tgt (gethash child  nodes)))
-            (funcall make-edge src tgt link))))
+            (funcall make-edge src tgt link)))
+        (forward-line))
       (with-current-buffer gbuf
-        (goto (point-min))
+        (goto-char (point-min))
         (search-forward "NNNN")
-        (beginning-of-line)
-        (kill-line)
+        (kill-whole-line)
         (search-forward "RRRR")
-        (beginning-of-line)
-        (kill-line)
+        (kill-whole-line)
         (goto-char (point-min)))
       (pop-to-buffer gbuf))))
 

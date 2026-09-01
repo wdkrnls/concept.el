@@ -197,10 +197,23 @@ You can use `M-i` to make new attribute group keywords. However, by default thes
 
 Once you have your *resource block* written the way you like it, Pressing `C-c f` can be used on exposition lines inside of the following attribute groups out of the box.
 
-* `file:`
-* `url:`
-* `info:`
-* `man:`
+* `file:` to open other files
+* `url:` to open webpages in an `EWW` buffer
+* `info:` to open info documentation
+* `man:` to open manpages
+
+Note that if the file path given under a `file:` keyword cannot be intelligibly opened from within Emacs, `concept.el` will try to open it with M-x `mailcap-view-data`. Theoretically, this will consult your `mailcap` file. However, we didn't have much luck with that. What worked for us was editing the Emacs variable `mailcap-user-mime-data`. Here is some example code which tells Emacs how to open a video file with the `mpv` shell command.
+
+```
+(setopt mailcap-user-mime-data
+        (list (list "mpv -- %s" "video/.*")))
+```
+
+There is also integration with the Emacs online help system. The following keywords help document Emacs-specific topics.
+
+* `emacs-symbol:` to run M-x `describe-symbol`
+* `emacs-package:` to run M-x `describe-package`
+* `emacs-keybinding:` to run M-x `describe-key`
 
 ## Searching through concept maps
 
@@ -268,7 +281,7 @@ This one only matches the one idea with a `derived-from:` keyword. The `$` means
 
 Execute `C-c C-v` to check whether your concept map conforms to the expected concept map syntax. If it doesn't, it will move the cursor to the first violation. Once you are familiar with the syntax of concept maps, it is usually obvious what the problem is and you can fix it. Once it's fixed, you can press `C-c C-v`, make your new fixes, and repeat until finally the command places a message in the minibuffer that the syntax now parses.
 
-Once the concept map parses successfully, searching should be guaranteed to work as intended and you should be able to run M-x `concept-map-export-to-table` or press `C-c C-t` to construct a tab-separated table which you can save to disk and then load into another tool like the `conceptuel` package in R.
+Once the concept map parses successfully, searching should be guaranteed to work as intended and you should be able to run M-x `concept-map-export-to-table` or press `C-c C-t` to construct a tab-separated table which you can save to disk and then load into another tool like the `conceptuel` package in R. You can also take the generated preliminary exported table buffer `*concept-map-export*` and run M-x `concept-table-export-to-gexp` which will produce a `*relationship-export-gexf*` buffer which can be saved as a GEXF (XML) file and then loaded into the Gephi interactive network analysis program. However, note that currently only the concept map part of the network survives in this step. None of the resource block data is saved in the GEXF file as of yet. Further note that creating the GEXF export can be rather time consuming for large concept maps. Expect it to take a minute or two.
 
 ## Future Plans and Related Projects
 
