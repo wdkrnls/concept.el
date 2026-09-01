@@ -296,5 +296,3 @@ One way a programmer might think of a concept map (as imagined in `concept.el`) 
 => https://gephi.org/
 
 Concept maps should be meaningful to many people, not just their creators. To make that a reality, `concept.el` should gain features which make it easier to merge two concept maps together. One possible way this could be done is through achieving a canonical ordering of ideas based on their subjects and possibly their length. Some code to this effect has already been included, but it is not completely functional. Thinking about concept names in a standard way would really help this merging effort as well. So, in the future we hope to provide tools for parsing concepts in terms of the `{classification|core|definition}` framework discussed earlier.
-
-Allowing users to reference files which cannot be opened from Emacs is an important goal. So, we look forward to generalize `C-c f` to make that possible. Hopefully, built-in Emacs functionality around mime-types is up to the challenge.
