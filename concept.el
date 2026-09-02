@@ -553,6 +553,17 @@ selected line then this will return nil.
           (dotimes (j (- n m 1))
             (concept-move-attribute-down)))))))
 
+(defun concept-reverse-resources ()
+  "Reverse the order of all the resource blocks included in the current idea."
+  (interactive)
+  (when (concept-on-resource-line)
+    (let ((n (concept-resource-block-count)))
+      (when (< 1 n)
+        (dotimes (m (1- n))
+          (concept-goto-first-resource-block-in-idea)
+          (dotimes (j (- n m 1))
+            (outline-move-subtree-down 1)))))))
+
 (defun concept-reverse-order-dwim ()
   "Reverse the order of the thing at point."
   (interactive)
@@ -2447,16 +2458,23 @@ relationship line is found."
           (concept-on-focus-line)))))
 
 (defun concept-goto-first-relationship-group-in-block ()
-  "Navigate backt to the first relationship group in the current relationship block."
+  "Navigate back to the first relationship group in the current relationship block."
   (concept-goto-current-focus)
   (forward-line)
   (end-of-line))
 
 (defun concept-goto-first-attribute-group-in-block ()
-  "Navigate backt to the first attribute group in the current resource block."
+  "Navigate back to the first attribute group in the current resource block."
   (when (concept-in-resource-block)
     (concept-goto-current-resource)
     (forward-line)
+    (end-of-line)))
+
+(defun concept-goto-first-resource-block-in-idea ()
+  "Navigate back to the first resource block in the current idea."
+  (when (< 0 (concept-resource-block-count))
+    (concept-goto-current-focus)
+    (concept-goto-next-resource)
     (end-of-line)))
 
 (defun concept-relationship-group-partial-sort (&optional max-iter)
