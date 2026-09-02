@@ -532,7 +532,7 @@ selected line then this will return nil.
             (concept-exchange-concept-down)))))))
 
 (defun concept-reverse-relationship-groups ()
-  "Reverse the order of all the data concepts in the relationship group."
+  "Reverse the order of all the relationship groups in the block."
   (interactive)
   (when (concept-on-relationship-line)
     (let ((n (concept-relationship-group-count)))
@@ -542,6 +542,17 @@ selected line then this will return nil.
           (dotimes (j (- n m 1))
             (concept-move-relationship-group-down)))))))
 
+(defun concept-reverse-attribute-groups ()
+  "Reverse the order of all the attribute groups in the resource block."
+  (interactive)
+  (when (concept-on-attribute-line)
+    (let ((n (concept-resource-keyword-count)))
+      (when (< 1 n)
+        (dotimes (m (1- n))
+          (concept-goto-first-attribute-group-in-block)
+          (dotimes (j (- n m 1))
+            (concept-move-attribute-down)))))))
+
 (defun concept-reverse-order-dwim ()
   "Reverse the order of the thing at point."
   (interactive)
@@ -549,6 +560,8 @@ selected line then this will return nil.
     (concept-reverse-data-concepts))
   (when (concept-on-attribute-line)
     (concept-reverse-attribute-groups))
+  (when (concept-on-exposition-line)
+    (concept-reverse-attribute-data))
   (when (concept-on-relationship-line)
     (concept-reverse-relationship-groups))
   (when (concept-on-resource-line)
@@ -2439,6 +2452,13 @@ relationship line is found."
   (forward-line)
   (end-of-line))
 
+(defun concept-goto-first-attribute-group-in-block ()
+  "Navigate backt to the first attribute group in the current resource block."
+  (when (concept-in-resource-block)
+    (concept-goto-current-resource)
+    (forward-line)
+    (end-of-line)))
+
 (defun concept-relationship-group-partial-sort (&optional max-iter)
   "Sort the relationship groups in alphabetical order."
   (interactive "P")
@@ -3168,8 +3188,24 @@ a relationship block. See also `concept-set-last-attribute-count-behavior'."
     (message "Setting `concept-last-relationship-group-size-behavior' to `%S'."
              concept-last-relationship-group-size-behavior)))
 
+(defun concept-resource-keyword-count ()
+  "Count the number of keywords associated with a resource."
+  (when (concept-in-resource-block)
+    (save-excursion
+      (concept-goto-current-resource)
+      (re-search-forward concept-attribute-group-name-regexp nil t)
+      (let ((n 1))
+        (while (concept-on-attribute-line)
+          (concept--next-attribute-boundary)
+          (end-of-line)
+          (when (concept-on-attribute-line)
+            (setq n (1+ n))))
+        n))))
+  
 (defun concept-make-last-attribute-count ()
-  "Dispatch to the right procedure for counting attributes."
+  "Dispatch to the right procedure for counting attributes.
+Note that attributes counts are summed across all resource blocks inside
+the idea."
   ;; TODO: this talks about relationship blocks and attributes at the
   ;; same time. These may need to be renamed to discuss resource
   ;; blocks. However, looking at the code I am not so sure.
