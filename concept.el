@@ -4411,13 +4411,27 @@ modifying `mailcap-user-mime-data'."
         (re-search-forward "[^| ]" (line-end-position) t)
         (concept-describe-package-follow (thing-at-point 'sexp t))))
     (when (and (concept-on-exposition-line)
+               (or (string= "M-x" (concept-exposition-parent-key))
+                   (string= "emacs-command" (concept-exposition-parent-key))))
+      (save-excursion
+        (beginning-of-line)
+        (re-search-forward "[^| ]" (line-end-position) t)
+        (call-interactively (intern (thing-at-point 'sexp t)))))
+    (when (and (concept-on-exposition-line)
+               (string= "emacs-buffer" (concept-exposition-parent-key)))
+      (save-excursion
+        (beginning-of-line)
+        (re-search-forward "[^| ]" (line-end-position) t)
+        (switch-to-buffer (concept-get-expository-data))))
+    (when (and (concept-on-exposition-line)
                (string= "emacs-symbol" (concept-exposition-parent-key)))
       (save-excursion
         (beginning-of-line)
         (re-search-forward "[^| ]" (line-end-position) t)
         (concept-describe-symbol-follow (thing-at-point 'sexp t))))
     (when (and (concept-on-exposition-line)
-               (string= "emacs-keybinding" (concept-exposition-parent-key)))
+               (or (string= "emacs-keybinding" (concept-exposition-parent-key))
+                   (string= "kbd" (concept-exposition-parent-key))))
       (save-excursion
         (beginning-of-line)
         (re-search-forward "[^| ]" (line-end-position) t)
