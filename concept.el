@@ -564,6 +564,27 @@ selected line then this will return nil.
           (dotimes (j (- n m 1))
             (outline-move-subtree-down 1)))))))
 
+(defun concept-attribute-group-data-count ()
+  "Return the number of exposition lines in the current attribute group."
+  (when (concept-on-attribute-line)
+    (length (concept-get-attribute-data)))
+  (when (concept-on-exposition-line)
+    (save-excursion
+      (concept--previous-attribute-boundary)
+      (end-of-line)
+      (length (concept-get-attribute-data)))))
+
+(defun concept-reverse-attribute-data ()
+  "Reverse the order of the attribute data included in the current attribute group."
+  (interactive)
+  (when (concept-on-exposition-line)
+    (let ((n (concept-attribute-group-data-count)))
+      (when (< 1 n)
+        (dotimes (m (1- n))
+          (concept-goto-first-exposition-line-in-attribute-group)
+          (dotimes (j (- n m 1))
+            (concept-exchange-exposition-down)))))))
+
 (defun concept-reverse-order-dwim ()
   "Reverse the order of the thing at point."
   (interactive)
@@ -2477,6 +2498,16 @@ relationship line is found."
     (concept-goto-next-resource)
     (end-of-line)))
 
+(defun concept-goto-first-exposition-line-in-attribute-group ()
+  "Navigate back to the first exposition line in the current attribute group."
+  (cond ((concept-on-exposition-line)
+         (concept--previous-attribute-boundary)
+         (end-of-line)
+         (forward-line))
+        ((concept-on-attribute-line)
+         (end-of-line)
+         (forward-line))))
+
 (defun concept-relationship-group-partial-sort (&optional max-iter)
   "Sort the relationship groups in alphabetical order."
   (interactive "P")
@@ -3219,7 +3250,7 @@ a relationship block. See also `concept-set-last-attribute-count-behavior'."
           (when (concept-on-attribute-line)
             (setq n (1+ n))))
         n))))
-  
+
 (defun concept-make-last-attribute-count ()
   "Dispatch to the right procedure for counting attributes.
 Note that attributes counts are summed across all resource blocks inside
