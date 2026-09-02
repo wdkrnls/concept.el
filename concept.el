@@ -304,6 +304,67 @@ These are subject concepts. They were called focus concepts.")
       (re-search-backward "[[:alnum:]]")
       (concept--concept-word-count (thing-at-point 'sexp t)))))
 
+(defun concept-goto-nth-idea (N)
+  "Navigate to the Nth idea in the concept map."
+  (let ((n (concept-map-idea-count)))
+    (unless (and (< N n) (<= 0 N))
+      (user-error "Supplied indexes are out of range."))
+    (concept--goto-first-heading)
+    (dotimes (_ N)
+      (concept-goto-next-concept-block))))
+
+(defun concept-current-idea-index ()
+  "Determine the index of the current idea."
+  (save-excursion
+    (concept-goto-current-focus)
+    (let ((i 0))
+      (beginning-of-line)
+      (while (not (bobp))
+        (outline-backward-same-level 1)
+        (setq i (1+ i)))
+      i)))
+
+(defun concept-move-idea-up (N)
+  "Move the current idea up N times."
+  (let ((i (concept-current-idea-index)))
+    (unless (and (<= 0 N) (< N (1+ i)))
+      (user-error "Supplied indexes are out of range."))
+    (when (< 0 N)
+      (outline-move-subtree-up N))))
+
+(defun concept-move-idea-down (N)
+  "Move the current idea down N times."
+  (let ((i (concept-current-idea-index))
+        (n (concept-map-idea-count)))
+    (unless (and (<= 0 N) (< N (- n i)))
+      (user-error "Supplied indexes are out of range."))
+    (when (< 0 N)
+      (outline-move-subtree-down N))))
+
+(defun concept-exchange-ideas (i j)
+  "Exchange two arbitrary ideas in a concept map."
+  (interactive)
+  ;; TODO: Finish implementing this function.
+  (let ((n (concept-map-idea-count)))
+    (unless (and (< i n) (< j n)
+                 (<= 0 i) (<= 0 j))
+      (user-error "Supplied indexes are out of range."))
+    (catch 'done
+      (cond ((= i j)
+             (throw 'done 'identity))
+            ((< i j)
+             (let ((d (- j i)))
+               (concept-goto-nth-idea j)
+               (concept-move-idea-up d)
+               (concept-goto-nth-idea (1+ i))
+               (concept-move-idea-down (1- d)))
+            (t
+             (let ((d (- i j)))
+               (concept-goto-nth-idea i)
+               (concept-move-idea-up d)
+               (concept-goto-nth-idea (1+ j))
+               (concept-move-idea-down (1- d)))))))))
+
 (defun concept--common-substring-of-length (strings source length)
   "Return a common substring of LENGTH, or nil.
 STRINGS should include SOURCE as its first element. SOURCE should be the
@@ -457,6 +518,34 @@ selected line then this will return nil.
         (concept--goto-first-heading)
         (dotimes (j (- n m 1))
           (outline-move-subtree-down 1))))))
+
+(defun concept-reverse-order-dwim ()
+  "Reverse the order of the thing at point."
+  (interactive)
+  (when (concept-on-data-concept-line)
+    (concept-reverse-data-concepts))
+  (when (concept-on-attribute-line)
+    (concept-reverse-attribute-groups))
+  (when (concept-on-relationship-line)
+    (concept-reverse-relationship-groups))
+  (when (concept-on-resource-line)
+    (concept-reverse-resources))
+  (when (concept-on-focus-line)
+    (concept-reverse-ideas)))
+
+(defun concept-randomize-dwim ()
+  "Randomize the order of the thing at point."
+  (interactive)
+  (when (concept-on-data-concept-line)
+    (concept-randomize-concepts))
+  (when (concept-on-attribute-line)
+    (concept-randomize-attribute-groups))
+  (when (concept-on-relationship-line)
+    (concept-randomize-relationship-groups))
+  (when (concept-on-resource-line)
+    (concept-randomize-resources))
+  (when (concept-on-focus-line)
+    (concept-randomize-ideas)))
 
 (defun concept-partial-sort (&optional max-iter)
   "Interactive tool for automatically reordering concepts or examples.
@@ -2361,8 +2450,7 @@ relationship line is found."
 (defun concept-canonical-sort-dwim ()
   "Perform a partial sort of the thing at point."
   (interactive)
-  (when (and (concept-on-data-line)
-             (concept-on-concept-line))
+  (when (concept-on-data-concept-line)
     (concept-data-partial-sort))
   (when (concept-on-attribute-line)
     (concept-attribute-group-partial-sort))
@@ -2371,7 +2459,7 @@ relationship line is found."
   (when (concept-on-resource-line)
     (concept-resource-partial-sort))
   (when (concept-on-focus-line)
-    (concept-partial-sort 1)))
+    (concept-partial-sort)))
 
 (defun concept-resource-block-length ()
   "Count the number of lines inside of the resource block."
@@ -4702,13 +4790,15 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "C-c C-e")   #'concept-expand-combinatorial-relationship-block)
 (define-key concept-mode-map (kbd "C-c C-= r") #'concept-set-last-relationship-size-behavior)
 (define-key concept-mode-map (kbd "C-c C-= a") #'concept-set-last-attribute-count-behavior)
-(define-key concept-mode-map (kbd "C-c M-r")   #'concept-cleanup-map)
+(define-key concept-mode-map (kbd "C-c M-p")   #'concept-cleanup-map)
 (define-key concept-mode-map (kbd "C-c C-v")   #'concept-map-check-parse)
 (define-key concept-mode-map (kbd "C-c C-t")   #'concept-map-export-to-table)
 (define-key concept-mode-map (kbd "C-c e")     #'concept-edit-group-dwim)
 (define-key concept-mode-map (kbd "M-;")       #'concept-split-dwim)
 (define-key concept-mode-map (kbd "C-;")       #'concept-isolate-dwim)
 (define-key concept-mode-map (kbd "C-c C-o")   #'concept-canonical-sort-dwim)
+(define-key concept-mode-map (kbd "C-c C-r")   #'concept-reverse-order-dwim)
+(define-key concept-mode-map (kbd "C-c M-r")   #'concept-randomize-dwim)
 
 (provide 'concept)
 ;;; concept.el ends here
