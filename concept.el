@@ -4708,6 +4708,7 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "C-c e")     #'concept-edit-group-dwim)
 (define-key concept-mode-map (kbd "M-;")       #'concept-split-dwim)
 (define-key concept-mode-map (kbd "C-;")       #'concept-isolate-dwim)
+(define-key concept-mode-map (kbd "C-c C-o")   #'concept-canonical-sort-dwim)
 
 (provide 'concept)
 ;;; concept.el ends here
