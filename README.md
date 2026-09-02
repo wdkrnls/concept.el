@@ -215,7 +215,9 @@ There is also integration with the Emacs online help system. The following keywo
 
 * `emacs-symbol:` to run M-x `describe-symbol`
 * `emacs-package:` to run M-x `describe-package`
-* `emacs-keybinding:` to run M-x `describe-key`
+* `emacs-keybinding:` (or `kbd:`) to run M-x `describe-key`
+* `emacs-buffer:` to run `switch-to-buffer`
+* `emacs-command` (or `M-x:`) to run `call-interactively` on the intern'd data
 
 ## Searching through concept maps
 
