@@ -495,10 +495,13 @@ with similar names next to each other."
         (setq max-iter (1- max-iter)))
       (throw 'done 'iterations-exhausted))))
 
-(defun concept-goto-first-data-concept-in-group ()
+(defun concept-goto-first-data-concept-in-relationship-group ()
   "Navigate back to the first data concept in the group."
-  (concept-goto-current-focus)
-  (concept-goto-next-concept))
+  (when (and (concept-in-relationship-block)
+             (concept-on-data-line))
+    (when (concept-on-data-concept-line)
+      (concept-goto-last-relationship))
+    (forward-line)))
 
 (defun concept-data-partial-sort (&optional max-iter)
   "Interactive tool for automatically reordering concepts or examples.
@@ -512,11 +515,14 @@ useful for reducing the difficulty of refactoring concept maps. It
 places ideas with similar names next to each other."
   (interactive "P")
   (when (and (concept-in-relationship-block)
-             (< 1 (concept-relationship-count)))
+             (not (concept-on-focus-line))
+             (or (< 1 (concept-relationship-group-concept-count))
+                 (end-of-line)))
     (when (null max-iter)
       (setq max-iter 10001))
-    (concept-goto-first-data-concept-in-group)
-    (catch 'done
+    (concept-goto-first-data-concept-in-relationship-group)
+    (let ((line (line-number-at-pos (point))))
+      (catch 'done
         (let ((i 0)
               (swapped nil))
           (while (< i max-iter)
@@ -527,13 +533,15 @@ places ideas with similar names next to each other."
                 (when (null swapped)
                   (throw 'done 'sorted))
                 (setq swapped nil)
-                (concept-goto-first-data-concept-in-group))
+                (concept-goto-first-data-concept-in-relationship-group))
                ((string< a b)
 	        (concept-goto-next-data-concept))
                (t
                 (setq swapped t)
 	        (concept-exchange-concept-down))))
-            (setq i (1+ i)))))))
+            (setq i (1+ i)))))
+      (goto-line line)
+      (end-of-line))))
 
 (defun concept--split-string-by-bare-tilde (str)
   "Split STR by ~, but don't split at ~ inside [~]."
@@ -652,10 +660,21 @@ would work on any buffer with trailing blank characters."
         (in-block (concept-in-relationship-block)))
     (when (and is-data in-block)
       (save-excursion
-        (re-search-backward ":[^ ]+")
-        (beginning-of-line)
-        (re-search-forward ":")
-        (string-trim (buffer-substring-no-properties (point) (line-end-position)))))))
+        (when (re-search-backward ":[^ ]+" nil t)
+          (beginning-of-line)
+          (re-search-forward ":")
+          (string-trim (buffer-substring-no-properties (point) (line-end-position))))))))
+
+(defun concept-next-relationship ()
+  "Get the last concept before the current position if on a data line."
+  (let ((is-data (concept-on-data-line))
+        (in-block (concept-in-relationship-block)))
+    (when (and is-data in-block)
+      (save-excursion
+        (when (re-search-forward "^| :[^ ]+" nil t)
+          (re-search-backward ":")
+          (forward-char)
+          (string-trim (buffer-substring-no-properties (point) (line-end-position))))))))
 
 (defun concept-next-concept (&optional arg)
   "Get the next concept from the current position if on a data line.
@@ -1455,11 +1474,12 @@ Sort these names in order of usage frequency."
 (defun concept-current-relationship ()
   "Get the current relationship and return it as a string."
   (when (and (concept-in-relationship-block)
-             (concept-on-data-line)
-             (concept-on-concept-line))
-    (save-excursion
-      (re-search-backward "^| +:")
-      (concept-get-relationship))))
+             (concept-on-data-line))
+    (if (concept-on-relationship-line)
+        (concept-get-relationship)
+      (save-excursion
+        (re-search-backward "^| +:")
+        (concept-get-relationship)))))
 
 (defun concept-current-resource ()
   "Get the current resource and return as a string."
@@ -2263,7 +2283,7 @@ This starts at the focus line and increments every time a data line is found.
         n))))
 
 (defun concept-relationship-group-count ()
-  "Count the number of relationship groupos inside of a relationship block.
+  "Count the number of relationship groups inside of a relationship block.
 This starts at the focus line and increments every time a new
 relationship line is found."
   (let ((line-move-visual nil))
@@ -2278,6 +2298,66 @@ relationship line is found."
           (next-line))
         n))))
 
+(defun concept-relationship-group-concept-count ()
+  "Count the number of data concepts."
+  (when (and (concept-in-relationship-block)
+             (not (concept-on-focus-line)))
+    (save-excursion
+      (when (concept-on-data-concept-line)
+        (concept-goto-last-relationship))
+      (let ((pt0 (point)))
+        (concept--next-relationship-boundary)
+        (let ((pt1 (point)))
+          (- (line-number-at-pos pt1)
+             (line-number-at-pos pt0)
+             1))))))
+
+(defun concept-in-last-relationship-in-block-p ()
+  "Test if the curent relationship is the last relationship in the block."
+  (when (and (concept-in-relationship-block)
+             (concept-on-data-line))
+    (save-excursion
+      (concept--next-relationship-boundary)
+      (or (concept-on-resource-line)
+          (concept-on-focus-line)))))
+
+(defun concept-goto-first-relationship-group-in-block ()
+  "Navigate backt to the first relationship group in the current relationship block."
+  (concept-goto-current-focus)
+  (forward-line)
+  (end-of-line))
+
+(defun concept-relationship-group-partial-sort (&optional max-iter)
+  "Sort the relationship groups in alphabetical order."
+  (interactive "P")
+  (when (and (concept-in-relationship-block)
+             (or (< 1 (concept-relationship-group-count))
+                 (end-of-line)))
+    (when (null max-iter)
+      (setq max-iter 10001))
+    (concept-goto-first-relationship-group-in-block)
+    (let ((line (line-number-at-pos (point))))
+      (catch 'done
+        (let ((i 0)
+              (swapped nil))
+          (while (< i max-iter)
+            (let ((a (concept-current-relationship))
+	          (b (concept-next-relationship)))
+              (cond
+               ((concept-in-last-relationship-in-block-p)
+                (when (null swapped)
+                  (throw 'done 'sorted))
+                (setq swapped nil)
+                (concept-goto-first-relationship-group-in-block))
+               ((string< a b)
+	        (concept-goto-next-relationship))
+               (t
+                (setq swapped t)
+	        (concept-move-relationship-group-down))))
+            (setq i (1+ i)))))
+      (goto-line line)
+      (end-of-line))))
+
 (defun concept-canonical-sort-dwim ()
   "Perform a partial sort of the thing at point."
   (interactive)
@@ -2285,11 +2365,11 @@ relationship line is found."
              (concept-on-concept-line))
     (concept-data-partial-sort))
   (when (concept-on-attribute-line)
-    (concept-partial-attribute-sort))
+    (concept-attribute-group-partial-sort))
   (when (concept-on-relationship-line)
-    (concept-partial-relationship-group-sort))
+    (concept-relationship-group-partial-sort))
   (when (concept-on-resource-line)
-    (concept-partial-resource-sort))
+    (concept-resource-partial-sort))
   (when (concept-on-focus-line)
     (concept-partial-sort 1)))
 
