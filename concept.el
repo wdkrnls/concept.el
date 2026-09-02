@@ -313,6 +313,16 @@ These are subject concepts. They were called focus concepts.")
     (dotimes (_ N)
       (concept-goto-next-concept-block))))
 
+(defun concept-goto-nth-data-concept (N)
+  "Navigate to the Nth data concept in the relationship block."
+  (let ((n (concept-relationship-group-concept-count)))
+    (unless (and (< N n) (<= 0 N))
+      (user-error "Supplied indexes are out of range."))
+    (concept-goto-first-data-concept-in-relationship-group)
+    (dotimes (_ N)
+      (concept-goto-next-concept))
+    (end-of-line)))
+
 (defun concept-current-idea-index ()
   "Determine the index of the current idea."
   (save-excursion
@@ -363,6 +373,29 @@ These are subject concepts. They were called focus concepts.")
                (concept-goto-nth-idea (1+ j))
                (concept-move-idea-down (1- d))))))))
 
+(defun concept-exchange-data-concepts (i j)
+  "Exchange two arbitrary data concepts in a relationship group."
+  (let ((n (concept-relationship-group-concept-count)))
+    (when (< 1 n)
+      (unless (and (< i n) (< j n)
+                   (<= 0 i) (<= 0 j))
+        (user-error "Supplied indexes are out of range."))
+      (catch 'done
+        (cond ((= i j)
+               (throw 'done 'identity))
+              ((< i j)
+               (let ((d (- j i)))
+                 (concept-goto-nth-data-concept j)
+                 (concept-exchange-concept-up d)
+                 (concept-goto-nth-data-concept (1+ i))
+                 (concept-exchange-concept-down (1- d))))
+              (t
+               (let ((d (- i j)))
+                 (concept-goto-nth-data-concept i)
+                 (concept-exchange-concept-up d)
+                 (concept-goto-nth-data-concept (1+ j))
+                 (concept-exchange-concept-down (1- d)))))))))
+
 (defun concept-shuffle-ideas ()
   "Randomly shuffle all the ideas in the buffer."
   (interactive)
@@ -379,6 +412,18 @@ See also `concept-shuffle' ideas."
   (interactive)
   (when (concept-on-focus-line)
     (concept-shuffle-ideas)))
+
+(defun concept-randomize-data-concepts ()
+  "Randomly shuffle all the data concepts in the current relationship block."
+  (interactive)
+  (when (concept-on-data-concept-line)
+    (concept-goto-first-data-concept-in-relationship-group)
+    (let ((n (concept-relationship-group-concept-count)))
+      (when (< 1 n)
+        (dolist (i (number-sequence 1 (1- n)))
+          (let ((j (random i)))
+            (concept-exchange-data-concepts i j))))
+      (concept-goto-first-data-concept-in-relationship-group))))
 
 (defun concept--common-substring-of-length (strings source length)
   "Return a common substring of LENGTH, or nil.
@@ -2060,38 +2105,45 @@ This is a wrapper function useful for interactive usage."
       (previous-line))
     (end-of-line)))
 
-(defun concept--exchange-concept (direction)
+(defun concept--exchange-concept (direction &optional times)
   "Toggle the lines a la C-x C-t.
 
 When on a concept line that is not the focus, exchange the concept line
 with either the next line or the previous line as long as those are also
 concepts."
+  (when (null times)
+    (setq times 1))
   (let ((line-move-visual nil))
     (when (concept-on-concept-line)
-      (when (save-excursion
-              (if (equal direction "up")
-                  (previous-line)
-                (next-line))
-              (and (concept-on-data-line)
-                   (concept-on-concept-line)))
-        (if (equal direction "up")
+      ;; TODO: This is a bug when exchanging data concepts!
+      (when (< 0 times)
+        (user-error "TIMES must be positive."))
+      (dotimes (i times)
+        (when (save-excursion
+                (if (equal direction "up")
+                    (previous-line)
+                  (next-line))
+                (and (concept-on-data-line)
+                     (concept-on-concept-line)))
+          (if (equal direction "up")
+              (progn
+                (transpose-lines 1)
+                (previous-line 2))
             (progn
+              (next-line)
               (transpose-lines 1)
-              (previous-line 2))
-          (progn
-            (next-line)
-            (transpose-lines 1)
-            (previous-line)))))))
+              (previous-line))))
+        (end-of-line)))))
 
-(defun concept-exchange-concept-up ()
+(defun concept-exchange-concept-up (&optional times)
   "Exchange concept with the previous one."
   (interactive)
-  (concept--exchange-concept "up"))
+  (concept--exchange-concept "up" times))
 
-(defun concept-exchange-concept-down ()
+(defun concept-exchange-concept-down (&optional times)
   "Exchange concept with the next one."
   (interactive)
-  (concept--exchange-concept "down"))
+  (concept--exchange-concept "down" times))
 
 (defun concept--exchange-exposition (direction)
   "Toggle the lines a la C-x C-t.
