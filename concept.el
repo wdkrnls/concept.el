@@ -666,7 +666,7 @@ selected line then this will return nil.
   "Randomize the order of the thing at point."
   (interactive)
   (when (concept-on-data-concept-line)
-    (concept-randomize-concepts))
+    (concept-randomize-data-concepts))
   (when (concept-on-attribute-line)
     (concept-randomize-attribute-groups))
   (when (concept-on-relationship-line)
@@ -2115,8 +2115,7 @@ concepts."
     (setq times 1))
   (let ((line-move-visual nil))
     (when (concept-on-concept-line)
-      ;; TODO: This is a bug when exchanging data concepts!
-      (when (< 0 times)
+      (when (< times 0)
         (user-error "TIMES must be positive."))
       (dotimes (i times)
         (when (save-excursion
