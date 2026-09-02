@@ -531,6 +531,17 @@ selected line then this will return nil.
           (dotimes (j (- n m 1))
             (concept-exchange-concept-down)))))))
 
+(defun concept-reverse-relationship-groups ()
+  "Reverse the order of all the data concepts in the relationship group."
+  (interactive)
+  (when (concept-on-relationship-line)
+    (let ((n (concept-relationship-group-count)))
+      (when (< 1 n)
+        (dotimes (m (1- n))
+          (concept-goto-first-relationship-group-in-block)
+          (dotimes (j (- n m 1))
+            (concept-move-relationship-group-down)))))))
+
 (defun concept-reverse-order-dwim ()
   "Reverse the order of the thing at point."
   (interactive)
