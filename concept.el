@@ -343,8 +343,6 @@ These are subject concepts. They were called focus concepts.")
 
 (defun concept-exchange-ideas (i j)
   "Exchange two arbitrary ideas in a concept map."
-  (interactive)
-  ;; TODO: Finish implementing this function.
   (let ((n (concept-map-idea-count)))
     (unless (and (< i n) (< j n)
                  (<= 0 i) (<= 0 j))
@@ -357,13 +355,30 @@ These are subject concepts. They were called focus concepts.")
                (concept-goto-nth-idea j)
                (concept-move-idea-up d)
                (concept-goto-nth-idea (1+ i))
-               (concept-move-idea-down (1- d)))
+               (concept-move-idea-down (1- d))))
             (t
              (let ((d (- i j)))
                (concept-goto-nth-idea i)
                (concept-move-idea-up d)
                (concept-goto-nth-idea (1+ j))
-               (concept-move-idea-down (1- d)))))))))
+               (concept-move-idea-down (1- d))))))))
+
+(defun concept-shuffle-ideas ()
+  "Randomly shuffle all the ideas in the buffer."
+  (interactive)
+  (concept--goto-first-heading)
+  (let ((n (concept-map-idea-count)))
+    (dolist (i (number-sequence 1 (1- n)))
+      (let ((j (random i)))
+        (concept-exchange-ideas i j))))
+  (concept--goto-first-heading))
+
+(defun concept-randomize-ideas ()
+  "Randomly shuffle all the ideas in the buffer.
+See also `concept-shuffle' ideas."
+  (interactive)
+  (when (concept-on-focus-line)
+    (concept-shuffle-ideas)))
 
 (defun concept--common-substring-of-length (strings source length)
   "Return a common substring of LENGTH, or nil.
@@ -461,7 +476,8 @@ It provides bindings for quickly navigating concepts and examples.")
   "Go back to the first heading in the region."
   (beginning-of-buffer)
   (condition-case err
-      (concept-goto-next-concept-block-or-stay)
+      (when (not (concept-on-focus-line))
+        (concept-goto-next-concept-block-or-stay))
     (error
      (re-search-forward "^~")
      (beginning-of-line))))
@@ -3255,9 +3271,6 @@ a relationship block. See also `concept-set-last-attribute-count-behavior'."
   "Dispatch to the right procedure for counting attributes.
 Note that attributes counts are summed across all resource blocks inside
 the idea."
-  ;; TODO: this talks about relationship blocks and attributes at the
-  ;; same time. These may need to be renamed to discuss resource
-  ;; blocks. However, looking at the code I am not so sure.
   (cond ((eq concept-last-attribute-count-behavior 'all)
          (concept-relationship-block-attribute-count))
         ((eq concept-last-attribute-count-behavior 'unique)
