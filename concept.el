@@ -4535,6 +4535,75 @@ enough for now."
   (describe-key (kbd key))
   (display-buffer (get-buffer "*Help*")))
 
+(defun concept-eval-elisp (string)
+  "Evaluate an Emacs Lisp STRING in a new dedicated buffer."
+  (let ((buffer (generate-new-buffer "*Elisp Evaluation*"))
+        (messages '())
+        (output-buffer (generate-new-buffer " *Elisp Standard Output*"))
+        form
+        pretty-code
+        result)
+    (setq form (read string))
+    (setq pretty-code
+          (let ((pp-fill t)
+                (fill-column 30))
+            (pp-to-string form)))
+    (unwind-protect
+        (with-current-buffer buffer
+          (insert "# Lisp Computation\n\n"
+                  "Metadata:\n\n"
+                  "```\n"
+                  "EmacsVersion: " emacs-version
+                  "\nRunDate: "
+                  (format-time-string "%Y-%m-%d %H:%M:%S" (current-time))
+                  "\n```\n\n"
+                  "## Input\n\n"
+                  "Code:\n\n"
+                  "```elisp\n"
+                  pretty-code
+                  "```"
+                  "\n\n## Output\n\n")
+          (let ((original-message (symbol-function 'message)))
+            (unwind-protect
+                (progn
+                  (fset 'message
+                        (lambda (format-string &rest arguments)
+                          (let ((text (apply #'format
+                                             format-string
+                                             arguments)))
+                            (setq messages
+                                  (append messages (list text))))))
+                  (let ((standard-output output-buffer))
+                    (condition-case err
+                        (progn
+                          (setq result
+                                (eval (read string) lexical-binding))
+                          (insert "Returns:\n\n"
+                                  (prin1-to-string result)))
+                      (error
+                       (insert "Returns:\n\n"
+                               (format "Error: %S" err))))))
+              (fset 'message original-message)))
+          (when (> (buffer-size output-buffer) 0)
+            (insert "\n\nOutput:\n\n"
+                    "```text\n"
+                    (with-current-buffer output-buffer
+                      (buffer-substring-no-properties
+                       (point-min)
+                       (point-max)))
+                    "```\n")))
+      (when messages
+        (with-current-buffer buffer
+          (insert "\nMessages:\n\n" "```text\n")
+          (dolist (message messages)
+            (insert message "\n"))
+          (insert "```\n")))
+      (switch-to-buffer buffer)
+      (goto-char (point-min))
+      (special-mode)
+      (when (buffer-live-p output-buffer)
+        (kill-buffer output-buffer)))))
+
 (defun concept-follow-dwim ()
   "Follow the link if it recognizes the attribute group keyword and the file type.
 If the keyword is `file' but the file is not one of the recognized types
@@ -4596,6 +4665,20 @@ modifying `mailcap-user-mime-data'."
         (beginning-of-line)
         (re-search-forward "[^| ]" (line-end-position) t)
         (concept-describe-keybinding-follow (concept-get-expository-data))))
+    (when (and (concept-on-exposition-line)
+               (or (string= "shell-command" (concept-exposition-parent-key))
+                   (string= "shell" (concept-exposition-parent-key))))
+      (save-excursion
+        (beginning-of-line)
+        (re-search-forward "[^| ]" (line-end-position) t)
+        (compile (concept-get-expository-data) t)))
+    (when (and (concept-on-exposition-line)
+               (or (string= "emacs-lisp" (concept-exposition-parent-key))
+                   (string= "lisp" (concept-exposition-parent-key))))
+      (save-excursion
+        (beginning-of-line)
+        (re-search-forward "[^| ]" (line-end-position) t)
+        (concept-eval-elisp (concept-get-expository-data))))
     (when (and (concept-on-exposition-line)
                (string= "file" (concept-exposition-parent-key)))
       (save-excursion

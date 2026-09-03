@@ -218,6 +218,9 @@ There is also integration with the Emacs online help system. The following keywo
 * `emacs-keybinding:` (or `kbd:`) to run M-x `describe-key`
 * `emacs-buffer:` to run `switch-to-buffer`
 * `emacs-command` (or `M-x:`) to run `call-interactively` on the intern'd data
+* `emacs-lisp` (or `elisp`) to run arbitrary Emacs Lisp expressions
+
+Of course, running emacs commands and lisp code can be dangerous. Use responsibly! Emacs Lisp expressions output their results into a dedicated buffer which can be readily changed into a subset of Markdown called Gemtext. So, you can easily change this to buffer from special mode into Markdown or Gemtext, whichever you prefer!
 
 ## Searching through concept maps
 
