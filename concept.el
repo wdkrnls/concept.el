@@ -27,36 +27,30 @@
 ;;; Commentary:
 
 ;; Concept.el is a plain-text conceptual knowledge editor for Emacs.
-;; It is based on some of the ideas of the psychologists David Ausibel
-;; and Joseph D. Novak who studied how to best learn for
+;; It is based on some of the ideas from the psychologists David
+;; Ausibel and Joseph D. Novak who studied how to best learn for
 ;; understanding. Novak especially focused on exploring how David
-;; Ausibel's ideas related to concept maps. Novak-style concept maps
-;; can be concstructed using the non-free program: cmaptools
-;; (https://cmap.ihmc.us/cmaptools/). His maps focus exclusively on
-;; the relationships between abstract concepts only. concept.el takes
-;; a different approach. It aims to keep concept maps tied to the
-;; concrete pieces of knowledge from which we can infer their
-;; existence. It holds that the abstract is often best understood
-;; first by example.
+;; Ausibel's ideas related to concept maps.
 ;;
-;; In Novak's conception of concept maps, their use is limited to the
-;; reflective period of learning after consuming what Ausibel calls
-;; advanced organizers. This package assumes a wider role for concept
+;; Novak-style concept maps can be concstructed using the non-free
+;; program: cmaptools (https://cmap.ihmc.us/cmaptools/). His maps
+;; focus exclusively on the relationships between abstract
+;; concepts. An editor with a traditional graphical user interface
+;; like cmaptools seeks only to create an informative diagram as a
+;; graphical aid. The details which invite concept formation in the
+;; first place are left out. In Novak's conception of concept maps,
+;; their use is limited to the reflective period of learning after
+;; consuming what Ausibel calls advanced organizers, and potential to
+;; the evaluation period. Note that the authors of `concept.el' have
+;; never used cmaptools. We are basing our assessment entirely off of
+;; the pictures of concept maps produced by that software.
+;;
+;; This package (concept.el) assumes a far wider role for concept
 ;; maps. It expects that concept maps will become far larger and more
-;; comprehensive than what is feasible to show in a single diagram. In
-;; contrast, a graphical editor like cmaptools seeks only a
-;; diagram. Note that the authors of `concept.el' have never used
-;; cmaptools. We are basing our assessment entirely off of the
-;; pictures of concept maps produced by that software.
-;;
-;; Concept maps in concept.el are one large file with a `.map'
-;; extension that follow a specific regular text format. They contain
-;; only plain text, but they support a rich interaction model
-;; including a kind of hyper-link capability (`C-c f') which works for
-;; a variety of file formats that are understood by Emacs. The goal of
-;; creating concept maps is better understanding. Following Ausibel's
-;; theory, new understanding comes from integrating new concepts with
-;; old ones.
+;; comprehensive than what is feasible to show in a single diagram. It
+;; aims to keep concept maps tied to the concrete pieces of knowledge
+;; from which we can infer their existence. The core design philosophy
+;; holds that the abstract is best understood first by example.
 ;;
 ;; Understanding is an iterative process, so as your concept maps grow
 ;; in complexity, `concept.el' provides powerful tools for sifting
@@ -64,16 +58,26 @@
 ;; extension. These include facilities for quickly adding new
 ;; concepts, relating them to each other, and grounding them in
 ;; concrete facts, explicit examples, and external references. To keep
-;; concept maps from quickly growing unweildy, there are many tools
+;; concept maps from growing unwieldy, there are many tools
 ;; for probing them from within Emacs. In particular, `concept.el'
-;; provides powerful features for searching through related
-;; ideas.
-
+;; provides powerful features for searching through related ideas.
+;;
+;; Concept maps in concept.el are placed in one large file with a
+;; `.map' extension. That file follows a specific and regular text
+;; format. It contains only plain text, but supports a rich
+;; interaction model including a hyper-linking capability (`C-c f')
+;; which works for a variety of file formats, both those that are
+;; understood by Emacs, and those that are not. The goal of creating
+;; concept maps is better understanding and a better memory. Following
+;; Ausibel's theory, new understanding comes from integrating new
+;; concepts in with old ones. Concepts only integrate with each other
+;; through the ideas which jointly leverage them.
+;;
 ;; What are ideas? Ideas propose groups of jointly interesting
 ;; relationships between concepts. What makes two ideas related? They
 ;; should have concepts in common, especially their subjects, but also
 ;; their objects and the relationships between them. Think of an idea
-;; as a paragraph. Not just any paragraph, but a paragraph focused
+;; as a paragraph, not just any paragraph, but a paragraph focused
 ;; towards picking out the conceptual aspects of a
 ;; situation. `concept.el' provides two small query "languages" for
 ;; finding related ideas. These are presented through live previews
