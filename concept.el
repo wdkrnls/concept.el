@@ -2813,6 +2813,24 @@ Place each relationship into its own block."
                (insert "| :")
                (insert relationship))))))
 
+(defun concept-data-split-dwim ()
+  "Split the relationship block up into two ideas."
+  (interactive)
+  (cond ((and (concept-on-data-concept-line)
+              (save-excursion
+                (forward-line)
+                (concept-on-data-concept-line)))
+           (when (not (concept-on-blank-line))
+             (let ((concept (concept-current-concept))
+                   (relationship (concept-current-relationship)))
+               (end-of-line)
+               (newline)
+               (insert "~ ")
+               (insert concept)
+               (newline)
+               (insert "| :")
+               (insert relationship))))))
+
 (defun concept-isolate-dwim ()
   "Isolate the current thing into it's own block."
   (interactive)
@@ -5072,6 +5090,7 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "C-c C-t")   #'concept-map-export-to-table)
 (define-key concept-mode-map (kbd "C-c e")     #'concept-edit-group-dwim)
 (define-key concept-mode-map (kbd "M-;")       #'concept-split-dwim)
+(define-key concept-mode-map (kbd "C-M-;")     #'concept-data-split-dwim)
 (define-key concept-mode-map (kbd "C-;")       #'concept-isolate-dwim)
 (define-key concept-mode-map (kbd "C-c C-o")   #'concept-canonical-sort-dwim)
 (define-key concept-mode-map (kbd "C-c C-r")   #'concept-reverse-order-dwim)
