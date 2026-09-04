@@ -231,18 +231,23 @@ Once you have your *resource block* written the way you like it, Pressing `C-c f
 * `info:` to open info documentation
 * `man:` to open manpages
 
-Note that if the file path given under a `file:` keyword cannot be intelligibly opened from within Emacs, `concept.el` will try to open it with M-x `mailcap-view-data`. Theoretically, this will consult your `mailcap` file. However, we didn't have much luck with that. What worked for us was editing the Emacs variable `mailcap-user-mime-data`. Here is some example code which tells Emacs how to open a video file with the `mpv` shell command.
+Note that if the file path given under a `file:` keyword cannot be intelligibly opened from within Emacs, `concept.el` will try to open it with M-x `mailcap-view-data`. This will consult your `mailcap` file if it exists, otherwise it will look at the Emacs variable `mailcap-user-mime-data`. Below is an example which tells Emacs how to open a video file with the `mpv` shell command.
 
 ```
 (setopt mailcap-user-mime-data
         (list (list "mpv -- %s" "video/.*")))
 ```
 
-There is also integration with the Emacs online help system. The following keywords help document Emacs-specific topics.
+There are a few situations where indirectly followed files make sense. One of them involves the combination of a PDF file and a page number. So, when inside a resource block with a `page:` keyword and a `file:` keyword, and the attribute under that `file:` keyword is a PDF file, then pressing `C-c f` on the attribute under the `page:` keyword will open the PDF file, and then navigate to the given PDF page. Similarly, a variety of other plain-text files take `search-phrase:` queries which open those files, go to the beginning of the buffer, and then search forward to the first match of the search phrase.
+
+There is also integration with the Emacs online tools including the help system. The following keywords help document Emacs-specific topics.
 
 * `emacs-symbol:` to run M-x `describe-symbol`
 * `emacs-package:` to run M-x `describe-package`
 * `emacs-keybinding:` (or `kbd:`) to run M-x `describe-key`
+
+In addition, attribute data under the following keywords can be followed leveraging common Emacs facilities:
+
 * `emacs-buffer:` to run `switch-to-buffer`
 * `emacs-command` (or `M-x:`) to run `call-interactively` on the intern'd data
 * `emacs-lisp` (or `elisp`) to run arbitrary Emacs Lisp expressions
