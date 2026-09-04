@@ -829,6 +829,20 @@ this."
 (defun concept-on-first-line-p ()
   (= 1 (line-number-at-pos (point))))
 
+(defun concept-on-first-concept ()
+  "Test if the concept is the first concept in the file."
+  (and (concept-on-focus-line)
+       (save-excursion
+         (beginning-of-line)
+         (not (re-search-backward "^~" nil t)))))
+
+(defun concept-on-last-concept ()
+  "Test if the concept is the first concept in the file."
+  (and (concept-on-concept-line)
+       (save-excursion
+         (end-of-line)
+         (not (re-search-forward "^[~|]" nil t)))))
+
 (defun concept-on-data-line ()
   "Test if the current line is a data line.
 A data line starts with a vertical bar."
@@ -951,7 +965,10 @@ This procedure takes an option argument ARG which advances multiple concepts at 
 (defun concept-insert-concept-as-data-2 (arg)
   "Repeat the current concept in focus as a data concept."
   (interactive "P")
-  (let* ((last-concept (concept-last-concept))
+  (let* ((last-concept (if (or (concept-on-first-line-p)
+                               (concept-on-first-concept))
+                           (concept-next-concept)
+                         (concept-last-concept)))
          (k            (if (numberp arg) arg 0))
          (last-part    (concept-remove-part last-concept k)))
     (when last-concept
@@ -1070,9 +1087,13 @@ previously. In that case the command inserts the next data concept and
 calls it the last data concept. Since this function is only used for
 interactive editing by a user, this makes sense."
   (interactive "P")
-  (let* ((last-concept (or (concept-last-data-concept)
+  (let* ((last-concept (or (and (concept-on-first-concept)
+                                (concept-next-focus))
+                           (concept-last-data-concept)
                            (or (and (< 1 (concept-relationship-group-concept-count))
-                                    (concept-next-data-concept))
+                                    (if (concept-on-last-concept)
+                                        (concept-last-concept)
+                                      (concept-next-data-concept)))
                                (concept-next-focus))))
          (k            (if (numberp arg) arg 0)))
     (when last-concept
@@ -2790,8 +2811,12 @@ Place each relationship into its own block."
   (interactive "P")
   (let ((k (if (numberp arg) arg 0)))
     (if (concept-on-focus-line)
-        (concept-insert-next-concept-as-focus k)
-      (concept-insert-next-concept-as-data-2 k))))
+        (if (concept-on-last-concept)
+            (concept-insert-last-concept-as-focus)
+          (concept-insert-next-concept-as-focus k))
+      (if (concept-on-last-concept)
+          (concept-insert-last-concept-as-data-2 k)
+        (concept-insert-next-concept-as-data-2 k)))))
 
 (defun concept-split-dwim ()
   "Split the relationship block up into two ideas."
