@@ -134,17 +134,17 @@ Install via ELPA (eventually!). Run M-x `package-install`. Press `ENTER`. Type `
 
 ## Thinking about concepts
 
-Concepts have three pieces.
+When you think about a particular thing, you use the singular voice: you speak of the cat and the mouse. When you think about things in general you use the plural voice, you speak of cats and mice. When you follow this convention of naming concepts with plural words, you realize that concepts have three distinct pieces:
 
 * a classification or categorization piece
 * a core concept piece
 * a definition piece
 
-In `concept.el` we encourage you to put the classification piece on the left, the core piece in the middle, and the definition piece on the right.
+For example, concept the concept:
 
 > abstract-pieces-of-knowledge
 
-This can be broken down into:
+This concept can be broken down into:
 
 ```
 class: abstract
@@ -152,7 +152,30 @@ core: pieces
 definition: of-knowledge
 ```
 
-The package provides an implementation of the longest common substring algorithm to help build tools for automatically identifying these components.
+Gaining an intuition for what this concept is about requires first understanding what is meant by knowledge, pieces, and abstraction. These are often best sharpened by finding their opposites or complements. The opposite of abstract is concrete or definite. The opposite of piece is part of something, which might contain many smaller pieces at a different level. Knowledge concerns successful prediction. Ignorance means almost suredly unsuccessful prediction.
+
+In `concept.el` we encourage you to put the classification piece on the left, the core piece in the middle, and the definition piece on the right. Further, it's better to start with the core plus some definition. Then, once you have your definition, you can added a category which alludes to that definition via and `:name` relationship.
+
+```
+~ beings
+| :include
+| beings-that-die
+| beings-that-never-die
+~ mortal-beings
+| :name
+| beings-that-die
+~ immortal-beings
+| :name
+| beings-that-never-die
+~ beings
+| :include
+| immortal-beings
+| mortal-beings
+```
+
+Redundancy isn't too much of a problem since the main thing is that you understand what you are talking about and that you can gain that understanding by searching through a concept map. 
+
+The package provides an implementation of the longest common substring algorithm to help build tools for automatically identifying these components. This can be combined with the string-distance procedure and tools which provide you a list of all concepts in the buffer to find likely core concepts. Of course, really discovering this will often require a degree of standardization which is not really possible with Emacs, but should be feasible from a dedicated data analysis environment like R.
 
 ## Navigating through concept maps
 
@@ -164,7 +187,11 @@ Leveraging the tools in `consult.el` can be another very effective way of explor
 
 ## Editing tools for concept maps
 
-There is ubiquitous `TAB` completion. Before we can show it though we need to create a new concept. Navigate to the beginning of the buffer with `M-<`. Then press `C-o`. This makes a new idea block by creating a new subject line. Type out `stuff`. Then, press `M-i`. This inserts an `:include` relationship and creates an object concept line. Press `M-i` again and it will enter `stuff` again automatically. `M-.` will do the same, while `C-M-.` will add the following subject instead. The difference between `M-i` and `M-.` is that `M-.` and `C-M-.` will always enter these concepts, while `M-n` does different things depending on where on the line or where in the idea you are. It tries to help you do what you mean, while `M-.` tries to be specific. Enter `cool-stuff` by moving the cursor to the beginning of the concept. This can be done with `C-M-b` which is a built-in editor shortcut for `backward-sexp`. Otherwise you could just type `M-b` repeatedly until you get there. Now type out `cool-`. From hear you can type `M-i` and it will make a new line for you. Now type out `hot-` followed by `M-.` to write `hot-stuff`. Now press `M-o` to make a new subject line filled in automatically with `hot-stuff`. Press `M-i` again and type out `very-` followed by `M-.` to write `very-hot-stuff`.
+`concept.el` provides a wealth of tools for rapidly entering new ideas and editing existing concept maps to standardize their contents in order to make them as useful a learning tool as possible. Let's start by create a new concept. 
+
+Open the `example.map` concept map included in the git repository. Navigate to the beginning of the buffer with `M-<`. Then press `C-o`. This makes a new idea block by creating a new subject line. Type out `stuff`. Then, press `M-i`. This inserts an `:include` relationship and creates an object concept line. Press `M-i` again and it will enter `stuff` again automatically. `M-.` will do the same, while `C-M-.` will add the following subject instead.
+
+The difference between `M-i` and `M-.` is that `M-.` and `C-M-.` will always enter these concepts, while `M-n` does different things depending on where on the line or where in the idea you are. It tries to help you do what you mean, while `M-.` tries to be specific. Enter `cool-stuff` by moving the cursor to the beginning of the concept. This can be done with `C-M-b` which is a built-in editor shortcut for `backward-sexp`. Otherwise you could just type `M-b` repeatedly until you get there. Now type out `cool-`. From hear you can type `M-i` and it will make a new line for you. Now type out `hot-` followed by `M-.` to write `hot-stuff`. Now press `M-o` to make a new subject line filled in automatically with `hot-stuff`. Press `M-i` again and type out `very-` followed by `M-.` to write `very-hot-stuff`.
 
 Now type `M-o` again to make a new subject line automatically filled out with `very-hot-stuff`. Now press `M-i`. Now press `M-1 M-.` to enter `stuff`. Now complete it with `-that-has-many-layers`. Therefore, you have typed out `stuff-that-has-many-layers`. Now press `M-i` followed by `C-.`. `C-.` inserts the last object line instead of the last subject line. As you might imagine, `C-1 C-.` inserts the last word of the last object, just as `M-1 M-.` inserts the last word of the last subject. Note that if you had instead asked for `M--1 M-.` you would have gotten the first word of the last subject. Similarly, `C--1 C-.` would give you the first word of the next subject.
 
