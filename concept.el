@@ -1071,7 +1071,9 @@ calls it the last data concept. Since this function is only used for
 interactive editing by a user, this makes sense."
   (interactive "P")
   (let* ((last-concept (or (concept-last-data-concept)
-                           (concept-next-data-concept)))
+                           (or (and (< 1 (concept-relationship-group-concept-count))
+                                    (concept-next-data-concept))
+                               (concept-next-focus))))
          (k            (if (numberp arg) arg 0)))
     (when last-concept
       (let ((is-blank-line (concept-on-blank-line))
