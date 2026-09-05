@@ -4529,6 +4529,39 @@ enough for now."
         (goto-line 0)
         (concept-next-double-heading)))))
 
+(defun concept-eww-browse-url (url &optional new-window)
+  "Ask the EWW browser to load URL but return the buffer.
+
+This is a fork of `eww-browse-url'. The only difference between it and
+the original, is that it returns a reference to the buffer.
+
+Interactively, if the variable `browse-url-new-window-flag' is non-nil,
+loads the document in a new buffer tab on the window tab-line.  A non-nil
+prefix argument reverses the effect of `browse-url-new-window-flag'.
+
+If `tab-bar-mode' is enabled, then whenever a document would
+otherwise be loaded in a new buffer, it is loaded in a new tab
+in the tab-bar on an existing frame.  See more options in
+`eww-browse-url-new-window-is-tab'.
+
+Non-interactively, this uses the optional second argument NEW-WINDOW
+instead of `browse-url-new-window-flag'."
+  (let ((ebuf
+         (generate-new-buffer
+          (format "*eww-%s*" (url-host (url-generic-parse-url
+                                        (eww--dwim-expand-url url)))))))
+    (when new-window
+      (when (or (eq eww-browse-url-new-window-is-tab t)
+                (and (eq eww-browse-url-new-window-is-tab 'tab-bar)
+                     tab-bar-mode))
+        (let ((tab-bar-new-tab-choice t))
+          (tab-new)))
+      (pop-to-buffer-same-window ebuf)
+      (eww-mode))
+  (let ((url-allow-non-local-files t))
+    (eww url))
+  ebuf))
+
 (defun concept-info-follow ()
   "Make an info-follow analogous to what man-follow does for man pages."
   (interactive)
@@ -4761,11 +4794,11 @@ modifying `mailcap-user-mime-data'."
                   (forward-line)
                   (re-search-forward "[^| ]" (line-end-position) t)
                   (let ((wbuf (concept-follow-dwim)))
-                    (sit-for 2)
                     (when (buffer-live-p wbuf)
                       (with-current-buffer wbuf
-                        (beginning-of-buffer)
-                        (re-search-forward value nil t)))))
+                        (add-hook 'eww-after-render-hook
+                                  (lambda ()
+                                    (re-search-forward value nil t)))))))
                  ((member "info" keys)
                   (concept-goto-key-in-resource-block "info")
                   (forward-line)
@@ -4778,7 +4811,8 @@ modifying `mailcap-user-mime-data'."
          (save-excursion
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
-           (browse-url-at-point)))
+           (let ((browse-url-browser-function 'concept-eww-browse-url))
+             (browse-url-at-point))))
         ((and (concept-on-exposition-line)
               (string= "emacs-package" (concept-exposition-parent-key)))
          (save-excursion
