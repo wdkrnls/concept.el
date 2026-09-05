@@ -105,6 +105,7 @@
 (require 'man)
 (require 'mailcap)
 (require 'xml)
+(require 'eww)
 
 ;;; Reference for internal resources
 
@@ -4729,7 +4730,7 @@ an external file viewer. It is recommended to configure these via
 modifying `mailcap-user-mime-data'."
   (interactive)
   (cond ((and (concept-on-exposition-line)
-             (string= "info" (concept-exposition-parent-key)))
+              (string= "info" (concept-exposition-parent-key)))
          (save-excursion
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
@@ -4790,15 +4791,25 @@ modifying `mailcap-user-mime-data'."
                         (beginning-of-buffer)
                         (re-search-forward value nil t)))))
                  ((member "url" keys)
-                  (concept-goto-key-in-resource-block "url")
-                  (forward-line)
-                  (re-search-forward "[^| ]" (line-end-position) t)
-                  (let ((wbuf (concept-follow-dwim)))
-                    (when (buffer-live-p wbuf)
-                      (with-current-buffer wbuf
-                        (add-hook 'eww-after-render-hook
-                                  (lambda ()
-                                    (re-search-forward value nil t)))))))
+                  (let ((pt (point-marker))
+                        (buf (current-buffer)))
+                    (concept-goto-key-in-resource-block "url")
+                    (forward-line)
+                    (re-search-forward "[^| ]" (line-end-position) t)
+                    (let ((wbuf (concept-follow-dwim)))
+                      (sit-for 0.1)
+                      (message (format "Installing hook into buffer %s" (buffer-name wbuf)))
+                      (when (buffer-live-p wbuf)
+                        (with-current-buffer wbuf
+                          (letrec ((perform-search
+                                    (lambda ()
+                                      (remove-hook 'eww-after-render-hook perform-search t)
+                                      (beginning-of-buffer)
+                                      (message "This code ran!")
+                                      (re-search-forward value nil t))))
+                            (add-hook 'eww-after-render-hook perform-search nil t)))))
+                    (with-current-buffer buf
+                      (goto-char pt))))
                  ((member "info" keys)
                   (concept-goto-key-in-resource-block "info")
                   (forward-line)
@@ -4833,7 +4844,7 @@ modifying `mailcap-user-mime-data'."
            (re-search-forward "[^| ]" (line-end-position) t)
            (switch-to-buffer (concept-get-expository-data))))
         ((and (concept-on-exposition-line)
-               (string= "emacs-symbol" (concept-exposition-parent-key)))
+              (string= "emacs-symbol" (concept-exposition-parent-key)))
          (save-excursion
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
