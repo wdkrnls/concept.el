@@ -4842,8 +4842,7 @@ modifying `mailcap-user-mime-data'."
                         (beginning-of-buffer)
                         (re-search-forward value nil t)))))
                  ((member "url" keys)
-                  (let ((pt (point-marker))
-                        (buf (current-buffer)))
+                  (save-excursion
                     (concept-goto-key-in-resource-block "url")
                     (forward-line)
                     (re-search-forward "[^| ]" (line-end-position) t)
@@ -4851,8 +4850,7 @@ modifying `mailcap-user-mime-data'."
                       (sit-for 0.1)
                       (when (buffer-live-p wbuf)
                         (with-current-buffer wbuf
-                          (re-search-forward value nil t))))
-                    (with-current-buffer buf (goto-char pt))))
+                          (re-search-forward value nil t))))))
                  ((member "info" keys)
                   (concept-goto-key-in-resource-block "info")
                   (forward-line)
