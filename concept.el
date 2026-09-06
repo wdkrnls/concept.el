@@ -975,7 +975,7 @@ This procedure takes an option argument ARG which advances multiple concepts at 
       (when (concept-on-data-line)
         (insert last-concept)))))
 
-(defun concept-insert-concept-as-data-2 (arg)
+(defun concept-insert-focus-as-new (arg)
   "Repeat the current concept in focus as a data concept."
   (interactive "P")
   (let* ((last-concept (if (or (concept-on-first-line-p)
@@ -1078,9 +1078,9 @@ That is up to the user at the moment!"
           (string-join (take (abs n) parts) "-")
         (string-join (reverse (take n (reverse parts))) "-")))))
 
-(defun concept-insert-last-concept-as-data-2 (arg)
+(defun concept-insert-last-concept-as-new (arg)
   "Repeat the last related data concept again as the starting text
-for a new data concept
+for a new concept.
 
 This happens in two ways:
 
@@ -2821,14 +2821,7 @@ Place each relationship into its own block."
           (concept-breakout-relationship-at-point)
         (concept-goto-next-concept)))))
 
-(defun concept-insert-concept-dwim ()
-  "Insert a concept in the position if it makes sense."
-  (interactive)
-  (if (concept-on-focus-line)
-      (concept-insert-last-concept-as-focus)
-    (concept-insert-next-concept-as-data)))
-
-(defun concept-insert-concept-dwim-2 (arg)
+(defun concept-insert-concept-dwim (arg)
   "Insert a concept in the position if it makes sense."
   (interactive "P")
   (let ((k (if (numberp arg) arg 0)))
@@ -2837,7 +2830,7 @@ Place each relationship into its own block."
             (concept-insert-last-concept-as-focus)
           (concept-insert-next-concept-as-focus k))
       (if (concept-on-last-concept)
-          (concept-insert-last-concept-as-data-2 k)
+          (concept-insert-last-concept-as-new k)
         (concept-insert-next-concept-as-data-2 k)))))
 
 (defun concept-split-dwim ()
@@ -5271,9 +5264,9 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "M-TAB")     #'concept-change-dwim)
 (define-key concept-mode-map (kbd "M-r")       #'concept-cycle-context)
 (define-key concept-mode-map (kbd "C-M-y")     #'concept-repeat-current-block)
-(define-key concept-mode-map (kbd "M-.")       #'concept-insert-concept-as-data-2)
-(define-key concept-mode-map (kbd "C-M-.")     #'concept-insert-concept-dwim-2)
-(define-key concept-mode-map (kbd "C-.")       #'concept-insert-last-concept-as-data-2)
+(define-key concept-mode-map (kbd "M-.")       #'concept-insert-focus-as-new)
+(define-key concept-mode-map (kbd "C-M-.")     #'concept-insert-concept-dwim)
+(define-key concept-mode-map (kbd "C-.")       #'concept-insert-last-concept-as-new)
 (define-key concept-mode-map (kbd "M-i")       #'concept-insert-include-dwim)
 (define-key concept-mode-map (kbd "M-]")       #'concept-slurp-next-concept)
 (define-key concept-mode-map (kbd "M-[")       #'concept-barf-current-concept)
