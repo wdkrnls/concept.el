@@ -4547,11 +4547,18 @@ enough for now."
         (goto-line 0)
         (concept-next-double-heading)))))
 
+(defvar-local concept-eww-buffer-has-rendered nil
+  "Check if EWW buffer has finished rendering.")
+
+(defun concept-set-eww-buffer-as-rendered ()
+  "Flag the current EWW buffer as having finished rendering."
+  (setq-local concept-eww-buffer-has-rendered t))
+
 (defun concept-eww-browse-url (url &optional new-window)
   "Ask the EWW browser to load URL but return the buffer.
 
-This is a fork of `eww-browse-url'. The only difference between it and
-the original, is that it returns a reference to the buffer.
+This is a fork of `eww-browse-url'. It returns a reference to the
+buffer it creates so that it can be subsequently manipulated.
 
 Interactively, if the variable `browse-url-new-window-flag' is non-nil,
 loads the document in a new buffer tab on the window tab-line.  A non-nil
@@ -4564,21 +4571,20 @@ in the tab-bar on an existing frame.  See more options in
 
 Non-interactively, this uses the optional second argument NEW-WINDOW
 instead of `browse-url-new-window-flag'."
-  (let ((ebuf
-         (generate-new-buffer
-          (format "*eww-%s*" (url-host (url-generic-parse-url
-                                        (eww--dwim-expand-url url)))))))
-    (when new-window
-      (when (or (eq eww-browse-url-new-window-is-tab t)
-                (and (eq eww-browse-url-new-window-is-tab 'tab-bar)
-                     tab-bar-mode))
-        (let ((tab-bar-new-tab-choice t))
-          (tab-new)))
-      (pop-to-buffer-same-window ebuf)
-      (eww-mode))
-  (let ((url-allow-non-local-files t))
-    (eww url))
-  ebuf))
+  (let ((url-allow-non-local-files t)
+        (start-time (float-time)))
+    (eww url)
+    (add-hook 'eww-after-render-hook
+              'concept-set-eww-buffer-as-rendered
+              nil
+              t)
+    (while (and (not concept-eww-buffer-has-rendered)
+                (< (- (float-time) start-time) 30))
+      (accept-process-output nil 0.1)))
+  (remove-hook 'eww-after-render-hook
+               'concept-set-eww-buffer-as-rendered
+               t)
+  (current-buffer))
 
 (defun concept-info-follow ()
   "Make an info-follow analogous to what man-follow does for man pages."
@@ -4843,18 +4849,10 @@ modifying `mailcap-user-mime-data'."
                     (re-search-forward "[^| ]" (line-end-position) t)
                     (let ((wbuf (concept-follow-dwim)))
                       (sit-for 0.1)
-                      (message (format "Installing hook into buffer %s" (buffer-name wbuf)))
                       (when (buffer-live-p wbuf)
                         (with-current-buffer wbuf
-                          (letrec ((perform-search
-                                    (lambda ()
-                                      (remove-hook 'eww-after-render-hook perform-search t)
-                                      (beginning-of-buffer)
-                                      (message "This code ran!")
-                                      (re-search-forward value nil t))))
-                            (add-hook 'eww-after-render-hook perform-search nil t)))))
-                    (with-current-buffer buf
-                      (goto-char pt))))
+                          (re-search-forward value nil t))))
+                    (with-current-buffer buf (goto-char pt))))
                  ((member "info" keys)
                   (concept-goto-key-in-resource-block "info")
                   (forward-line)
