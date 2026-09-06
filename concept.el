@@ -493,7 +493,7 @@ list, and the empty string if no nonempty substring is shared."
          (bufs (mapcar #'buffer-name (buffer-list)))
          (lcss (mapcar (lambda (x) (length (concept--longest-common-substring (list lwr (downcase x))))) bufs))
          (lbuf (seq-position lcss (seq-max lcss))))
-    (switch-to-buffer lbuf)))
+    (switch-to-buffer (nth lbuf bufs))))
 
 (defvar concept-mode-map
   (let ((map (make-sparse-keymap)))
@@ -4641,8 +4641,13 @@ instead of `browse-url-new-window-flag'."
 
 (defun concept-describe-package-follow (package)
   "Follow *Help* buffers documenting Emacs symbols."
-  (describe-package (intern package))
-  (display-buffer (get-buffer "*Help*")))
+  (let ((pkg (intern package)))
+    (if (or (package-installed-p pkg)
+            (assq pkg package-archive-contents))
+        (progn
+          (describe-package pkg)
+          (display-buffer (get-buffer "*Help*")))
+      (message (format "The package (%s) is not available for this Emacs configuration." package)))))
 
 (defun concept-describe-keybinding-follow (key)
   "Follow *Help* buffers documenting Emacs keybindings."
