@@ -4784,12 +4784,18 @@ modifying `mailcap-user-mime-data'."
            (cond ((member "file" keys)
                   (concept-goto-key-in-resource-block "file")
                   (forward-line)
-                  (when (not (concept--is-file-binary-p (concept-get-expository-data)))
-                    (let ((fbuf (concept-follow-dwim)))
-                      (when (buffer-live-p fbuf)
-                        (with-current-buffer fbuf
-                          (goto-char (point-min))
-                          (re-search-forward value nil t))))))
+                  (cond ((not (concept--is-file-binary-p (concept-get-expository-data)))
+                         (let ((fbuf (concept-follow-dwim)))
+                           (when (buffer-live-p fbuf)
+                             (with-current-buffer fbuf
+                               (goto-char (point-min))
+                               (re-search-forward value nil t)))))
+                        ((concept--is-pdf (concept-get-expository-data))
+                         (let ((pbuf (concept-follow-dwim)))
+                           (sit-for 0.1)
+                           (when (buffer-live-p pbuf)
+                             (with-current-buffer pbuf
+                               (pdf-occur value))))))) ; TODO: would be nice to use isearch instead of occur
                  ((member "man" keys)
                   (concept-goto-key-in-resource-block "man")
                   (forward-line)
