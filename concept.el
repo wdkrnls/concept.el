@@ -4731,6 +4731,15 @@ they are inside the block."
                      (concept--next-attribute-boundary)
                      (end-of-line))))))))
 
+(defvar concept-shell-command-compilation-number
+  0
+  "Shell command buffer counter.")
+
+(defun concept-shell-command-compilation-buffer-name-function (mode)
+  (generate-new-buffer-name
+   (format "*concept-shell-command*<%d>"
+           (incf concept-shell-command-compilation-number))))
+
 (defun concept-follow-dwim ()
   "Follow the link if it recognizes the attribute group keyword and the file type.
 If the keyword is `file' but the file is not one of the recognized types
@@ -4877,7 +4886,9 @@ modifying `mailcap-user-mime-data'."
          (save-excursion
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
-           (compile (concept-get-expository-data) t)))
+           (let ((compilation-buffer-name-function
+                  'concept-shell-command-compilation-buffer-name-function))
+             (compile (concept-get-expository-data) t))))
         ((and (concept-on-exposition-line)
               (or (string= "emacs-lisp" (concept-exposition-parent-key))
                   (string= "lisp" (concept-exposition-parent-key))))
