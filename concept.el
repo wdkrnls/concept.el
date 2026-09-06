@@ -4953,7 +4953,9 @@ modifying `mailcap-user-mime-data'."
            (let ((buf-id (concept-get-expository-data)))
              (if (member buf-id (mapcar #'buffer-name (buffer-list)))
                  (switch-to-buffer buf-id)
-               (concept-switch-to-buffer-with-longest-common-substring buf-id)))))
+               (progn
+                 (message "An exact match for %s could not be found. This is the closest match!" buf-id)
+                 (concept-switch-to-buffer-with-longest-common-substring buf-id))))))
         ((and (concept-on-exposition-line)
               (string= "emacs-symbol" (concept-exposition-parent-key)))
          (save-excursion
