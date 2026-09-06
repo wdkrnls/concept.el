@@ -4754,8 +4754,9 @@ they are inside the block."
   "Name the shell command with part of its hash."
   (format "*Shell Command*<%s>" concept-last-shell-command-hash))
 
-(defun concept-shell-command (string)
-  "Run shell command"
+(defun concept-shell-command (string &optional expect-prompt)
+  "Run shell command found in STRING with compilation-mode.
+When EXPECT-PROMPT is not nil, place into comint mode."
   (let ((compilation-buffer-name-function
          'concept-shell-command-compilation-buffer-name-function)
         (concept-last-shell-command-hash
@@ -4763,7 +4764,9 @@ they are inside the block."
     (let ((buf (concept-shell-command-compilation-buffer-name-function "shell")))
       (if (bufferp (get-buffer buf))
           (switch-to-buffer buf)
-        (compile string)))))
+        (if expect-prompt
+            (compile string t)
+          (compile string))))))
 
 (defun concept-follow-man (page)
   "Follow to the man page synchronously."
@@ -4975,7 +4978,9 @@ modifying `mailcap-user-mime-data'."
          (save-excursion
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
-           (concept-shell-command (concept-get-expository-data))))
+           (concept-shell-command
+            (concept-get-expository-data)
+            (member "prompt" (concept-resource-block-keys)))))
         ((and (concept-on-exposition-line)
               (or (string= "emacs-lisp" (concept-exposition-parent-key))
                   (string= "lisp" (concept-exposition-parent-key))))
