@@ -1331,7 +1331,11 @@ relationship has a colon at the beginning of the statement."
           (fst (string (char-after (line-beginning-position)))))
       (when (or (concept-on-focus-line)
                 (and (concept-on-data-line) (concept-on-concept-line))
-                (concept-on-resource-line))
+                (concept-on-resource-line)
+                (and (concept-in-resource-block)
+                     (concept-on-data-line)
+                     (or (concept-on-blank-line)
+                         (concept-on-concept-or-resource-looking-line))))
         (cond ((equal "|" fst)
                (delete-char 1)
                (insert "@"))
@@ -1400,6 +1404,11 @@ inside a resource block."
        (or (concept-on-focus-line)
            (and (concept-on-data-line)
                 (not (concept-on-relationship-line))))))
+
+(defun concept-on-concept-or-resource-looking-line ()
+  "Test if the current line looks like a concept line."
+  (let ((line (thing-at-point 'line t)))
+    (string-match-p (concat "^[@|~] +" concept-group-name-restriction-regexp) line)))
 
 (defun concept-on-resource-line ()
   "Test if the current line is a resource line.
