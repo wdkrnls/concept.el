@@ -4760,6 +4760,13 @@ they are inside the block."
           (switch-to-buffer buf)
         (compile string)))))
 
+(defun concept-follow-man (page)
+  "Follow to the man page synchronously."
+  (let ((Man-notify-method 'pushy)
+        (Man-prefer-synchronous-call t))
+    (let* ((buf (man-follow page)))
+      buf)))
+
 (defun concept-follow-dwim ()
   "Follow the link if it recognizes the attribute group keyword and the file type.
 If the keyword is `file' but the file is not one of the recognized types
@@ -4778,8 +4785,8 @@ modifying `mailcap-user-mime-data'."
          (save-excursion
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
-           (let ((Man-notify-method 'pushy))
-             (man-follow (concept-get-expository-data)))))
+           (concept-follow-man
+            (concept-get-expository-data))))
         ((and (concept-on-exposition-line)
               (string= "line" (concept-exposition-parent-key)))
          (let ((keys (concept-resource-block-keys))
@@ -4791,7 +4798,16 @@ modifying `mailcap-user-mime-data'."
                     (sit-for 0.1)
                     (when (buffer-live-p mbuf)
                       (with-current-buffer mbuf
-                        (goto-line (string-to-number value)))))))))
+                        (goto-line (string-to-number value))))))
+                 ((and (member "emacs-package" keys)
+                       (member "file-name" keys))
+                  (let ((line (concept-get-expository-data)))
+                    (concept-goto-key-in-resource-block "file-name")
+                    (forward-line)
+                    (let ((fbuf (concept-follow-dwim)))
+                      (when (buffer-live-p fbuf)
+                        (with-current-buffer fbuf
+                          (goto-line (string-to-number line))))))))))
         ((and (concept-on-exposition-line)
               (or (string= "pdf-page" (concept-exposition-parent-key))
                   (string= "page"     (concept-exposition-parent-key))))
@@ -4806,6 +4822,19 @@ modifying `mailcap-user-mime-data'."
                       (when (buffer-live-p fbuf)
                         (with-current-buffer fbuf
                           (pdf-view-goto-page (string-to-number value))))))))))
+        ((and (concept-on-exposition-line)
+              (string= "file-name" (concept-exposition-parent-key)))
+         (let ((keys (concept-resource-block-keys))
+               (value (concept-get-expository-data)))
+           (when (member "emacs-package" keys)
+             (save-excursion
+               (concept-goto-key-in-resource-block "emacs-package")
+               (forward-line)
+               (let* ((pkg (concept-get-expository-data))
+                      (pkg-file (concat (file-name-directory (locate-library pkg)) value)))
+                 (when (and (package-installed-p (intern pkg))
+                            (file-exists-p pkg-file))
+                   (find-file pkg-file)))))))
         ((and (concept-on-exposition-line)
               (string= "search-phrase" (concept-exposition-parent-key)))
          (let ((keys (concept-resource-block-keys))
@@ -4829,10 +4858,8 @@ modifying `mailcap-user-mime-data'."
                   (concept-goto-key-in-resource-block "man")
                   (forward-line)
                   (let ((mbuf (concept-follow-dwim)))
-                    (sit-for 0.1)
                     (when (buffer-live-p mbuf)
                       (with-current-buffer mbuf
-                        (beginning-of-buffer)
                         (re-search-forward value nil t)))))
                  ((member "url" keys)
                   (save-excursion
@@ -4844,6 +4871,14 @@ modifying `mailcap-user-mime-data'."
                       (when (buffer-live-p wbuf)
                         (with-current-buffer wbuf
                           (re-search-forward value nil t))))))
+                 ((and (member "emacs-package" keys)
+                       (member "file-name" keys))
+                  (concept-goto-key-in-resource-block "file-name")
+                  (forward-line)
+                  (let ((fbuf (concept-follow-dwim)))
+                    (when (buffer-live-p fbuf)
+                      (with-current-buffer fbuf
+                        (re-search-forward value nil t)))))
                  ((member "info" keys)
                   (concept-goto-key-in-resource-block "info")
                   (forward-line)
