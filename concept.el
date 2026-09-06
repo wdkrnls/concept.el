@@ -487,6 +487,14 @@ list, and the empty string if no nonempty substring is shared."
             (setq high middle))))
       (or answer "")))))
 
+(defun concept-switch-to-buffer-with-longest-common-substring (string)
+  "Switch to the buffer with a name containing the longest common substring with string."
+  (let* ((lwr (downcase string))
+         (bufs (mapcar #'buffer-name (buffer-list)))
+         (lcss (mapcar (lambda (x) (length (concept--longest-common-substring (list lwr (downcase x))))) bufs))
+         (lbuf (seq-position lcss (seq-max lcss))))
+    (switch-to-buffer lbuf)))
+
 (defvar concept-mode-map
   (let ((map (make-sparse-keymap)))
   (define-key map (kbd "M-N")   #'outline-move-subtree-down)
@@ -4644,72 +4652,75 @@ instead of `browse-url-new-window-flag'."
 
 (defun concept-eval-elisp (string)
   "Evaluate an Emacs Lisp STRING in a new dedicated buffer."
-  (let ((buffer (generate-new-buffer "*Elisp Evaluation*"))
-        (messages '())
-        (output-buffer (generate-new-buffer " *Elisp Standard Output*"))
-        form
-        pretty-code
-        result)
-    (setq form (read string))
-    (setq pretty-code
-          (let ((pp-fill t)
-                (fill-column 30))
-            (pp-to-string form)))
-    (unwind-protect
-        (with-current-buffer buffer
-          (insert "# Lisp Computation\n\n"
-                  "Metadata:\n\n"
-                  "```\n"
-                  "EmacsVersion: " emacs-version
-                  "\nRunDate: "
-                  (format-time-string "%Y-%m-%d %H:%M:%S" (current-time))
-                  "\n```\n\n"
-                  "## Input\n\n"
-                  "Code:\n\n"
-                  "```elisp\n"
-                  pretty-code
-                  "```"
-                  "\n\n## Output\n\n")
-          (let ((original-message (symbol-function 'message)))
-            (unwind-protect
-                (progn
-                  (fset 'message
-                        (lambda (format-string &rest arguments)
-                          (let ((text (apply #'format
-                                             format-string
-                                             arguments)))
-                            (setq messages
-                                  (append messages (list text))))))
-                  (let ((standard-output output-buffer))
-                    (condition-case err
-                        (progn
-                          (setq result
-                                (eval (read string) lexical-binding))
-                          (insert "Returns:\n\n"
-                                  (prin1-to-string result)))
-                      (error
-                       (insert "Returns:\n\n"
-                               (format "Error: %S" err))))))
-              (fset 'message original-message)))
-          (when (> (buffer-size output-buffer) 0)
-            (insert "\n\nOutput:\n\n"
-                    "```text\n"
-                    (with-current-buffer output-buffer
-                      (buffer-substring-no-properties
-                       (point-min)
-                       (point-max)))
-                    "```\n")))
-      (when messages
-        (with-current-buffer buffer
-          (insert "\nMessages:\n\n" "```text\n")
-          (dolist (message messages)
-            (insert message "\n"))
-          (insert "```\n")))
-      (switch-to-buffer buffer)
-      (goto-char (point-min))
-      (special-mode)
-      (when (buffer-live-p output-buffer)
-        (kill-buffer output-buffer)))))
+  (let* ((hash (sha1 string))
+         (buffer (get-buffer-create (format "*Elisp Evaluation*<%s>" (substring hash 0 6)))))
+    (when (eq (buffer-size buffer) 0)
+      (let ((messages '())
+            (output-buffer (generate-new-buffer " *Elisp Standard Output*"))
+            form
+            pretty-code
+            result)
+        (setq form (read string))
+        (setq pretty-code
+              (let ((pp-fill t)
+                    (fill-column 30))
+                (pp-to-string form)))
+        (unwind-protect
+            (with-current-buffer buffer
+              (insert "# Lisp Computation\n\n"
+                      "Metadata:\n\n"
+                      "```\n"
+                      "EmacsVersion: " emacs-version
+                      "\nRunDate: "
+                      (format-time-string "%Y-%m-%d %H:%M:%S" (current-time))
+                      "\nHash: " hash
+                      "\n```\n\n"
+                      "## Input\n\n"
+                      "Code:\n\n"
+                      "```elisp\n"
+                      pretty-code
+                      "```"
+                      "\n\n## Output\n\n")
+              (let ((original-message (symbol-function 'message)))
+                (unwind-protect
+                    (progn
+                      (fset 'message
+                            (lambda (format-string &rest arguments)
+                              (let ((text (apply #'format
+                                                 format-string
+                                                 arguments)))
+                                (setq messages
+                                      (append messages (list text))))))
+                      (let ((standard-output output-buffer))
+                        (condition-case err
+                            (progn
+                              (setq result
+                                    (eval (read string) lexical-binding))
+                              (insert "Returns:\n\n"
+                                      (prin1-to-string result)))
+                          (error
+                           (insert "Returns:\n\n"
+                                   (format "Error: %S" err))))))
+                  (fset 'message original-message)))
+              (when (> (buffer-size output-buffer) 0)
+                (insert "\n\nOutput:\n\n"
+                        "```text\n"
+                        (with-current-buffer output-buffer
+                          (buffer-substring-no-properties
+                           (point-min)
+                           (point-max)))
+                        "```\n")))
+          (when messages
+            (with-current-buffer buffer
+              (insert "\nMessages:\n\n" "```text\n")
+              (dolist (message messages)
+                (insert message "\n"))
+              (insert "```\n")))
+          (when (buffer-live-p output-buffer)
+            (kill-buffer output-buffer)))))
+    (switch-to-buffer buffer)
+    (goto-char (point-min))
+    (special-mode)))
 
 (defun concept-resource-block-keys ()
   "Return a list of all keys in the current resource block."
@@ -4731,14 +4742,24 @@ they are inside the block."
                      (concept--next-attribute-boundary)
                      (end-of-line))))))))
 
-(defvar concept-shell-command-compilation-number
-  0
-  "Shell command buffer counter.")
+(defvar concept-last-shell-command-hash
+  nil
+  "6-digit shell command string hash code.")
 
 (defun concept-shell-command-compilation-buffer-name-function (mode)
-  (generate-new-buffer-name
-   (format "*concept-shell-command*<%d>"
-           (incf concept-shell-command-compilation-number))))
+  "Name the shell command with part of its hash."
+  (format "*Shell Command*<%s>" concept-last-shell-command-hash))
+
+(defun concept-shell-command (string)
+  "Run shell command"
+  (let ((compilation-buffer-name-function
+         'concept-shell-command-compilation-buffer-name-function)
+        (concept-last-shell-command-hash
+         (substring (sha1 string) 0 6)))
+    (let ((buf (concept-shell-command-compilation-buffer-name-function "shell")))
+      (if (bufferp (get-buffer buf))
+          (switch-to-buffer buf)
+        (compile string)))))
 
 (defun concept-follow-dwim ()
   "Follow the link if it recognizes the attribute group keyword and the file type.
@@ -4866,7 +4887,10 @@ modifying `mailcap-user-mime-data'."
          (save-excursion
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
-           (switch-to-buffer (concept-get-expository-data))))
+           (let ((buf-id (concept-get-expository-data)))
+             (if (member buf-id (mapcar #'buffer-name (buffer-list)))
+                 (switch-to-buffer buf-id)
+               (concept-switch-to-buffer-with-longest-common-substring buf-id)))))
         ((and (concept-on-exposition-line)
               (string= "emacs-symbol" (concept-exposition-parent-key)))
          (save-excursion
@@ -4886,9 +4910,7 @@ modifying `mailcap-user-mime-data'."
          (save-excursion
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
-           (let ((compilation-buffer-name-function
-                  'concept-shell-command-compilation-buffer-name-function))
-             (compile (concept-get-expository-data) t))))
+           (concept-shell-command (concept-get-expository-data))))
         ((and (concept-on-exposition-line)
               (or (string= "emacs-lisp" (concept-exposition-parent-key))
                   (string= "lisp" (concept-exposition-parent-key))))
