@@ -4997,10 +4997,14 @@ resource line."
 (defun concept-edit-group-dwim ()
   "Edit the parent group name for the piece of data at point."
   (interactive)
-  (when (concept-on-data-concept-line)
-    (concept-edit-relationship))
-  (when (concept-on-exposition-line)
-    (concept-edit-keyword)))
+  (cond ((concept-on-data-concept-line)
+         (concept-edit-relationship))
+        ((concept-on-exposition-line)
+         (concept-edit-keyword))
+        ((concept-on-attribute-line)
+         (forward-line)
+         (beginning-of-line)
+         (re-search-forward "[^| ]" (line-end-position) t))))
 
 (defun concept-map-export-to-table (&optional sep)
   "Convert a concept map into a TSV table.
