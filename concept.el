@@ -5605,15 +5605,15 @@ If it doesn't parse, move the point to where the first failure is."
               (braced-data
                (and "{" braced-contents "}"))
               (braced-contents
-               (substring (* (not (or "{" "}")) (any))))
+               (substring (* (not (or "{" "}" "\n")) (any))))
               (bracketed-data
                (and "[" bracketed-contents "]"))
               (bracketed-contents
-               (substring (* (not (or "[" "]")) (any))))
+               (substring (* (not (or "[" "]" "\n")) (any))))
               (unicode-data
                (and "‘" unicode-contents "’"))
               (unicode-contents
-               (substring (* (not (or "‘" "’")) (any)))))
+               (substring (* (not (or "‘" "’" "\n")) (any)))))
              (message "Successful Parse!")))
     (peg-search-failed
      (goto-char (nth 1 error-signal))
