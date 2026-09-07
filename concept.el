@@ -2717,7 +2717,7 @@ relationship line is found."
       (goto-line line)
       (end-of-line))))
 
-(defun concept-canonical-sort-dwim ()
+(defun concept-alphabetic-sort-dwim ()
   "Perform a partial sort of the thing at point."
   (interactive)
   (when (concept-on-data-concept-line)
@@ -2730,6 +2730,64 @@ relationship line is found."
     (concept-resource-partial-sort))
   (when (concept-on-focus-line)
     (concept-partial-sort)))
+
+(defvar concept-canonical-custom-sort-dwim-function nil
+  "An custom sort function similar to `concept-alphabetic-sort-dwim'
+which provides sorting functionality at least for the levels of sorting
+you are interested in.")
+
+(defvar concept-canonical-sort-string
+  "AAAAAA"
+  "Six capital letter string setting the sorting order.
+The different letters mean:
+
+A) for alphabetical sort (i.e., `concept-alphabetical-sort-dwim')
+Z) for reverse alphabetical sort (i.e., reversing `concept-alphabetical-sort-dwim')
+J) for no sort leaving them just so (i.e., doing nothing)
+X) for a custom sort corresponding to `concept-canonical-custom-sort-dwim-function'
+S) for sorting purely based on string-length short to long (TODO)
+L) for sorting purely based on string-length long to short (TODO)
+
+There are six because there are 3 for the three levels of elements in relationship blocks:
+
+1. focus concepts (subjects)
+2. relationship groups
+3. data concepts (objects)
+
+Similarly, there are 3 more levels for resource blocks.
+
+4. resource blocks
+5. attribute group keywords
+6. exposition lines
+
+Note that sticking to just alphabetical can be fine as long as the diff
+is done after a git filter and not on the existing buffer. However, when
+you want to keep the buffer itself more organized, that's when these
+other piece of functionality become appealing.")
+
+(defun concept-canonical-sort-string-is-valid-p (string)
+  "Test whether the value  of the variable `concept-canonical-sort-string' is valid."
+  (and (eq 6 (length string))
+       (string-match-p "^[AZJX]+$")))
+
+(defun concept-canonical-sort-dwim ()
+  "Perform a canonical sort of the thing at point.
+The user has significant control over what a canonical sort is. This
+control is exercised through modifying a string."
+  (interactive)
+  (unless (concept-canonical-sort-string-is-valid-p
+           concept-canonical-sort-string)
+    (user-error "Invalid canonical sort string!"))
+  (when (concept-on-data-concept-line)
+    (concept-data-canoncial-sort))
+  (when (concept-on-attribute-line)
+    (concept-attribute-group-canonical-sort))
+  (when (concept-on-relationship-line)
+    (concept-relationship-group-canonical-sort))
+  (when (concept-on-resource-line)
+    (concept-resource-canonical-sort))
+  (when (concept-on-focus-line)
+    (concept-canonical-sort)))
 
 (defun concept-resource-block-length ()
   "Count the number of lines inside of the resource block."
@@ -5691,6 +5749,7 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "M-;")       #'concept-split-dwim)
 (define-key concept-mode-map (kbd "C-M-;")     #'concept-data-split-dwim)
 (define-key concept-mode-map (kbd "C-;")       #'concept-isolate-dwim)
+(define-key concept-mode-map (kbd "C-c C-a")   #'concept-alphabetic-sort-dwim)
 (define-key concept-mode-map (kbd "C-c C-o")   #'concept-canonical-sort-dwim)
 (define-key concept-mode-map (kbd "C-c C-r")   #'concept-reverse-order-dwim)
 (define-key concept-mode-map (kbd "C-c M-r")   #'concept-randomize-dwim)
