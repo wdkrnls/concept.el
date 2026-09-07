@@ -242,6 +242,8 @@ Note that if the file path given under a `file:` keyword cannot be intelligibly 
 
 There are a few situations where indirectly followed files make sense. One of them involves the combination of a PDF file and a page number. So, when inside a resource block with a `page:` keyword and a `file:` keyword, and the attribute under that `file:` keyword is a PDF file, then pressing `C-c f` on the attribute under the `page:` keyword will open the PDF file, and then navigate to the given PDF page. Similarly, a variety of other plain-text files take `search-phrase:` queries which open those files, go to the beginning of the buffer, and then search forward to the first match of the search phrase.
 
+With indirectly followed files, it becomes all the more important to make sure that resource blocks have enough information in them to make them work. Often on a first pass it is tempting to be lazy and leave out some needed attributes. This is where leveraging the optional `first-match-only` arguments to the search interface come in handy. These allow for efficient keyboard macros to be written that fill in the missing keywords and attributes.
+
 There is also integration with the Emacs online tools including the help system. The following keywords help document Emacs-specific topics.
 
 * `emacs-symbol:` to run M-x `describe-symbol`
@@ -317,6 +319,47 @@ und~no:~from$
 ```
 
 This one only matches the one idea with a `derived-from:` keyword. The `$` means that the name ends with `m`.
+
+By pressing the `C-u` prefix before `C-c s` or `C-c C-s`, the search interface will show only the first match in the buffer. This variant is very useful for editing. As an example imagine that you are studying On the Origin of Species by Charles Darwin published in 1859 and thus in the public domain. You will naturally make a lot of references to the book as you read. In your haste to make note of all the interesting ideas in the book, you might leave off documenting the location of your book on your file system. This is precisely where the `C-u` prefix comes in handy. Consider the concept map fragment below:
+
+```
+~ mechanisms
+| :include
+| evolutionary-mechanisms
+~ evolutionary-mechanisms
+| :include
+| evolutionary-mechanisms-based-on-natural-selection
+@ document
+| book:
+| {Darwin1859}
+| file:
+| {book/on-the-origin-of-species.txt}
+| search-phrase:
+| {strange pecularities}
+| chapter:
+| {4}
+~ creatures
+| :include
+| creatures-that-cannot-see
+~ creatures-that-cannot-see
+| :include
+| creatures-that-live-in-caves
+@ document
+| book:
+| {Darwin1859}
+| search-phrase:
+| {caves of Styria and of Kentucky}
+| chapter:
+| {5}
+```
+
+Now type `C-u C-c C-s` and the query:
+
+```
+doc~book~Darwin:doc~@file
+```
+
+This will take you to the first fragment without a file. If you have the file already in your `kill-ring`, you can select it with `M-y` which I have bound to `yank-pop`. That lets you find the same clipboard entry over and over reliably. This approach works quite well in conjunction with defining keyboard macros with  `C-x (` and `C-x )`. Once you have a macro defined which adds the file to one resource block, filling them all in becomes nearly effortly via `C-u 0 C-x e` which repeats the keyboard macro over and over until all relevant resources have been edited. This way, it's easy to make several hundreds of edits in a minute or so.
 
 ## Checking the concept map syntax
 
