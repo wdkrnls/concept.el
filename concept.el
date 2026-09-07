@@ -237,7 +237,11 @@ These are subject concepts. They were called focus concepts.")
 
 (defvar concept-group-name-restriction-regexp
   "[^][{}‘’:~ ]"
-  "Regular expression to match data in concept blocks.")
+  "Regular expression to match parts of group names or concepts in concept maps.")
+
+(defvar concept-group-name-regexp
+  (concat "^[^^: -,;]" concept-group-name-restriction-regexp "+[[:alnum:]]$")
+  "Regular expression to match any kind .")
 
 (defun concept--imenu-create-index ()
   "Create an imenu index"
@@ -2528,6 +2532,57 @@ This could be another relationship group, a new idea which starts with a focus c
     (while (not (concept-on-attribute-line))
       (previous-line))
     (end-of-line)))
+
+(defun concept-go-one-group-up ()
+  "Navigate backwards to the last group."
+  (interactive)
+  (cond ((or (concept-on-resource-line)
+             (concept-on-focus-line)
+             (and (concept-on-attribute-line)
+                  (save-excursion
+                    (previous-line)
+                    (concept-on-resource-line)))
+             (and (concept-on-relationship-line)
+                  (save-excursion
+                    (previous-line)
+                    (concept-on-focus-line))))
+         (outline-previous-visible-heading 1)
+         (end-of-line))
+        ((or (concept-on-data-concept-line)
+             (concept-on-relationship-line))
+         (concept-goto-last-relationship))
+        ((or (concept-on-attribute-line)
+             (concept-on-exposition-line))
+         (concept-goto-last-attribute))))
+
+(defun concept-current-delimiter ()
+  (when (concept-on-exposition-line)
+    (save-excursion
+      (beginning-of-line)
+      (re-search-forward "[^| ]")
+      (backward-char)
+      (let ((pt (point)))
+        (buffer-substring-no-properties pt (1+ pt))))))
+
+(defun concept-go-one-group-down ()
+  "Navigate forwards to the next group."
+  (interactive)
+  (cond ((concept-on-focus-line)
+         (concept-goto-next-relationship))
+        ((concept-on-resource-line)
+         (concept-goto-next-attribute))
+        ((concept-on-relationship-line)
+         (concept-goto-next-data-concept))
+        ((concept-on-data-concept-line)
+         (concept--next-relationship-boundary)
+         (end-of-line))
+        ((concept-on-attribute-line)
+         (concept-goto-next-exposition)
+         (beginning-of-line)
+         (re-search-forward (concept-current-delimiter) (line-end-position) t))
+        ((concept-on-exposition-line)
+         (concept--next-attribute-boundary)
+         (end-of-line))))
 
 (defun concept-goto-last-thing ()
   "Navigate backward until the previous thing like the current thing."
@@ -4846,6 +4901,13 @@ modifying `mailcap-user-mime-data'."
            (concept-follow-man
             (concept-get-expository-data))))
         ((and (concept-on-exposition-line)
+              (string= "file-path" (concept-exposition-parent-key)))
+         (save-excursion
+           (beginning-of-line)
+           (re-search-forward "[^| ]" (line-end-position) t)
+           (dired
+            (concept-get-expository-data))))
+        ((and (concept-on-exposition-line)
               (string= "line" (concept-exposition-parent-key)))
          (let ((keys (concept-resource-block-keys))
                (value (concept-get-expository-data)))
@@ -5191,6 +5253,132 @@ resource line."
     (backward-sexp)
     (kill-line)))
 
+(defun concept-edit-focus ()
+  "Edit the current focus concept and replace it with a new one if valid."
+  (interactive)
+  (save-excursion
+    (concept-goto-current-focus)
+    (let* ((old-text (concept-current-focus))
+           (new-text (string-trim (read-string "Subject: " old-text nil old-text)))
+           (focus-regexp concept-group-name-regexp))
+      (cond ((and (not (equal old-text new-text))
+                  (string-match-p focus-regexp new-text))
+             (beginning-of-line)
+             (re-search-forward "[^~ ]+" (line-end-position) t)
+             (kill-line)
+             (insert new-text))
+            (t (message "Replace failed to pass group name restrictions"))))))
+
+(defun concept-edit-resource ()
+  "Edit the current resource block and replace it with a new one if valid."
+  (interactive)
+  (when (concept-in-resource-block)
+    (save-excursion
+      (concept-goto-current-resource)
+      (let* ((old-text (concept-current-resource))
+             (new-text (string-trim (read-string "Resource: " old-text nil old-text)))
+             (resource-regexp concept-group-name-regexp))
+        (cond ((and (not (equal old-text new-text))
+                    (string-match-p resource-regexp new-text))
+               (beginning-of-line)
+               (re-search-forward "[^@ ]+" (line-end-position) t)
+               (kill-line)
+               (insert new-text))
+              (t (message "Replace failed to pass group name restrictions")))))))
+
+(defun concept-edit-data-concept ()
+  "Edit the current resource block and replace it with a new one if valid."
+  (interactive)
+  (when (concept-on-data-concept-line)
+    (let* ((old-text (concept-current-concept))
+           (new-text (string-trim (read-string "Object: " old-text nil old-text)))
+           (concept-regexp concept-group-name-regexp))
+      (cond ((and (not (equal old-text new-text))
+                  (string-match-p concept-regexp new-text))
+             (beginning-of-line)
+             (re-search-forward "[^| ]+" (line-end-position) t)
+             (kill-line)
+             (insert new-text))
+            (t (message "Replace failed to pass group name restrictions"))))))
+
+(defun concept-edit-relationship ()
+  "Edit the current resource block and replace it with a new one if valid."
+  (interactive)
+  (when (and (concept-in-relationship-block)
+             (not (concept-on-focus-line)))
+    (when (concept-on-data-concept-line)
+      (concept-goto-last-relationship))
+    (save-excursion
+      (let* ((old-text (concept-current-relationship))
+             (new-text (string-trim (read-string "Object: " old-text nil old-text)))
+             (relationship-regexp concept-group-name-regexp))
+        (cond ((and (not (equal old-text new-text))
+                    (string-match-p relationship-regexp new-text))
+               (beginning-of-line)
+               (re-search-forward "^| +:" (line-end-position) t)
+               (kill-line)
+               (insert new-text))
+              (t (message "Replace failed to pass group name restrictions")))))))
+
+(defun concept-edit-keyword ()
+  "Edit the current resource block and replace it with a new one if valid."
+  (interactive)
+  (when (and (concept-in-resource-block)
+             (not (concept-on-resource-line)))
+    (when (concept-on-exposition-line)
+      (concept-goto-last-attribute))
+    (save-excursion
+      (let* ((old-text (concept-current-attribute))
+             (new-text (string-trim (read-string "Keyword: " old-text nil old-text)))
+             (keyword-regexp concept-group-name-regexp))
+        (cond ((and (not (equal old-text new-text))
+                    (string-match-p keyword-regexp new-text))
+               (beginning-of-line)
+               (re-search-forward "^| +" (line-end-position) t)
+               (kill-line)
+               (insert new-text ":"))
+              (t (message "Replace failed to pass group name restrictions")))))))
+
+(defun concept-pick-needed-data-delimiters (text)
+  "Pick the simplest pair of delimiters needed to store the string in a concept map."
+  (cond ((not (string-match-p "[{}]" text))
+         "{}")
+        ((not (or (string-match-p "\\]" text)
+                  (string-match-p "\\[" text)))
+         "[]")
+        (t "‘’")))
+
+(defun concept-edit-exposition ()
+  "Edit the current piece of expository data and replace the previous entry."
+  (interactive)
+  (when (and (concept-in-resource-block)
+             (concept-on-exposition-line))
+    (save-excursion
+      (let* ((old-text (concept-current-exposition))
+             (new-text (string-trim (read-string "Data: " old-text nil old-text)))
+             (needed-delims (concept-pick-needed-data-delimiters new-text)))
+        (when (not (equal old-text new-text))
+          (beginning-of-line)
+          (re-search-forward "^| +" (line-end-position) t)
+          (kill-line)
+          (insert needed-delims)
+          (search-forward (substring needed-delims 0 1))
+          (insert new-text))))))
+
+(defun concept-edit-line-dwim ()
+  "Edit the line at point in the concept map. However that is done!"
+  (interactive)
+  (cond ((concept-on-focus-line)
+         (concept-edit-focus))
+        ((concept-on-resource-line)
+         (concept-edit-resource))
+        ((concept-on-data-concept-line)
+         (concept-edit-data-concept))
+        ((concept-on-exposition-line)
+         (concept-edit-exposition))
+        ((concept-on-attribute-line)
+         (concept-edit-keyword))))
+
 (defun concept-edit-group-dwim ()
   "Edit the parent group name for the piece of data at point."
   (interactive)
@@ -5198,10 +5386,21 @@ resource line."
          (concept-edit-relationship))
         ((concept-on-exposition-line)
          (concept-edit-keyword))
+        ((concept-on-focus-line)
+         (concept-edit-focus))
+        ((concept-on-resource-line)
+         (concept-edit-resource))
         ((concept-on-attribute-line)
          (forward-line)
          (beginning-of-line)
          (re-search-forward "[^| ]" (line-end-position) t))))
+
+(defun concept-edit-dwim (arg)
+  "Edit the thing I want to edit relevant to the current point."
+  (interactive "P")
+  (if (null arg)
+      (concept-edit-line-dwim)
+    (concept-edit-group-dwim)))
 
 (defun concept-map-export-to-table (&optional sep)
   "Convert a concept map into a TSV table.
@@ -5430,8 +5629,10 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "M-i")       #'concept-insert-include-dwim)
 (define-key concept-mode-map (kbd "M-]")       #'concept-slurp-next-concept)
 (define-key concept-mode-map (kbd "M-[")       #'concept-barf-current-concept)
-(define-key concept-mode-map (kbd "C-<down>")  #'concept-goto-next-thing)
-(define-key concept-mode-map (kbd "C-<up>")    #'concept-goto-last-thing)
+(define-key concept-mode-map (kbd "C-M-<down>")  #'concept-goto-next-thing)
+(define-key concept-mode-map (kbd "C-M-<up>")    #'concept-goto-last-thing)
+(define-key concept-mode-map (kbd "C-<down>")  #'concept-go-one-group-down)
+(define-key concept-mode-map (kbd "C-<up>")    #'concept-go-one-group-up)
 (define-key concept-mode-map (kbd "M-<down>")  #'concept-exchange-down-dwim)
 (define-key concept-mode-map (kbd "M-<up>")    #'concept-exchange-up-dwim)
 (define-key concept-mode-map (kbd "C-c f")     #'concept-follow-dwim)
@@ -5454,7 +5655,7 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "C-c M-p")   #'concept-cleanup-map)
 (define-key concept-mode-map (kbd "C-c C-v")   #'concept-map-check-parse)
 (define-key concept-mode-map (kbd "C-c C-t")   #'concept-map-export-to-table)
-(define-key concept-mode-map (kbd "C-c e")     #'concept-edit-group-dwim)
+(define-key concept-mode-map (kbd "C-c e")     #'concept-edit-dwim)
 (define-key concept-mode-map (kbd "M-;")       #'concept-split-dwim)
 (define-key concept-mode-map (kbd "C-M-;")     #'concept-data-split-dwim)
 (define-key concept-mode-map (kbd "C-;")       #'concept-isolate-dwim)
