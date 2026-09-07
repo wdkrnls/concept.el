@@ -3912,7 +3912,7 @@ These are specified using ; separators. If there is one query, then  the last ch
 (defvar search-resource-blocks-history nil
   "History for concept-search-resource-blocks command.")
 
-(defun concept-search-resource-blocks ()
+(defun concept-search-resource-blocks (&optional first-match-only)
   "Search for resource blocks with certain key-value pairs.
 The query syntax should look like: KEY1~VAL1:KEY2 which finds matching
 resource blocks which have atleast two keys: one that matches the
@@ -3928,7 +3928,10 @@ The query `doc~page~127:doc~guid~fgc9' should find resources concerning
 page 127 of the fgc9 guide.
 "
   (interactive)
-  (let ((query (read-string "Resource Query: " nil 'search-resource-blocks-history)))
+  (when (null first-match-only)
+    (setq first-match-only nil))
+  (let ((query (read-string "Resource Query: " nil 'search-resource-blocks-history))
+        (found-first-match nil))
     (when (concept--is-invalid-resource-query-p query)
       (error  "Invalid query syntax!"))
     (let* ((parts (split-string query ":" t))
@@ -3941,7 +3944,8 @@ page 127 of the fgc9 guide.
            (matching-blocks '()))
       (save-excursion
         (goto-char (point-min))
-        (while (concept-map-has-more-resources)
+        (while (and (or (not first-match-only) (not found-first-match))
+                    (concept-map-has-more-resources))
           (concept-goto-next-resource)
           (when first-parts
             (while (and (not (eobp))
@@ -3979,6 +3983,7 @@ page 127 of the fgc9 guide.
                         (concept-goto-next-attribute)
                       (forward-line)))
                   (when (resource-queries-succeeded block-name attribute-data parts)
+                    (setq found-first-match t)
                     (push
                      (cons block-pt block-name)
                      matching-blocks))))))))
@@ -4188,12 +4193,12 @@ This is used to perform relationship agnostic idea queries."
 (defvar search-concept-blocks-history nil
   "History for concept-search-concept-blocks command.")
 
-(defun  concept-search-concept-blocks ()
+(defun  concept-search-concept-blocks (&optional first-match-only)
   "Search for concept blocks with certain relationships or combinations of concepts.
+With FIRST-MATCH-ONLY, return immediately after the first match.
 
 For searching relationships, the query syntax should look like:
-
-CON1~REL1~CON2:~REL2~CON3:CON4~REL3:CON5 which finds matching resource
+`CON1~REL1~CON2:~REL2~CON3:CON4~REL3:CON5' which finds matching resource
 blocks which have atleast 5 concept name fragments and three
 relationships. For the relevant concepts and relationships, check that
 their values have matching substrings corresponding to each part of the
@@ -4244,18 +4249,24 @@ The query `old\;new' matches all query blocks involving matches for both old and
 The query `old\;@new' matches all query blocks with old but not new terms.
 "
   (interactive)
+  (when (null first-match-only)
+    (setq first-match-only nil))
   (let ((query (read-string  "Idea Query: " nil 'search-concept-blocks-history))
-        (matching-blocks '()))
+        (matching-blocks '())
+        (found-first-match nil))
     (when (concept--is-invalid-idea-query-p query)
       (error "Invalid idea query syntax!"))
     (if (concept--is-relationship-agnostic-idea-query-p query)
         (save-excursion
           (goto-char (point-min))
-          (while (concept-map-has-more-concept-blocks)
+          (while (and (or (not first-match-only)
+                          (not found-first-match))
+                      (concept-map-has-more-concept-blocks))
             (re-search-forward "^~" nil t)
             (let ((block-name (concept-get-block-name))
                   (block-pt   (line-beginning-position)))
               (when (concept-relationship-agnostic-idea-matches-p query)
+                (setq found-first-match t)
                 (push (cons block-pt block-name) matching-blocks)))
             (end-of-line)))
     (let* ((parts (split-string query ":" t))
@@ -4270,7 +4281,9 @@ The query `old\;@new' matches all query blocks with old but not new terms.
              #'concept--substring-final-clause parts)))
     (save-excursion
       (goto-char (point-min))
-      (while (concept-map-has-more-concept-blocks)
+      (while (and (or (not first-match-only)
+                      (not found-first-match))
+                  (concept-map-has-more-concept-blocks))
         (re-search-forward "^~" nil t)
         (if (or first-parts second-parts third-parts)
             (while (and (not (eobp))
@@ -4308,6 +4321,7 @@ The query `old\;@new' matches all query blocks with old but not new terms.
                     (forward-line)))
                 (when (relationship-queries-succeeded
                        block-name relationship-data parts)
+                  (setq found-first-match t)
                   (push (cons block-pt block-name) matching-blocks))))))))))
     (nreverse matching-blocks)))
 
@@ -4342,12 +4356,13 @@ The query `old\;@new' matches all query blocks with old but not new terms.
           (make-overlay (line-beginning-position) (line-end-position)))
     (overlay-put concept-consult--preview-overlay 'face 'highlight)))
 
-(defun concept-consult-search-resource-blocks ()
+(defun concept-consult-search-resource-blocks (arg)
   "Browse matching resource blocks with buffer preview."
-  (interactive)
-  (let ((buf (current-buffer)))
+  (interactive "P")
+  (let ((buf (current-buffer))
+        (found-first-match nil))
     (unwind-protect
-        (let* ((matches (concept-search-resource-blocks))
+        (let* ((matches (concept-search-resource-blocks arg))
                (alist (mapcar (lambda (m)
                                 (cons (format "@ %s at position %d" (cdr m) (car m))
                                       (car m)))
@@ -4375,12 +4390,12 @@ The query `old\;@new' matches all query blocks with old but not new terms.
           (delete-overlay concept-consult--preview-overlay)
           (setq concept-consult--preview-overlay nil))))))
 
-(defun concept-consult-search-concept-blocks ()
+(defun concept-consult-search-concept-blocks (arg)
   "Browse matching concept blocks with buffer preview."
-  (interactive)
+  (interactive "P")
   (let ((buf (current-buffer)))
     (unwind-protect
-        (let* ((matches (concept-search-concept-blocks))
+        (let* ((matches (concept-search-concept-blocks arg))
                (alist (mapcar (lambda (m)
                                 (cons (format "~ %s at position %d" (cdr m) (car m))
                                       (car m)))
