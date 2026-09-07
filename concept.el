@@ -5253,23 +5253,28 @@ resource line."
          (concept-goto-next-data-concept))
         (t (error "This resource block condition should not have been reached!")))))
 
-(defun concept-edit-keyword ()
-  "Edit the name of the attribute group keyword for the current exposition line."
-  (interactive)
-  (when (concept-on-exposition-line)
-    (re-search-backward concept-attribute-group-name-regexp nil t)
-    (end-of-line)
-    (backward-sexp)
-    (zap-up-to-char 1 ?:)))
+(defvar concept-focus-editing-history nil
+  "History for the concept map editing tools.")
 
-(defun concept-edit-relationship ()
-  "Edit the name of the attribute group keyword for the current exposition line."
-  (interactive)
-  (when (concept-on-data-concept-line)
-    (re-search-backward concept-relationship-group-line-lite-regexp nil t)
-    (end-of-line)
-    (backward-sexp)
-    (kill-line)))
+(defvar concept-resource-editing-history nil
+  "History for the concept map editing tools.")
+
+(defvar concept-attribute-editing-history nil
+  "History for the concept map editing tools.")
+
+(defvar concept-relationship-editing-history nil
+  "History for the concept map editing tools.")
+
+(defvar concept-concept-editing-history nil
+  "History for the concept map editing tools.")
+
+(defvar concept--edit-group-restriction-failed-msg
+    "Replace failed to pass group name restrictions"
+  "Editing in the buffur failed due to group restrictions.")
+
+(defvar concept--edit-is-the-same-msg
+  "No changes found during edit!"
+  "No changes were found. Let the user know.")
 
 (defun concept-edit-focus ()
   "Edit the current focus concept and replace it with a new one if valid."
@@ -5277,15 +5282,16 @@ resource line."
   (save-excursion
     (concept-goto-current-focus)
     (let* ((old-text (concept-current-focus))
-           (new-text (string-trim (read-string "Subject: " old-text nil old-text)))
+           (new-text (string-trim (read-string "Subject: " old-text 'concept-focus-editing-history old-text)))
            (focus-regexp concept-group-name-regexp))
-      (cond ((and (not (equal old-text new-text))
-                  (string-match-p focus-regexp new-text))
+      (cond ((equal old-text new-text)
+             (message concept--edit-is-the-same-msg))
+            ((string-match-p focus-regexp new-text)
              (beginning-of-line)
              (re-search-forward "[^~ ]+" (line-end-position) t)
              (kill-line)
              (insert new-text))
-            (t (message "Replace failed to pass group name restrictions"))))))
+            (t (message concept--edit-group-restriction-failed-msg))))))
 
 (defun concept-edit-resource ()
   "Edit the current resource block and replace it with a new one if valid."
@@ -5294,30 +5300,32 @@ resource line."
     (save-excursion
       (concept-goto-current-resource)
       (let* ((old-text (concept-current-resource))
-             (new-text (string-trim (read-string "Resource: " old-text nil old-text)))
+             (new-text (string-trim (read-string "Resource: " old-text 'concept-resource-editing-history old-text)))
              (resource-regexp concept-group-name-regexp))
-        (cond ((and (not (equal old-text new-text))
-                    (string-match-p resource-regexp new-text))
+        (cond ((equal old-text new-text)
+               (message concept--edit-is-the-same-msg))
+              ((string-match-p resource-regexp new-text)
                (beginning-of-line)
                (re-search-forward "[^@ ]+" (line-end-position) t)
                (kill-line)
                (insert new-text))
-              (t (message "Replace failed to pass group name restrictions")))))))
+              (t (message concept--edit-group-restriction-failed-msg)))))))
 
 (defun concept-edit-data-concept ()
   "Edit the current resource block and replace it with a new one if valid."
   (interactive)
   (when (concept-on-data-concept-line)
     (let* ((old-text (concept-current-concept))
-           (new-text (string-trim (read-string "Object: " old-text nil old-text)))
+           (new-text (string-trim (read-string "Object: " old-text 'concept-concept-editing-history old-text)))
            (concept-regexp concept-group-name-regexp))
-      (cond ((and (not (equal old-text new-text))
-                  (string-match-p concept-regexp new-text))
+      (cond ((equal old-text new-text)
+             (message concept--edit-is-the-same-msg))
+            ((string-match-p concept-regexp new-text)
              (beginning-of-line)
              (re-search-forward "[^| ]+" (line-end-position) t)
              (kill-line)
-             (insert new-text))
-            (t (message "Replace failed to pass group name restrictions"))))))
+             (insert new-text "\n"))
+            (t (message concept--edit-group-restriction-failed-msg))))))
 
 (defun concept-edit-relationship ()
   "Edit the current resource block and replace it with a new one if valid."
@@ -5328,15 +5336,16 @@ resource line."
       (concept-goto-last-relationship))
     (save-excursion
       (let* ((old-text (concept-current-relationship))
-             (new-text (string-trim (read-string "Object: " old-text nil old-text)))
+             (new-text (string-trim (read-string "Object: " old-text 'concept-relationship-editing-history old-text)))
              (relationship-regexp concept-group-name-regexp))
-        (cond ((and (not (equal old-text new-text))
-                    (string-match-p relationship-regexp new-text))
+        (cond ((equal old-text new-text)
+               (message concept--edit-is-the-same-msg))
+              ((string-match-p relationship-regexp new-text)
                (beginning-of-line)
                (re-search-forward "^| +:" (line-end-position) t)
                (kill-line)
                (insert new-text))
-              (t (message "Replace failed to pass group name restrictions")))))))
+              (t (message concept--edit-group-restriction-failed-msg)))))))
 
 (defun concept-edit-keyword ()
   "Edit the current resource block and replace it with a new one if valid."
@@ -5347,7 +5356,7 @@ resource line."
       (concept-goto-last-attribute))
     (save-excursion
       (let* ((old-text (concept-current-attribute))
-             (new-text (string-trim (read-string "Keyword: " old-text nil old-text)))
+             (new-text (string-trim (read-string "Keyword: " old-text 'concept-attribute-editing-history old-text)))
              (keyword-regexp concept-group-name-regexp))
         (cond ((and (not (equal old-text new-text))
                     (string-match-p keyword-regexp new-text))
@@ -5355,7 +5364,7 @@ resource line."
                (re-search-forward "^| +" (line-end-position) t)
                (kill-line)
                (insert new-text ":"))
-              (t (message "Replace failed to pass group name restrictions")))))))
+              (t (message concept--edit-group-restriction-failed-msg)))))))
 
 (defun concept-pick-needed-data-delimiters (text)
   "Pick the simplest pair of delimiters needed to store the string in a concept map."
@@ -5366,6 +5375,9 @@ resource line."
          "[]")
         (t "‘’")))
 
+(defvar concept-editing-exposition-history nil
+  "History for the concept map editing tools relevant to expository data.")
+
 (defun concept-edit-exposition ()
   "Edit the current piece of expository data and replace the previous entry."
   (interactive)
@@ -5373,7 +5385,7 @@ resource line."
              (concept-on-exposition-line))
     (save-excursion
       (let* ((old-text (concept-current-exposition))
-             (new-text (string-trim (read-string "Data: " old-text nil old-text)))
+             (new-text (string-trim (read-string "Data: " old-text 'concept-editing-exposition-history old-text)))
              (needed-delims (concept-pick-needed-data-delimiters new-text)))
         (when (not (equal old-text new-text))
           (beginning-of-line)
@@ -5394,6 +5406,8 @@ resource line."
          (concept-edit-data-concept))
         ((concept-on-exposition-line)
          (concept-edit-exposition))
+        ((concept-on-relationship-line)
+         (concept-edit-relationship))
         ((concept-on-attribute-line)
          (concept-edit-keyword))))
 
