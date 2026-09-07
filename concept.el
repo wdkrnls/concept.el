@@ -5322,9 +5322,9 @@ resource line."
              (message concept--edit-is-the-same-msg))
             ((string-match-p concept-regexp new-text)
              (beginning-of-line)
-             (re-search-forward "[^| ]+" (line-end-position) t)
+             (re-search-forward "| +" (line-end-position) t)
              (kill-line)
-             (insert new-text "\n"))
+             (insert new-text))
             (t (message concept--edit-group-restriction-failed-msg))))))
 
 (defun concept-edit-relationship ()
