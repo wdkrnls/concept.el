@@ -106,6 +106,7 @@
 (require 'mailcap)
 (require 'xml)
 (require 'eww)
+(require 'ansi-color)
 
 ;;; Reference for internal resources
 
@@ -4865,19 +4866,26 @@ they are inside the block."
   "Name the shell command with part of its hash."
   (format "*Shell Command*<%s>" concept-last-shell-command-hash))
 
+(defun concept-shell-compilation-with-color ()
+  (ansi-color-apply-on-region
+   compilation-filter-start
+   (point-max)))
+
+(add-hook 'compilation-filter-hook #'concept-shell-compilation-with-color)
+
 (defun concept-shell-command (string &optional expect-prompt)
   "Run shell command found in STRING with compilation-mode.
 When EXPECT-PROMPT is not nil, place into comint mode."
   (let ((compilation-buffer-name-function
          'concept-shell-command-compilation-buffer-name-function)
         (concept-last-shell-command-hash
-         (substring (sha1 string) 0 6)))
-    (let ((buf (concept-shell-command-compilation-buffer-name-function "shell")))
+         (substring (sha1 string) 0 6))
+        (buf (concept-shell-command-compilation-buffer-name-function "shell")))
       (if (bufferp (get-buffer buf))
           (switch-to-buffer buf)
         (if expect-prompt
             (compile string t)
-          (compile string))))))
+          (compile string)))))
 
 (defun concept-follow-man (page)
   "Follow to the man page synchronously."
@@ -5097,16 +5105,20 @@ modifying `mailcap-user-mime-data'."
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
            (let ((default-directory
-                  (or
-                   (and (member "directory" (concept-resource-block-keys))
-                        (save-excursion
-                          (concept-goto-key-in-resource-block "directory")
-                          (forward-line)
-                          (expand-file-name (concept-get-expository-data))))
-                   default-directory)))
-           (concept-shell-command
-            (concept-get-expository-data)
-            (member "prompt" (concept-resource-block-keys))))))
+                  (file-name-as-directory
+                   (or
+                    (and (member "directory" (concept-resource-block-keys))
+                         (let ((proposed-directory
+                                (save-excursion
+                                  (concept-goto-key-in-resource-block "directory")
+                                  (forward-line)
+                                  (concept-get-expository-data))))
+                           (when (file-exists-p proposed-directory)
+                             (expand-file-name proposed-directory))))
+                    default-directory))))
+             (concept-shell-command
+              (concept-get-expository-data)
+              (member "prompt" (concept-resource-block-keys))))))
         ((and (concept-on-exposition-line)
               (or (string= "emacs-lisp" (concept-exposition-parent-key))
                   (string= "lisp" (concept-exposition-parent-key))))
