@@ -120,11 +120,13 @@ The text format used by `concept.el` is designed to be familiar and comfortable 
 These editing tools include:
 
 * a variety of (full and partial) text-completion interfaces
-* parser validation implemented via a `peg` parsing expression grammar
+* buffer-wide data validation tools including a parser for concept maps implemented via the `peg` parsing expression grammar library
 * hyper-linking to external documents, image files, as well as online documentation
 * whole file scanning provided through `imenu`
-* document navigation and re-organization system provided through `outline` just like `org` mode
+* document navigation and re-organization system provided through `outline` just like `org` mode in addition to custom tools tailored for concept maps
 * a search interface and query language provided through `consult`
+* a minibuffer-based editing interface which provides data validation
+* data "following" tools which help the user ensure the map is meaningful by grounding it in concrete resources.
 
 Together they make it feasible to develop and productively explore concept maps with hundreds of thousands of concepts and even more relationships between them.
 
@@ -205,7 +207,7 @@ Note that just like with resources, you could also auto-complete against all *re
 
 You can enter *resource blocks* by typing @ on a new line (e.g. created with `C-j`  or by `M-j` (or even `M-i` in many cases) followed by `M-r` to cycle until a `@` appears. Alternatively, if you want to start from an existing resource, you can press `C-c y r` to auto-complete across all existing resource entries. Once you have a resource block, you can navigate through and edit them with `M-i` which does useful things for whatever situation the cursor is in. When you want to edit the parent keyword for your attribute group, you can press `C-c e` on your attribute line and the cursor will move back to your keyword and delete it. If that is not what you want, then you can undo with `C-x u`. In that case, after the undo you might just want to press `TAB` to see what the other keywords are in your concept map and select one of those.
 
-If you are on an attribute keyword, you can press `C-<down>` and it will move you inside of the delimiters of the next piece of attribute data. If you want to edit that piece of data, press `C-c e`. If instead you want to edit it's group, press `C-u C-c e`. Really, this sort of editing seems pretty intuitive for concept maps, so we have made it work everywhere. Navigate to any line in the concept map and you can edit it with the same `C-c e` and `C-u C-c e` keybinding and it will work as you expect.
+If you are on an attribute keyword, you can press `C-<down>` and it will move you inside of the delimiters of the next piece of attribute data. If you want to edit that piece of data, press `C-c e`. If instead you want to edit it's group, press `C-u C-c e`. Really, this sort of editing seems pretty intuitive for concept maps, so we have made it work everywhere. Navigate to any line in the concept map and you can edit it with the same `C-c e` and `C-u C-c e` keybinding and it will work as you expect. The main downside of the minibuffer editing interface is that it doesn't have access to the rich completion sources available in the buffer via `TAB` and `M-/`. They could be added, but instead you get a dedicated history.
 
 It can be very convenient to use (e.g. tempel or tempo) templates to insert *resource blocks*. In my `init.el` configuration file I have bound the following tempel configuration for concept maps.
 
@@ -226,7 +228,9 @@ It can be very convenient to use (e.g. tempel or tempo) templates to insert *res
 (require 'tempel)
 ```
 
-You can use `M-i` to make new attribute group keywords. However, by default these show up as `note:`. You'll have to edit these using standard text editing commands. Type `C-r note:`. Press `ENTER`. Now press `M-d` to delete the word. You could also run M-x `concept-goto-last-attribute` followed by `C-M-b` and then M-x `zap-up-to-char` and enter `:`. Then press `ENTER`. Reorganizing existing attribute groups, or expository data lines can be done with `M-<up>` (up arrow key) and `M-<down>` (down arrow key). The same commands also work with conceptual *relationship blocks*.
+You can use `M-i` to make new attribute group keywords. However, by default these show up as `note:`. You'll have to edit these using either standard text editing commands or via `C-u C-c e` which calls a minibuffer editing interface. The standard way involves typing `C-r note:`. Press `ENTER`. Now press `C-M-k` to delete the whole name for sure. However, in this case `M-d` would work just as well. The minibuffer editing interface provides the advantage of validating the input for you and rejecting your change if it doesn't match.
+
+Reorganizing existing attribute groups, or expository data lines can be done with `M-<up>` (up arrow key) and `M-<down>` (down arrow key). The same commands also work with conceptual *relationship blocks*.
 
 Once you have your *resource block* written the way you like it, Pressing `C-c f` can be used on exposition lines inside of the following attribute groups out of the box.
 
