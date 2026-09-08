@@ -5395,6 +5395,14 @@ When EXPECT-PROMPT is not nil, place into comint mode."
     (let* ((buf (man-follow page)))
       buf)))
 
+(defun concept-dictionary-search (string)
+  "Make a dictionary search and open it's buffer.
+Whether this works depends on if the dictionary.el package is installed."
+  (if (package-installed-p 'dictionary)
+      (and (dictionary-search string)
+           (delete-other-windows))
+    (message "The dictionary.el interface to rfc2229 dictionaries is not yet installed. Run (package-install 'dictionary) to install it!")))
+
 (defun concept-follow-dwim ()
   "Follow the link if it recognizes the attribute group keyword and the file type.
 If the keyword is `file' but the file is not one of the recognized types
@@ -5556,6 +5564,9 @@ modifying `mailcap-user-mime-data'."
                   (with-current-buffer "*info*"
                     (beginning-of-buffer)
                     (goto-char (string-to-number value)))))))
+        ((and (concept-on-exposition-line)
+              (string= "definition" (concept-exposition-parent-key)))
+         (concept-dictionary-search (concept-current-exposition)))
         ((and (concept-on-exposition-line)
               (string= "url" (concept-exposition-parent-key)))
          (save-excursion
