@@ -370,6 +370,18 @@ These are subject concepts. They were called focus concepts.")
       (concept-goto-next-concept))
     (end-of-line)))
 
+(defun concept-goto-nth-exposition-line (N &optional total)
+  "Navigate to the Nth data concept in the relationship block."
+  (when (null total)
+    (setq total (concept-attribute-group-data-count)))
+  (let ((n total))
+    (unless (and (< N n) (<= 0 N))
+      (user-error "Supplied indexes are out of range."))
+    (concept-goto-first-exposition-line-in-attribute-group)
+    (dotimes (_ N)
+      (concept-goto-next-exposition))
+    (end-of-line)))
+
 (defun concept-current-idea-index ()
   "Determine the index of the current idea."
   (save-excursion
@@ -491,6 +503,29 @@ These are subject concepts. They were called focus concepts.")
                  (concept-goto-nth-data-concept (1+ j) n)
                  (concept-exchange-concept-down (1- d)))))))))
 
+(defun concept-exchange-attribute-data (i j)
+  "Exchange two arbitrary pieces of attribute data in an attribute group."
+  (let ((n (concept-attribute-group-data-count)))
+    (when (< 1 n)
+      (unless (and (< i n) (< j n)
+                   (<= 0 i) (<= 0 j))
+        (user-error "Supplied indexes are out of range."))
+      (catch 'done
+        (cond ((= i j)
+               (throw 'done 'identity))
+              ((< i j)
+               (let ((d (- j i)))
+                 (concept-goto-nth-exposition-line j n)
+                 (concept-exchange-exposition-up d)
+                 (concept-goto-nth-exposition-line (1+ i) n)
+                 (concept-exchange-exposition-down (1- d))))
+              (t
+               (let ((d (- i j)))
+                 (concept-goto-nth-exposition-line i n)
+                 (concept-exchange-exposition-up d)
+                 (concept-goto-nth-exposition-line (1+ j) n)
+                 (concept-exchange-exposition-down (1- d)))))))))
+
 (defun concept-exchange-relationship-groups (i j)
   "Exchange two arbitrary relationship groups in a relationship block."
   (let ((n (concept-relationship-group-count)))
@@ -582,6 +617,18 @@ See also `concept-shuffle' ideas."
           (let ((j (random i)))
             (concept-exchange-data-concepts i j))))
       (concept-goto-first-data-concept-in-relationship-group))))
+
+(defun concept-randomize-attribute-data ()
+  "Randomly shuffle all the attribute data in the current attribute group."
+  (interactive)
+  (when (concept-on-exposition-line)
+    (concept-goto-first-exposition-line-in-attribute-group)
+    (let ((n (concept-attribute-group-data-count)))
+      (when (< 1 n)
+        (dolist (i (number-sequence 1 (1- n)))
+          (let ((j (random i)))
+            (concept-exchange-attribute-data i j))))
+      (concept-goto-first-exposition-line-in-attribute-group))))
 
 (defun concept-randomize-relationship-groups ()
   "Randomly shuffle all the relationship groups in the current relationship block."
@@ -2376,36 +2423,42 @@ concepts."
   (interactive)
   (concept--exchange-concept "down" times))
 
-(defun concept--exchange-exposition (direction)
+(defun concept--exchange-exposition (direction &optional times)
   "Toggle the lines a la C-x C-t.
 
 When on an exposition line, exchange it with either the next or previous
 adjacent exposition line."
-  (let ((line-move-visual nil))
-    (when (concept-on-exposition-line)
-      (when (save-excursion
-              (if (equal direction "up")
-                  (previous-line)
-                (next-line))
-              (concept-on-exposition-line))
-        (if (equal direction "up")
-            (progn
-              (transpose-lines 1)
-              (previous-line 2))
-          (progn
-            (next-line)
-            (transpose-lines 1)
-            (previous-line)))))))
+  (when (concept-on-exposition-line)
+    (when (null times)
+      (setq times 1))
+    (when (< times 0)
+      (user-error "TIMES must be positive."))
+    (dotimes (_ times)
+      (let ((line-move-visual nil))
+        (when (concept-on-exposition-line)
+          (when (save-excursion
+                  (if (equal direction "up")
+                      (previous-line)
+                    (next-line))
+                  (concept-on-exposition-line))
+            (if (equal direction "up")
+                (progn
+                  (transpose-lines 1)
+                  (previous-line 2))
+              (progn
+                (next-line)
+                (transpose-lines 1)
+                (previous-line)))))))))
 
-(defun concept-exchange-exposition-up ()
+(defun concept-exchange-exposition-up (&optional times)
   "Exchange exposition with the previous one."
   (interactive)
-  (concept--exchange-exposition "up"))
+  (concept--exchange-exposition "up" times))
 
-(defun concept-exchange-exposition-down ()
+(defun concept-exchange-exposition-down (&optional times)
   "Exchange exposition with the next one."
   (interactive)
-  (concept--exchange-exposition "down"))
+  (concept--exchange-exposition "down" times))
 
 (defun concept-goto-next-attribute-boundary ()
   "Move to the next keyword, concept header, or block marker."
