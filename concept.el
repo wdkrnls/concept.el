@@ -326,7 +326,7 @@ These are subject concepts. They were called focus concepts.")
       (concept-goto-next-concept-block))))
 
 (defun concept-goto-nth-relationship-group (N &optional total)
-  "Navigate to the Nth relationship group in the concept map."
+  "Navigate to the Nth relationship group in the relationship block."
   (when (null total)
     (setq total (concept-relationship-group-count)))
   (let ((n total))
@@ -335,6 +335,17 @@ These are subject concepts. They were called focus concepts.")
     (concept-goto-first-relationship-group-in-block)
     (dotimes (_ N)
       (concept-goto-next-relationship))))
+
+(defun concept-goto-nth-attribute-group (N &optional total)
+  "Navigate to the Nth attribute group in the resource block."
+  (when (null total)
+    (setq total (concept-resource-keyword-count)))
+  (let ((n total))
+    (unless (and (< N n) (<= 0 N))
+      (user-error "Supplied indexes are out of range."))
+    (concept-goto-first-attribute-group-in-block)
+    (dotimes (_ N)
+      (concept-goto-next-attribute))))
 
 (defun concept-goto-nth-data-concept (N &optional total)
   "Navigate to the Nth data concept in the relationship block."
@@ -424,7 +435,7 @@ These are subject concepts. They were called focus concepts.")
                  (concept-exchange-concept-down (1- d)))))))))
 
 (defun concept-exchange-relationship-groups (i j)
-  "Exchange two arbitrary data concepts in a relationship group."
+  "Exchange two arbitrary relationship groups in a relationship block."
   (let ((n (concept-relationship-group-count)))
     (when (< 1 n)
       (unless (and (< i n) (< j n)
@@ -445,6 +456,29 @@ These are subject concepts. They were called focus concepts.")
                  (concept-move-relationship-group-up d)
                  (concept-goto-nth-relationship-group (1+ j) n)
                  (concept-move-relationship-group-down (1- d)))))))))
+
+(defun concept-exchange-attribute-groups (i j)
+  "Exchange two arbitrary attribute groups in a resource block."
+  (let ((n (concept-resource-keyword-count)))
+    (when (< 1 n)
+      (unless (and (< i n) (< j n)
+                   (<= 0 i) (<= 0 j))
+        (user-error "Supplied indexes are out of range."))
+      (catch 'done
+        (cond ((= i j)
+               (throw 'done 'identity))
+              ((< i j)
+               (let ((d (- j i)))
+                 (concept-goto-nth-attribute-group j n)
+                 (concept-move-attribute-up d)
+                 (concept-goto-nth-attribute-group (1+ i) n)
+                 (concept-move-attribute-down (1- d))))
+              (t
+               (let ((d (- i j)))
+                 (concept-goto-nth-attribute-group i n)
+                 (concept-move-attribute-up d)
+                 (concept-goto-nth-attribute-group (1+ j) n)
+                 (concept-move-attribute-down (1- d)))))))))
 
 (defun concept-shuffle-ideas ()
   "Randomly shuffle all the ideas in the buffer."
@@ -486,6 +520,18 @@ See also `concept-shuffle' ideas."
           (let ((j (random i)))
             (concept-exchange-relationship-groups i j))))
       (concept-goto-first-relationship-group-in-block))))
+
+(defun concept-randomize-attribute-groups ()
+  "Randomly shuffle all the attribute groups in the current resource block."
+  (interactive)
+  (when (concept-in-resource-block)
+    (concept-goto-first-attribute-group-in-block)
+    (let ((n (concept-resource-keyword-count)))
+      (when (< 1 n)
+        (dolist (i (number-sequence 1 (1- n)))
+          (let ((j (random i)))
+            (concept-exchange-attribute-groups i j))))
+      (concept-goto-first-attribute-group-in-block))))
 
 (defun concept--common-substring-of-length (strings source length)
   "Return a common substring of LENGTH, or nil.
@@ -2354,201 +2400,181 @@ block."
     (beginning-of-line)
     (point)))
 
-(defun concept-move-attribute-down ()
+(defun concept-move-attribute-down (&optional times)
   "Move the keyword and its data below the next keyword and its data."
   (interactive)
-  (let (current-start
-        current-end
-        current-keyword
-        next-start
-        next-end
-        current-text
-        next-text)
-    (save-excursion
-      (beginning-of-line)
-      (unless (looking-at concept-attribute-group-line-regexp)
-        (user-error "Point is not on a keyword line"))
-      (setq current-keyword (concept-get-attribute))
-      (setq current-start (point))
-      (forward-line 1)
-      (setq current-end (concept-goto-next-attribute-boundary))
-      (unless current-end
-        (user-error "Current keyword has no following keyword"))
-      (goto-char current-end)
-      (unless (looking-at concept-attribute-group-line-regexp)
-        (user-error "No following keyword in this block"))
-      (setq next-start (point))
-      (forward-line 1)
-      (setq next-end (concept-goto-next-attribute-boundary))
-      (unless next-end
-        (setq next-end (point-max)))
-      (setq current-text
-            (buffer-substring-no-properties current-start current-end)
-            next-text
-            (buffer-substring-no-properties next-start next-end)))
-    (atomic-change-group
+  (when (null times)
+    (setq times 1))
+  (when (< times 0)
+    (user-error "TIMES must be positive."))
+  (dotimes (_ times)
+    (let (current-start
+          current-end
+          current-keyword
+          next-start
+          next-end
+          current-text
+          next-text)
+      (save-excursion
+        (beginning-of-line)
+        (unless (looking-at concept-attribute-group-line-regexp)
+          (user-error "Point is not on a keyword line"))
+        (setq current-keyword (concept-get-attribute))
+        (setq current-start (point))
+        (forward-line 1)
+        (setq current-end (concept-goto-next-attribute-boundary))
+        (unless current-end
+          (user-error "Current keyword has no following keyword"))
+        (goto-char current-end)
+        (unless (looking-at concept-attribute-group-line-regexp)
+          (user-error "No following keyword in this block"))
+        (setq next-start (point))
+        (forward-line 1)
+        (setq next-end (concept-goto-next-attribute-boundary))
+        (unless next-end
+          (setq next-end (point-max)))
+        (setq current-text
+              (buffer-substring-no-properties current-start current-end)
+              next-text
+              (buffer-substring-no-properties next-start next-end)))
+      (atomic-change-group
+        (goto-char current-start)
+        (delete-region current-start next-end)
+        (insert next-text current-text))
       (goto-char current-start)
-      (delete-region current-start next-end)
-      (insert next-text current-text))
-    (goto-char current-start)
-    (re-search-forward (concat current-keyword ":"))))
+      (re-search-forward (concat current-keyword ":")))))
 
-(defun concept-move-attribute-up ()
+(defun concept-move-attribute-up (&optional times)
   "Move the keyword and its data above the previous keyword and its data."
   (interactive)
-  (let (current-start
-        current-end
-        current-keyword
-        previous-start
-        current-text
-        previous-text)
-    (save-excursion
-      (beginning-of-line)
-      (unless (looking-at concept-attribute-group-line-regexp)
-        (user-error "Point is not on a resource keyword line"))
-      (setq current-keyword (concept-get-attribute))
-      (setq current-start (point))
-      (setq previous-start
-            (concept-goto-previous-attribute-boundary))
-      (unless previous-start
-        (user-error "Current keyword has no preceding keyword"))
-      (unless (looking-at concept-attribute-group-line-regexp)
-        (user-error "No preceding keyword in this block"))
-      (goto-char current-start)
-      (forward-line 1)
-      (setq current-end
-            (or (concept-goto-next-attribute-boundary)
-                (point-max)))
-      (setq previous-text
-            (buffer-substring-no-properties
-             previous-start current-start)
-            current-text
-            (buffer-substring-no-properties
-             current-start current-end)))
-    (atomic-change-group
-      (goto-char previous-start)
-      (delete-region previous-start current-end)
-      (insert current-text previous-text))
-    (re-search-backward (concat current-keyword ":"))
-    (end-of-line)))
+  (when (null times)
+    (setq times 1))
+  (when (< times 0)
+    (user-error "TIMES must be positive."))
+  (dotimes (_ times)
+    (let (current-start
+          current-end
+          current-keyword
+          previous-start
+          current-text
+          previous-text)
+      (save-excursion
+        (beginning-of-line)
+        (unless (looking-at concept-attribute-group-line-regexp)
+          (user-error "Point is not on a resource keyword line"))
+        (setq current-keyword (concept-get-attribute))
+        (setq current-start (point))
+        (setq previous-start
+              (concept-goto-previous-attribute-boundary))
+        (unless previous-start
+          (user-error "Current keyword has no preceding keyword"))
+        (unless (looking-at concept-attribute-group-line-regexp)
+          (user-error "No preceding keyword in this block"))
+        (goto-char current-start)
+        (forward-line 1)
+        (setq current-end
+              (or (concept-goto-next-attribute-boundary)
+                  (point-max)))
+        (setq previous-text
+              (buffer-substring-no-properties
+               previous-start current-start)
+              current-text
+              (buffer-substring-no-properties
+               current-start current-end)))
+      (atomic-change-group
+        (goto-char previous-start)
+        (delete-region previous-start current-end)
+        (insert current-text previous-text))
+      (re-search-backward (concat current-keyword ":"))
+      (end-of-line))))
 
-(defun concept-move-attribute-down ()
-  "Move the keyword and its data below the next keyword and its data."
-  (interactive)
-  ;;  TODO: this seems like a copy of the defun two expressions before this one
-  (let (current-start
-        current-end
-        current-keyword
-        next-start
-        next-end
-        current-text
-        next-text)
-    (save-excursion
-      (beginning-of-line)
-      (unless (looking-at concept-attribute-group-line-regexp)
-        (user-error "Point is not on a keyword line"))
-      (setq current-keyword (concept-get-attribute))
-      (setq current-start (point))
-      (forward-line 1)
-      (setq current-end (concept-goto-next-attribute-boundary))
-      (unless current-end
-        (user-error "Current keyword has no following keyword"))
-      (goto-char current-end)
-      (unless (looking-at concept-attribute-group-line-regexp)
-        (user-error "No following keyword in this block"))
-      (setq next-start (point))
-      (forward-line 1)
-      (setq next-end (concept-goto-next-attribute-boundary))
-      (unless next-end
-        (setq next-end (point-max)))
-      (setq current-text
-            (buffer-substring-no-properties current-start current-end)
-            next-text
-            (buffer-substring-no-properties next-start next-end)))
-    (atomic-change-group
-      (goto-char current-start)
-      (delete-region current-start next-end)
-      (insert next-text current-text))
-    (goto-char current-start)
-    (re-search-forward (concat current-keyword ":"))))
-
-(defun concept-move-relationship-group-up ()
+(defun concept-move-relationship-group-up (&optional times)
   "Move the relationship-group and its data above the previous relationship-group and its data."
   (interactive)
-  (let (current-start
-        current-end
-        current-relationship-group
-        previous-start
-        current-text
-        previous-text)
-    (save-excursion
-      (beginning-of-line)
-      (unless (looking-at concept-relationship-group-line-regexp)
-        (user-error "Point is not on a resource relationship-group line"))
-      (setq current-relationship-group (concept-get-relationship))
-      (setq current-start (point))
-      (setq previous-start
-            (concept-goto-previous-relationship-boundary))
-      (unless previous-start
-        (user-error "Current relationship-group has no preceding relationship-group"))
-      (unless (looking-at concept-relationship-group-line-regexp)
-        (user-error "No preceding relationship-group in this block"))
-      (goto-char current-start)
-      (forward-line 1)
-      (setq current-end
-            (or (concept-goto-next-relationship-boundary)
-                (point-max)))
-      (setq previous-text
-            (buffer-substring-no-properties
-             previous-start current-start)
-            current-text
-            (buffer-substring-no-properties
-             current-start current-end)))
-    (atomic-change-group
-      (goto-char previous-start)
-      (delete-region previous-start current-end)
-      (insert current-text previous-text))
-    (re-search-backward (concat ":" current-relationship-group))
-    (end-of-line)))
+  (when (null times)
+    (setq times 1))
+  (when (< times 0)
+    (user-error "TIMES must be positive."))
+  (dotimes (i times)
+    (let (current-start
+          current-end
+          current-relationship-group
+          previous-start
+          current-text
+          previous-text)
+      (save-excursion
+        (beginning-of-line)
+        (unless (looking-at concept-relationship-group-line-regexp)
+          (user-error "Point is not on a resource relationship-group line"))
+        (setq current-relationship-group (concept-get-relationship))
+        (setq current-start (point))
+        (setq previous-start
+              (concept-goto-previous-relationship-boundary))
+        (unless previous-start
+          (user-error "Current relationship-group has no preceding relationship-group"))
+        (unless (looking-at concept-relationship-group-line-regexp)
+          (user-error "No preceding relationship-group in this block"))
+        (goto-char current-start)
+        (forward-line 1)
+        (setq current-end
+              (or (concept-goto-next-relationship-boundary)
+                  (point-max)))
+        (setq previous-text
+              (buffer-substring-no-properties
+               previous-start current-start)
+              current-text
+              (buffer-substring-no-properties
+               current-start current-end)))
+      (atomic-change-group
+        (goto-char previous-start)
+        (delete-region previous-start current-end)
+        (insert current-text previous-text))
+      (re-search-backward (concat ":" current-relationship-group))
+      (end-of-line))))
 
-(defun concept-move-relationship-group-down ()
+(defun concept-move-relationship-group-down (&optional times)
   "Move the relationship-group and its data below the next relationship-group and its data."
   (interactive)
-  (let (current-start
-        current-end
-        current-relationship-group
-        next-start
-        next-end
-        current-text
-        next-text)
-    (save-excursion
-      (beginning-of-line)
-      (unless (looking-at concept-relationship-group-line-regexp)
-        (user-error "Point is not on a relationship-group line"))
-      (setq current-relationship-group (concept-get-relationship))
-      (setq current-start (point))
-      (forward-line 1)
-      (setq current-end (concept-goto-next-relationship-boundary))
-      (unless current-end
-        (user-error "Current relationship-group has no following relationship-group"))
-      (goto-char current-end)
-      (unless (looking-at concept-relationship-group-line-regexp)
-        (user-error "No following relationship-group in this block"))
-      (setq next-start (point))
-      (forward-line 1)
-      (setq next-end (concept-goto-next-relationship-boundary))
-      (unless next-end
-        (setq next-end (point-max)))
-      (setq current-text
-            (buffer-substring-no-properties current-start current-end)
-            next-text
-            (buffer-substring-no-properties next-start next-end)))
-    (atomic-change-group
+  (when (null times)
+    (setq times 1))
+  (when (< times 0)
+    (user-error "TIMES must be positive."))
+  (dotimes (i times)
+    (let (current-start
+          current-end
+          current-relationship-group
+          next-start
+          next-end
+          current-text
+          next-text)
+      (save-excursion
+        (beginning-of-line)
+        (unless (looking-at concept-relationship-group-line-regexp)
+          (user-error "Point is not on a relationship-group line"))
+        (setq current-relationship-group (concept-get-relationship))
+        (setq current-start (point))
+        (forward-line 1)
+        (setq current-end (concept-goto-next-relationship-boundary))
+        (unless current-end
+          (user-error "Current relationship-group has no following relationship-group"))
+        (goto-char current-end)
+        (unless (looking-at concept-relationship-group-line-regexp)
+          (user-error "No following relationship-group in this block"))
+        (setq next-start (point))
+        (forward-line 1)
+        (setq next-end (concept-goto-next-relationship-boundary))
+        (unless next-end
+          (setq next-end (point-max)))
+        (setq current-text
+              (buffer-substring-no-properties current-start current-end)
+              next-text
+              (buffer-substring-no-properties next-start next-end)))
+      (atomic-change-group
+        (goto-char current-start)
+        (delete-region current-start next-end)
+        (insert next-text current-text))
       (goto-char current-start)
-      (delete-region current-start next-end)
-      (insert next-text current-text))
-    (goto-char current-start)
-    (re-search-forward (concat ":" current-relationship-group))))
+      (re-search-forward (concat ":" current-relationship-group)))))
 
 (defun concept-exchange-down-dwim ()
   "Exchange the current thing with the following thing."
