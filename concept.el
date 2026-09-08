@@ -2999,11 +2999,15 @@ you are interested in.")
 The different letters mean:
 
 A) for alphabetical sort (i.e., `concept-alphabetical-sort-dwim')
+B) for alphabetical sort except for a few patterns which when matched come first in specified order
+E) for alphabetical sort except for a few patterns which when matched come last in specified order
 Z) for reverse alphabetical sort (i.e., reversing `concept-alphabetical-sort-dwim')
+Y) for reverse alphabetical sort except for a few patterns which come last in a specified order
+X) for reverse alphabetical sort except for a few patterns which come first in a specified order
 J) for no sort leaving them just so (i.e., doing nothing)
-X) for a custom sort corresponding to `concept-canonical-custom-sort-dwim-function'
-S) for sorting purely based on string-length short to long (TODO)
-L) for sorting purely based on string-length long to short (TODO)
+C) for a custom sort corresponding to `concept-canonical-custom-sort-dwim-function'
+S) for sorting purely based on string length short to long (TODO)
+L) for sorting purely based on string length long to short (TODO)
 
 There are six because there are 3 for the three levels of elements in relationship blocks:
 
