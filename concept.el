@@ -3575,7 +3575,6 @@ Also remove every other element of the list which looks the same."
 
 (defun concept-insert-unicode-quote-brackets ()
   "Insert unicode quote brackets.
-
 These brackets can hold just about any kind of data."
   (interactive)
   (end-of-line)
@@ -4062,7 +4061,7 @@ next version."
 
 (defun concept-get-expository-data ()
   "Get the data on the line at point."
-  (when (not (eq major-mode 'concept-mode))
+  (when (not (derived-mode-p 'concept-mode))
     (user-error  "This function was called outside of a concept map. Aborting!"))
   (let* ((line (thing-at-point 'line t))
          (start (string-match "[{[‘]" line))
@@ -5142,6 +5141,15 @@ instead of `browse-url-new-window-flag'."
               (kill-buffer buf))))
         (buffer-list)))
 
+(defun concept-kill-all-shell-command-buffers ()
+  "Kill all open *Shell Command* buffers."
+  (interactive)
+  (mapc (lambda (buf)
+          (let ((name (buffer-name buf)))
+            (when (string-match-p "^[*]Shell Command[*]" name)
+              (kill-buffer buf))))
+        (buffer-list)))
+
 (defun concept-eval-elisp (string &optional side-effects)
   "Evaluate an Emacs Lisp STRING in a new dedicated buffer."
   (let* ((origin (current-buffer))
@@ -5268,7 +5276,23 @@ they are inside the block."
    compilation-filter-start
    (point-max)))
 
-(add-hook 'compilation-filter-hook #'concept-shell-compilation-with-color)
+(defvar concept-compilation-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "w") #'concept-copy-current-buffer-name)
+    map))
+
+(define-minor-mode concept-compilation-mode
+  "Add features to compilation mode tailored for the needs of concept mapping."
+  :lighter "CONCOMP"
+  :keymap concept-compilation-mode-map
+  (if concept-compilation-mode
+      (add-hook 'compilation-filter-hook
+                #'concept-shell-compilation-with-color
+                nil t)
+    (remove-hook
+     'compilation-filter-hook
+     #'concept-shell-compilation-with-color
+     t)))
 
 (defun concept-shell-command (string &optional expect-prompt)
   "Run shell command found in STRING with compilation-mode.
@@ -5276,13 +5300,17 @@ When EXPECT-PROMPT is not nil, place into comint mode."
   (let ((compilation-buffer-name-function
          'concept-shell-command-compilation-buffer-name-function)
         (concept-last-shell-command-hash
-         (substring (sha1 string) 0 6))
-        (buf (concept-shell-command-compilation-buffer-name-function "shell")))
+         (substring (sha1 string) 0 6)))
+    (let ((buf (concept-shell-command-compilation-buffer-name-function "shell"))
+          (compilation-mode-hook
+           (cons #'concept-compilation-mode compilation-mode-hook))
+          (compilation-filter-hook
+           (cons #'concept-shell-compilation-with-color compilation-filter-hook)))
       (if (bufferp (get-buffer buf))
           (switch-to-buffer buf)
         (if expect-prompt
             (compile string t)
-          (compile string)))))
+          (compile string))))))
 
 (defun concept-follow-man (page)
   "Follow to the man page synchronously."
@@ -5845,7 +5873,7 @@ resource line."
 This table is fairly convenient to work with from `igraph'."
   (interactive)
   (unless sep (setq sep "\t"))
-  (when (eq major-mode 'concept-mode)
+  (when (derived-mode-p 'concept-mode)
     (let ((cbuf (current-buffer))
           (nbuf (get-buffer-create "*concept-map-export*")))
       (with-current-buffer nbuf
