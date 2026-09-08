@@ -325,6 +325,17 @@ These are subject concepts. They were called focus concepts.")
     (dotimes (_ N)
       (concept-goto-next-concept-block))))
 
+(defun concept-goto-nth-resource (N &optional total)
+  "Navigate to the Nth resource in the relationship block."
+  (when (null total)
+    (setq total (concept-resource-block-count)))
+  (let ((n total))
+    (unless (and (< N n) (<= 0 N))
+      (user-error "Supplied indexes are out of range."))
+    (concept-goto-first-resource-block-in-idea)
+    (dotimes (_ N)
+      (concept-goto-next-resource))))
+
 (defun concept-goto-nth-relationship-group (N &optional total)
   "Navigate to the Nth relationship group in the relationship block."
   (when (null total)
@@ -449,13 +460,13 @@ These are subject concepts. They were called focus concepts.")
                (concept-goto-nth-resource j n)
                (concept-move-resource-up d)
                (concept-goto-nth-resource (1+ i) n)
-               (concept-move-resource-down (1- d) n)))
+               (concept-move-resource-down (1- d))))
             (t
              (let ((d (- i j)))
                (concept-goto-nth-resource i n)
                (concept-move-resource-up d)
                (concept-goto-nth-resource (1+ j) n)
-               (concept-move-resource-down (1- d) n)))))))
+               (concept-move-resource-down (1- d))))))))
 
 (defun concept-exchange-data-concepts (i j)
   "Exchange two arbitrary data concepts in a relationship group."
@@ -552,6 +563,13 @@ See also `concept-shuffle' ideas."
   (interactive)
   (when (concept-on-focus-line)
     (concept-shuffle-ideas)))
+
+(defun concept-randomize-resources ()
+  "Randomly shuffle all the ideas in the buffer.
+See also `concept-shuffle' ideas."
+  (interactive)
+  (when (concept-on-resource-line)
+    (concept-shuffle-resources)))
 
 (defun concept-randomize-data-concepts ()
   "Randomly shuffle all the data concepts in the current relationship block."
