@@ -325,6 +325,17 @@ These are subject concepts. They were called focus concepts.")
     (dotimes (_ N)
       (concept-goto-next-concept-block))))
 
+(defun concept-goto-nth-relationship-group (N &optional total)
+  "Navigate to the Nth relationship group in the concept map."
+  (when (null total)
+    (setq total (concept-relationship-group-count)))
+  (let ((n total))
+    (unless (and (< N n) (<= 0 N))
+      (user-error "Supplied indexes are out of range."))
+    (concept-goto-first-relationship-group-in-block)
+    (dotimes (_ N)
+      (concept-goto-next-relationship))))
+
 (defun concept-goto-nth-data-concept (N &optional total)
   "Navigate to the Nth data concept in the relationship block."
   (when (null total)
