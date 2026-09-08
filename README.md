@@ -183,7 +183,9 @@ The package provides an implementation of the longest common substring algorithm
 
 Concept maps inherit from `outline-minor-mode`. This gives a whole suite of keyboard shortcuts and M-x commands which automatically work with concept maps. Navigating up and down outline heading elements is implemented with `M-n` and `M-p`. In `concept.el`, there are two headings `~` and `@`. Otherwise, you can press `C-<up>` or `C-<down>` to move quickly across additional levels of concept maps including *relationship groups*, *attribute groups* and their corresponding data elements (data concepts) and (expository data). Finally, `C-M-<down>` and `C-M-<up>` let you fly across different elements of the same type.
 
-Did I say 'finally'? I lied. You can also press `C-c C-n` or `C-c C-p` for a more advanced contextual method of navigating through concept maps. This can be useful for finding ideas or resources with certain interesting features. For example, you might want to find ideas with conceptual *relationship blocks* having two relationships instead of one. To do that, place your cursor on the nearest subject line. Then press `C-c C-n`. You will be prompted for the number of objects you want there to be since there is one relationship for each subject-verb-object triple.
+Did I say 'finally'? I lied. You can also press `C-c C-n` or `C-c C-p` for a more advanced contextual method of navigating through concept maps. These commands have modally defined behavior depending on the value of global variables `concept-last-relationship-group-size-behavior` and `concept-last-attribute-count-behavior` which chooses between the modes `"all"`, `"unique"`, and `"diff"`. These options analyze each idea and compute statistics summarizing interesting aspects of the idea.
+
+This can be useful for finding ideas or resources with certain interesting features. For example, you might want to find ideas with conceptual *relationship blocks* having two relationships instead of one. To do that, place your cursor on the nearest subject line. Then press `C-c C-n`. You will be prompted for the number of objects you want there to be since there is one relationship for each subject-verb-object triple.
 
 If you want to look for ideas with a certain number of relationship groups, press `C-c C-n` from a relationship group line. Similarly, if you want to go forward to the next resource group with a desired number of data lines, place the cursor on a resource line.
 
@@ -431,5 +433,26 @@ Another interesting pair of orderings looks at the length of the elements themse
 ;; Longest to shortest with alphabetical tie breaker
 (sort (list "z" "az") (lambda (a b) (let ((A (length a)) (B (length b))) (or (< B A) (if (eq A B) (string< b a))))))
 ```
+
+A major challenge with canonical sorting is figuring out what to do with the following situation. Look at the snippet from the `example.map` concept map below. Note that under the current logic, the canonical sorting of the concept map by our current scheme is undefined. We mean that if we randomize the concept map, there is no guarantee we can recover the same sorting with purely alphabetic sorting. The only potentially canonical sort we see is to first sort by resources alplhabetically, and only if their are ties do we conditionally sort by length, and if the lengths are still a tie, then we need to further sort on something else such as the length of the shortest or longest lines in the attribute data.
+
+```
+~ concepts
+| :include
+| objects
+| subjects
+@ understanding
+| note:
+| {The subject is given first and indicated with a tilde: ~.}
+| {All ideas have one and only one subject.}
+@ understanding
+| note:
+| {Here ideas correspond roughly to multiple related simple sentences.}
+| {In english grammar, a simple sentence has a subject, a verb, and an object.}
+```
+
+The example above demonstrates a rapid increase in complexity necessary to canonicalize concept maps. This is not desirable. We could further restrict concept maps to have unique names at each grouping level. However, this too seems undesirable given the complexity of the problem concept maps are trying to solve. Probably, the best solution is to study these failures of canonicalization in practice and correct them in the concept maps on a case-by-case basis. In the example above, it seems odd that the second resource block is even included with this idea about concepts. It is probably better suited for belonging to an idea focused on ideas themselves. When you do that, the problem goes away for this concept map. The above thought experiment suggests the heuristic rule that if you need two resources with the same name in the same idea, then you should consider moving one of the resources to a new idea.
+
+The just discussed situation, prompts us to consider how a researcher might discover such smells in their own concept maps. Earlier in this document, we discussed how the behavior of `C-c C-n` depended modally on the value of global variables `concept-last-relationship-group-size-behavior` and `concept-last-attribute-count-behavior` which chooses between the modes `"all"`, `"unique"`, and `"diff"`. A third global variable `concept-last-resource-count-behavior` might do the trick!
 
 Thinking about names in a standard way would really help with merging two different concept maps as well. So, in the future we hope to provide tools for parsing concepts in terms of the `{classification|core|definition}` framework discussed earlier. One challenge we have frequently seen is that concept names start getting longer and longer the more we work with concept maps. Tasteful categorization can help, but, e.g., when dealing with documenting useful elisp functions, it become useful to make some shorthand summarizations for brevity. These can challenge the power of these tools, but there may be useful conventions which can overcome these issues.
