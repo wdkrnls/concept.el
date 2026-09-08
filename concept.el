@@ -3230,22 +3230,30 @@ Place each relationship into its own block."
 (defun concept-split-dwim ()
   "Split the relationship block up into two ideas."
   (interactive)
-  (cond ((and (concept-on-data-line)
-                (concept-on-concept-line)
-                (save-excursion
-                  (forward-line)
-                  (and (concept-on-data-line)
-                       (concept-on-concept-line))))
-           (when (not (concept-on-blank-line))
-             (let ((focus (concept-current-focus))
-                   (relationship (concept-current-relationship)))
-               (end-of-line)
-               (newline)
-               (insert "~ ")
-               (insert focus)
-               (newline)
-               (insert "| :")
-               (insert relationship))))))
+  (cond ((and (concept-on-first-data-concept-line-in-block)
+              (save-excursion
+                (forward-line)
+                (concept-on-focus-line)))
+         (concept-swap-data-with-focus))
+        ((and (concept-on-focus-line)
+              (eq 1 (concept-relationship-count)))
+         (concept-swap-focus-with-first-data))
+        ((and (concept-on-data-line)
+              (concept-on-concept-line)
+              (save-excursion
+                (forward-line)
+                (and (concept-on-data-line)
+                     (concept-on-concept-line))))
+         (when (not (concept-on-blank-line))
+           (let ((focus (concept-current-focus))
+                 (relationship (concept-current-relationship)))
+             (end-of-line)
+             (newline)
+             (insert "~ ")
+             (insert focus)
+             (newline)
+             (insert "| :")
+             (insert relationship))))))
 
 (defun concept-data-split-dwim ()
   "Split the relationship block up into two ideas."
@@ -3265,10 +3273,59 @@ Place each relationship into its own block."
                (insert "| :")
                (insert relationship))))))
 
+(defun concept-swap-data-with-focus ()
+  (interactive)
+  (when (concept-on-data-concept-line)
+    (let ((focus (concept-current-focus))
+          (data  (concept-current-concept)))
+      (backward-sexp)
+      (kill-line)
+      (insert focus)
+      (concept-goto-current-focus)
+      (backward-sexp)
+      (kill-line)
+      (insert data))))
+
+(defun concept-on-first-data-concept-line-in-block ()
+  "Test if the current line is the first data concept line."
+  (and (concept-on-data-concept-line)
+       (save-excursion
+         (previous-line)
+         (concept-on-first-relationship-line))))
+
+(defun concept-on-first-data-concept-line ()
+  "Test if the current line is the first data concept line."
+  (and (concept-on-data-concept-line)
+       (save-excursion
+         (previous-line)
+         (concept-on-relationship-line))))
+
+(defun concept-swap-focus-with-first-data ()
+  (let ((focus (concept-current-focus))
+        (data  (save-excursion
+                 (concept-goto-next-concept)
+                 (concept-current-concept))))
+    (backward-sexp)
+    (kill-line)
+    (insert data)
+    (concept-goto-next-concept)
+    (backward-sexp)
+    (kill-line)
+    (insert focus)))
+
 (defun concept-isolate-dwim ()
   "Isolate the current thing into it's own block."
   (interactive)
-  (cond ((and (concept-on-data-concept-line)
+  (cond
+   ((and (concept-on-first-data-concept-line-in-block)
+         (save-excursion
+           (forward-line)
+           (concept-on-focus-line)))
+    (concept-swap-data-with-focus))
+   ((and (concept-on-focus-line)
+         (eq 1 (concept-relationship-count)))
+    (concept-swap-focus-with-first-data))
+   ((and (concept-on-data-concept-line)
                 (or (save-excursion
                       (forward-line)
                       (concept-on-data-concept-line))
@@ -6038,13 +6095,13 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "C-c C-t")     #'concept-map-export-to-table)
 (define-key concept-mode-map (kbd "C-c e")       #'concept-edit-dwim)
 (define-key concept-mode-map (kbd "M-;")         #'concept-split-dwim)
+(define-key concept-mode-map (kbd "C-c M-;")     #'concept-swap-data-with-focus)
 (define-key concept-mode-map (kbd "C-M-;")       #'concept-data-split-dwim)
 (define-key concept-mode-map (kbd "C-;")         #'concept-isolate-dwim)
 (define-key concept-mode-map (kbd "C-c C-a")     #'concept-alphabetic-sort-dwim)
 (define-key concept-mode-map (kbd "C-c C-r")     #'concept-reverse-order-dwim)
 (define-key concept-mode-map (kbd "C-c M-r")     #'concept-randomize-dwim)
 (define-key concept-mode-map (kbd "C-c C-o")     #'concept-canonical-sort-dwim)
-(define-key compilation-mode-map (kbd "w")       #'concept-copy-current-buffer-name)
 
 (provide 'concept)
 ;;; concept.el ends here
