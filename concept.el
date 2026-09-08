@@ -5145,8 +5145,9 @@ instead of `browse-url-new-window-flag'."
                                           (with-current-buffer origin
                                             (eval (read string) lexical))))
                                   (insert "Returns:\n\n"
+                                          "```\n"
                                           (prin1-to-string result)
-                                          "\n\n"))
+                                          "\n```\n"))
                               (error
                                (insert "Returns:\n\n"
                                        (format "Error: %S" err))))))
@@ -5164,8 +5165,8 @@ instead of `browse-url-new-window-flag'."
               (when (< 0 (length messages))
                 (with-current-buffer buffer
                   (insert "\nMessages:\n\n" "```text\n")
-                  (dolist (string-trim (message messages))
-                    (insert message "\n"))
+                  (dolist (message messages)
+                    (insert (string-trim message) "\n"))
                   (insert "```\n")))
               (when (buffer-live-p output-buffer)
                 (kill-buffer output-buffer)))))
