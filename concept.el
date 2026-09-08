@@ -3236,12 +3236,17 @@ simple."
   (interactive "r")
   (replace-regexp-in-region "^[[:blank:]]+" "" beg end))
 
+(defun concept-delete-leading-text (beg end)
+  "Remove all text before the usual starting tokens in a concept map."
+  (interactive "r")
+  (replace-regexp-in-region "^[^@~|]+" "" beg end))
+
 (defun concept-cleanup-map ()
   "Remove whitespace, blank lines, and fix common mistakes with resource blocks."
   (interactive)
   (delete-trailing-whitespace)
   (delete-blank-lines)
-  (concept-delete-leading-whitespace)
+  (concept-delete-leading-text)
   (concept-fix-resource-blocks))
 
 (defun concept--delq-nth (n list)
