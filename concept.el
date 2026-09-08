@@ -889,13 +889,17 @@ selected line then this will return nil.
 
 (defun concept-on-first-relationship-line ()
   "Test if the current position is on the first relationship line in the relationship block."
-  ;; TODO: implement
-  nil)
+  (and (concept-on-relationship-line)
+       (save-excursion
+         (previous-line)
+         (concept-on-focus-line))))
 
 (defun concept-on-first-attribute-line ()
   "Test if the current position is on the first attribute line in the resource block."
-  ;; TODO: implement
-  nil)
+  (and (concept-on-attribute-line)
+       (save-excursion
+         (previous-line)
+         (concept-on-resource-line))))
 
 (defun concept-reverse-order-dwim (arg)
   "Reverse the order of the thing at point."
