@@ -805,6 +805,16 @@ selected line then this will return nil.
                (concept-current-focus))
       (error nil))))
 
+(defun concept-next-resource ()
+  "Navigate to the next resource block in the current idea."
+  (when (concept-in-resource-block)
+    (save-excursion
+      (concept-goto-current-resource)
+      (condition-case err
+          (progn (outline-forward-same-level 1)
+                 (concept-current-resource))
+        (error nil)))))
+
 (defun concept-map-idea-count ()
   "Count the number of ideas in a concept map."
   (save-excursion
@@ -938,7 +948,7 @@ selected line then this will return nil.
             ((concept-on-focus-line)
              (concept-randomize-ideas)))
     (concept--goto-first-heading)
-    (concept-randomize-dwim)
+    (concept-randomize-dwim nil)
     (while (not (or (eobp)
                     (concept-on-last-line-p)))
       (when (and (not (concept-on-focus-line))
@@ -946,11 +956,12 @@ selected line then this will return nil.
                      (concept-on-first-data-concept-line)
                      (concept-on-first-attribute-line)
                      (concept-on-exposition-line)))
-        (concept-randomize-dwim))
+        (concept-randomize-dwim nil))
       (concept-go-one-group-down)
       (when (and (concept-current-line-blank-p)
                  (not (concept-on-last-line-p)))
-        (user-error "Landed on a blank line in the middle of randomizing the file. Aborting!")))))
+        (user-error "Landed on a blank line in the middle of randomizing the file. Aborting!")))
+    (concept--goto-first-heading)))
 
 (defun concept-partial-sort (&optional max-iter)
   "Interactive tool for automatically reordering concepts or examples.
@@ -988,6 +999,42 @@ with similar names next to each other."
 	(outline-move-subtree-down 1))))
         (setq max-iter (1- max-iter)))
       (throw 'done 'iterations-exhausted))))
+
+(defun concept-resource-partial-sort (&optional max-iter)
+  "Interactive tool for automatically reordering resource blocks.
+
+Emacs provides `outline-forward-same-level' and
+`outline-move-subtree-down' procedures out of the box. These are
+enough to implement a naive sorting algorithm for interactively
+reordering resource blocks alphabetically."
+  (interactive)
+  (when (null max-iter)
+    (setq max-iter 10001))
+  (let ((n (concept-resource-block-count)))
+    (catch 'done
+      (cond ((< 2 n)
+             (throw 'done 'sorted))
+            (t
+             (concept-goto-first-resource-block-in-idea)
+             (let ((swapped nil))
+               (while (< 0 max-iter)
+                 (let ((a (concept-current-resource))
+	               (b (concept-next-resource)))
+                   (cond
+                    ((or (null a) (null b))
+                     (when (null swapped)
+                       (throw 'done 'sorted))
+                     (setq swapped nil)
+	             (concept-goto-first-resource-block-in-idea))
+                    ((string< a b)
+	             (outline-forward-same-level 1))
+                    ((string= a b)
+                     (outline-forward-same-level 1))
+                    (t
+                     (setq swapped t)
+	             (outline-move-subtree-down 1))))
+                 (setq max-iter (1- max-iter)))
+               (throw 'done 'iterations-exhausted)))))))
 
 (defun concept-goto-first-data-concept-in-relationship-group ()
   "Navigate back to the first data concept in the group."
@@ -2934,6 +2981,18 @@ relationship line is found."
     (concept-goto-next-resource)
     (end-of-line)))
 
+(defun concept-on-first-resource-line-in-idea ()
+  "Test whether this is the first resource line in the current idea."
+  (and (concept-on-resource-line)
+       (save-excursion
+         (end-of-line)
+         (let ((pt0 (point)))
+           (concept-goto-current-focus)
+           (concept-goto-next-resource)
+           (end-of-line)
+           (let ((pt1 (point)))
+             (eq pt0 pt1))))))
+
 (defun concept-goto-first-exposition-line-in-attribute-group ()
   "Navigate back to the first exposition line in the current attribute group."
   (cond ((concept-on-exposition-line)
@@ -2975,19 +3034,35 @@ relationship line is found."
       (goto-line line)
       (end-of-line))))
 
-(defun concept-alphabetic-sort-dwim ()
+(defun concept-alphabetic-sort-dwim (arg)
   "Perform a partial sort of the thing at point."
-  (interactive)
-  (when (concept-on-data-concept-line)
-    (concept-data-partial-sort))
-  (when (concept-on-attribute-line)
-    (concept-attribute-group-partial-sort))
-  (when (concept-on-relationship-line)
-    (concept-relationship-group-partial-sort))
-  (when (concept-on-resource-line)
-    (concept-resource-partial-sort))
-  (when (concept-on-focus-line)
-    (concept-partial-sort)))
+  (interactive "P")
+  (if (null arg)
+      (cond ((concept-on-data-concept-line)
+             (concept-data-partial-sort))
+            ((concept-on-attribute-line)
+             (concept-attribute-group-partial-sort))
+            ((concept-on-relationship-line)
+             (concept-relationship-group-partial-sort))
+            ((concept-on-resource-line)
+             (concept-resource-partial-sort))
+            ((concept-on-focus-line)
+             (concept-partial-sort)))
+    (concept--goto-first-heading)
+    (while (not (or (eobp) (concept-on-last-line-p)))
+      (when (or (concept-on-first-concept)
+                (concept-on-first-relationship-line)
+                (concept-on-first-data-concept-line)
+                (concept-on-first-resource-line-in-idea)
+                (concept-on-first-attribute-line)
+                (concept-on-exposition-line))
+        (save-excursion
+          (concept-alphabetic-sort-dwim nil)))
+      (concept-go-one-group-down)
+      (when (and (concept-current-line-blank-p)
+                 (not (concept-on-last-line-p)))
+        (user-error "Landed on a blank line in the middle of sorting the file. Aborting!")))
+    (concept--goto-first-heading)))
 
 (defvar concept-canonical-custom-sort-dwim-function nil
   "An custom sort function similar to `concept-alphabetic-sort-dwim'
