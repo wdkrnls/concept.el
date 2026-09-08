@@ -5504,6 +5504,15 @@ modifying `mailcap-user-mime-data'."
           (message "Copied Path: %s" file)))
     (user-error "Current buffer is not visiting a file")))
 
+(defun concept-copy-current-buffer-name ()
+  "Copy the current buffer's name to the kill ring."
+  (interactive)
+  (let ((buf (buffer-name)))
+    (progn
+      (kill-new buf)
+      (when (called-interactively-p)
+        (message "Copied buffer named %s to the kill ring" buf)))))
+
 (defun concept-insert-delimited--helper (arg separator)
   "This handles the internal logic."
   (when (number-or-marker-p arg)
@@ -6030,6 +6039,7 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "C-c C-r")     #'concept-reverse-order-dwim)
 (define-key concept-mode-map (kbd "C-c M-r")     #'concept-randomize-dwim)
 (define-key concept-mode-map (kbd "C-c C-o")     #'concept-canonical-sort-dwim)
+(define-key compilation-mode-map (kbd "w")       #'concept-copy-current-buffer-name)
 
 (provide 'concept)
 ;;; concept.el ends here
