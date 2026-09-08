@@ -412,6 +412,29 @@ These are subject concepts. They were called focus concepts.")
                  (concept-goto-nth-data-concept (1+ j) n)
                  (concept-exchange-concept-down (1- d)))))))))
 
+(defun concept-exchange-relationship-groups (i j)
+  "Exchange two arbitrary data concepts in a relationship group."
+  (let ((n (concept-relationship-group-count)))
+    (when (< 1 n)
+      (unless (and (< i n) (< j n)
+                   (<= 0 i) (<= 0 j))
+        (user-error "Supplied indexes are out of range."))
+      (catch 'done
+        (cond ((= i j)
+               (throw 'done 'identity))
+              ((< i j)
+               (let ((d (- j i)))
+                 (concept-goto-nth-relationship-group j n)
+                 (concept-move-relationship-group-up d)
+                 (concept-goto-nth-relationship-group (1+ i) n)
+                 (concept-move-relationship-group-down (1- d))))
+              (t
+               (let ((d (- i j)))
+                 (concept-goto-nth-relationship-group i n)
+                 (concept-move-relationship-group-up d)
+                 (concept-goto-nth-relationship-group (1+ j) n)
+                 (concept-move-relationship-group-down (1- d)))))))))
+
 (defun concept-shuffle-ideas ()
   "Randomly shuffle all the ideas in the buffer."
   (interactive)
@@ -440,6 +463,18 @@ See also `concept-shuffle' ideas."
           (let ((j (random i)))
             (concept-exchange-data-concepts i j))))
       (concept-goto-first-data-concept-in-relationship-group))))
+
+(defun concept-randomize-relationship-groups ()
+  "Randomly shuffle all the relationship groups in the current relationship block."
+  (interactive)
+  (when (concept-in-relationship-block)
+    (concept-goto-first-relationship-group-in-block)
+    (let ((n (concept-relationship-group-count)))
+      (when (< 1 n)
+        (dolist (i (number-sequence 1 (1- n)))
+          (let ((j (random i)))
+            (concept-exchange-relationship-groups i j))))
+      (concept-goto-first-relationship-group-in-block))))
 
 (defun concept--common-substring-of-length (strings source length)
   "Return a common substring of LENGTH, or nil.
