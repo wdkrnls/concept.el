@@ -5190,7 +5190,7 @@ they are inside the block."
                  (let ((pos (seq-position keys key)))
                    (concept-goto-current-resource)
                    (dotimes (i (1+ pos))
-                     (concept--next-attribute-boundary)
+                     (concept-goto-next-attribute-boundary)
                      (end-of-line))))))))
 
 (defvar concept-last-shell-command-hash
