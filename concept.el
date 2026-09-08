@@ -411,6 +411,52 @@ These are subject concepts. They were called focus concepts.")
                (concept-goto-nth-idea (1+ j) n)
                (concept-move-idea-down (1- d) n)))))))
 
+(defun concept-move-resource-down (&optional times)
+  "Move the current resource group down."
+  (interactive)
+  (when (concept-in-resource-block)
+    (concept-goto-current-resource)
+    (when (null times)
+      (setq times 1))
+    (when (< times 0)
+      (user-error "TIMES must be positive."))
+    (dotimes (_ times)
+      (outline-move-subtree-down 1))))
+
+(defun concept-move-resource-up (&optional times)
+  "Move the current resource group up."
+  (interactive)
+  (when (concept-in-resource-block)
+    (concept-goto-current-resource)
+    (when (null times)
+      (setq times 1))
+    (when (< times 0)
+      (user-error "TIMES must be positive."))
+    (dotimes (_ times)
+      (outline-move-subtree-up 1))))
+
+(defun concept-exchange-resources (i j)
+  "Exchange two arbitrary resources under an idea."
+  (let ((n (concept-resource-block-count)))
+    (unless (and (< i n) (< j n)
+                 (<= 0 i) (<= 0 j))
+      (user-error "Supplied indexes are out of range."))
+    (catch 'done
+      (cond ((= i j)
+             (throw 'done 'identity))
+            ((< i j)
+             (let ((d (- j i)))
+               (concept-goto-nth-resource j n)
+               (concept-move-resource-up d)
+               (concept-goto-nth-resource (1+ i) n)
+               (concept-move-resource-down (1- d) n)))
+            (t
+             (let ((d (- i j)))
+               (concept-goto-nth-resource i n)
+               (concept-move-resource-up d)
+               (concept-goto-nth-resource (1+ j) n)
+               (concept-move-resource-down (1- d) n)))))))
+
 (defun concept-exchange-data-concepts (i j)
   "Exchange two arbitrary data concepts in a relationship group."
   (let ((n (concept-relationship-group-concept-count)))
@@ -489,6 +535,16 @@ These are subject concepts. They were called focus concepts.")
       (let ((j (random i)))
         (concept-exchange-ideas i j))))
   (concept--goto-first-heading))
+
+(defun concept-shuffle-resources ()
+  "Randomly shuffle all the ideas in the buffer."
+  (interactive)
+  (concept-goto-first-resource-block-in-idea)
+  (let ((n (concept-resource-block-count)))
+    (dolist (i (number-sequence 1 (1- n)))
+      (let ((j (random i)))
+        (concept-exchange-resources i j))))
+  (concept-goto-first-resource-block-in-idea))
 
 (defun concept-randomize-ideas ()
   "Randomly shuffle all the ideas in the buffer.
