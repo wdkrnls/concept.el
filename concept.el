@@ -659,7 +659,7 @@ selected line then this will return nil.
     (length (concept-get-attribute-data)))
   (when (concept-on-exposition-line)
     (save-excursion
-      (concept--previous-attribute-boundary)
+      (concept-goto-previous-attribute-boundary)
       (end-of-line)
       (length (concept-get-attribute-data)))))
 
@@ -2241,51 +2241,69 @@ adjacent exposition line."
   (interactive)
   (concept--exchange-exposition "down"))
 
-(defun concept--next-attribute-boundary ()
-  "Return the next keyword, concept header, or block marker."
+(defun concept-goto-next-attribute-boundary ()
+  "Move to the next keyword, concept header, or block marker."
+  (interactive)
+  (end-of-line)
   (when (re-search-forward
-         (concat concept-attribute-group-line-regexp
-                 "\\|"
-                 concept-subject-line-regexp
-                 "\\|"
-                 concept-resource-line-regexp)
-         nil t)
+       (concat concept-attribute-group-line-regexp
+               "\\|"
+               concept-subject-line-regexp
+               "\\|"
+               concept-resource-line-regexp
+               "\\|"
+               "^[ \t]*$")
+       nil t)
     (beginning-of-line)
     (point)))
 
-(defun concept--next-relationship-boundary ()
-  "Return the next relationship boundary.
-This could be another relationship group, a new idea which starts with a focus concept creating a new relationship block, or a new resource block."
+(defun concept-goto-next-relationship-boundary ()
+  "Move to the next relationship boundary.
+This could be another relationship group, a new idea which starts with a
+focus concept creating a new relationship block, or a new resource
+block."
+  (interactive)
+  (end-of-line)
   (when (re-search-forward
-         (concat concept-relationship-group-line-regexp
-                 "\\|"
-                 concept-subject-line-regexp
-                 "\\|"
-                 concept-resource-line-regexp)
-         nil t)
+       (concat concept-relationship-group-line-regexp
+               "\\|"
+               concept-subject-line-regexp
+               "\\|"
+               concept-resource-line-regexp
+               "\\|"
+               "^[ \t]*$")
+       nil t)
     (beginning-of-line)
     (point)))
 
-(defun concept--previous-attribute-boundary ()
-  "Return the next keyword, concept header, or block marker."
+(defun concept-goto-previous-attribute-boundary ()
+  "Move to the next keyword, concept header, or block marker."
+  (interactive)
+  (beginning-of-line)
   (when (re-search-backward
          (concat concept-attribute-group-line-regexp
                  "\\|"
                  concept-subject-line-regexp
                  "\\|"
-                 concept-resource-line-regexp)
+                 concept-resource-line-regexp
+                 "\\|"
+                 "^[ \t]*$")
          nil t)
     (beginning-of-line)
     (point)))
 
-(defun concept--previous-relationship-boundary ()
-  "Return the previous relationship, concept header, or resource block marker."
+(defun concept-goto-previous-relationship-boundary ()
+  "Move to the previous relationship, concept header, or resource block marker."
+  (interactive)
+  (beginning-of-line)
   (when (re-search-backward
          (concat concept-relationship-group-line-regexp
                  "\\|"
                  concept-subject-line-regexp
                  "\\|"
-                 concept-resource-line-regexp)
+                 concept-resource-line-regexp
+                 "\\|"
+                 "^[ \t]*$")
          nil t)
     (beginning-of-line)
     (point)))
@@ -2307,7 +2325,7 @@ This could be another relationship group, a new idea which starts with a focus c
       (setq current-keyword (concept-get-attribute))
       (setq current-start (point))
       (forward-line 1)
-      (setq current-end (concept--next-attribute-boundary))
+      (setq current-end (concept-goto-next-attribute-boundary))
       (unless current-end
         (user-error "Current keyword has no following keyword"))
       (goto-char current-end)
@@ -2315,7 +2333,7 @@ This could be another relationship group, a new idea which starts with a focus c
         (user-error "No following keyword in this block"))
       (setq next-start (point))
       (forward-line 1)
-      (setq next-end (concept--next-attribute-boundary))
+      (setq next-end (concept-goto-next-attribute-boundary))
       (unless next-end
         (setq next-end (point-max)))
       (setq current-text
@@ -2345,7 +2363,7 @@ This could be another relationship group, a new idea which starts with a focus c
       (setq current-keyword (concept-get-attribute))
       (setq current-start (point))
       (setq previous-start
-            (concept--previous-attribute-boundary))
+            (concept-goto-previous-attribute-boundary))
       (unless previous-start
         (user-error "Current keyword has no preceding keyword"))
       (unless (looking-at concept-attribute-group-line-regexp)
@@ -2353,7 +2371,7 @@ This could be another relationship group, a new idea which starts with a focus c
       (goto-char current-start)
       (forward-line 1)
       (setq current-end
-            (or (concept--next-attribute-boundary)
+            (or (concept-goto-next-attribute-boundary)
                 (point-max)))
       (setq previous-text
             (buffer-substring-no-properties
@@ -2386,7 +2404,7 @@ This could be another relationship group, a new idea which starts with a focus c
       (setq current-keyword (concept-get-attribute))
       (setq current-start (point))
       (forward-line 1)
-      (setq current-end (concept--next-attribute-boundary))
+      (setq current-end (concept-goto-next-attribute-boundary))
       (unless current-end
         (user-error "Current keyword has no following keyword"))
       (goto-char current-end)
@@ -2394,7 +2412,7 @@ This could be another relationship group, a new idea which starts with a focus c
         (user-error "No following keyword in this block"))
       (setq next-start (point))
       (forward-line 1)
-      (setq next-end (concept--next-attribute-boundary))
+      (setq next-end (concept-goto-next-attribute-boundary))
       (unless next-end
         (setq next-end (point-max)))
       (setq current-text
@@ -2424,7 +2442,7 @@ This could be another relationship group, a new idea which starts with a focus c
       (setq current-relationship-group (concept-get-relationship))
       (setq current-start (point))
       (setq previous-start
-            (concept--previous-relationship-boundary))
+            (concept-goto-previous-relationship-boundary))
       (unless previous-start
         (user-error "Current relationship-group has no preceding relationship-group"))
       (unless (looking-at concept-relationship-group-line-regexp)
@@ -2432,7 +2450,7 @@ This could be another relationship group, a new idea which starts with a focus c
       (goto-char current-start)
       (forward-line 1)
       (setq current-end
-            (or (concept--next-relationship-boundary)
+            (or (concept-goto-next-relationship-boundary)
                 (point-max)))
       (setq previous-text
             (buffer-substring-no-properties
@@ -2464,7 +2482,7 @@ This could be another relationship group, a new idea which starts with a focus c
       (setq current-relationship-group (concept-get-relationship))
       (setq current-start (point))
       (forward-line 1)
-      (setq current-end (concept--next-relationship-boundary))
+      (setq current-end (concept-goto-next-relationship-boundary))
       (unless current-end
         (user-error "Current relationship-group has no following relationship-group"))
       (goto-char current-end)
@@ -2472,7 +2490,7 @@ This could be another relationship group, a new idea which starts with a focus c
         (user-error "No following relationship-group in this block"))
       (setq next-start (point))
       (forward-line 1)
-      (setq next-end (concept--next-relationship-boundary))
+      (setq next-end (concept-goto-next-relationship-boundary))
       (unless next-end
         (setq next-end (point-max)))
       (setq current-text
@@ -2581,14 +2599,14 @@ This could be another relationship group, a new idea which starts with a focus c
         ((concept-on-relationship-line)
          (concept-goto-next-data-concept))
         ((concept-on-data-concept-line)
-         (concept--next-relationship-boundary)
+         (concept-goto-next-relationship-boundary)
          (end-of-line))
         ((concept-on-attribute-line)
          (concept-goto-next-exposition)
          (beginning-of-line)
          (re-search-forward (concept-current-delimiter) (line-end-position) t))
         ((concept-on-exposition-line)
-         (concept--next-attribute-boundary)
+         (concept-goto-next-attribute-boundary)
          (end-of-line))))
 
 (defun concept-goto-last-thing ()
@@ -2647,7 +2665,7 @@ relationship line is found."
       (when (concept-on-data-concept-line)
         (concept-goto-last-relationship))
       (let ((pt0 (point)))
-        (concept--next-relationship-boundary)
+        (concept-goto-next-relationship-boundary)
         (let ((pt1 (point)))
           (- (line-number-at-pos pt1)
              (line-number-at-pos pt0)
@@ -2658,7 +2676,7 @@ relationship line is found."
   (when (and (concept-in-relationship-block)
              (concept-on-data-line))
     (save-excursion
-      (concept--next-relationship-boundary)
+      (concept-goto-next-relationship-boundary)
       (or (concept-on-resource-line)
           (concept-on-focus-line)))))
 
@@ -2685,7 +2703,7 @@ relationship line is found."
 (defun concept-goto-first-exposition-line-in-attribute-group ()
   "Navigate back to the first exposition line in the current attribute group."
   (cond ((concept-on-exposition-line)
-         (concept--previous-attribute-boundary)
+         (concept-goto-previous-attribute-boundary)
          (end-of-line)
          (forward-line))
         ((concept-on-attribute-line)
@@ -3098,7 +3116,7 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
                    (concept-on-relationship-line))
              (forward-line)
              (end-of-line)
-             (concept--next-relationship-boundary)
+             (concept-goto-next-relationship-boundary)
              (backward-char)))
           ((and (concept-on-data-line)
                 (concept-on-concept-line)
@@ -3517,7 +3535,7 @@ a relationship block. See also `concept-set-last-attribute-count-behavior'."
       (re-search-forward concept-attribute-group-name-regexp nil t)
       (let ((n 1))
         (while (concept-on-attribute-line)
-          (concept--next-attribute-boundary)
+          (concept-goto-next-attribute-boundary)
           (end-of-line)
           (when (concept-on-attribute-line)
             (setq n (1+ n))))
