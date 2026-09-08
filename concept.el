@@ -5302,7 +5302,7 @@ modifying `mailcap-user-mime-data'."
                (forward-line)
                (let* ((pkg (concept-get-expository-data))
                       (pkg-file (concat (file-name-directory (locate-library pkg)) value)))
-                 (when (and (package-installed-p (intern pkg))
+                 (when (and (package-installed-p (intern (file-name-nondirectory pkg)))
                             (file-exists-p pkg-file))
                    (find-file pkg-file)))))))
         ((and (concept-on-exposition-line)
@@ -5317,7 +5317,7 @@ modifying `mailcap-user-mime-data'."
                            (when (buffer-live-p fbuf)
                              (with-current-buffer fbuf
                                (goto-char (point-min))
-                               (re-search-forward value nil t)))))
+                               (occur value nil t)))))
                         ((concept--is-pdf (concept-get-expository-data))
                          (let ((pbuf (concept-follow-dwim)))
                            (sit-for 0.1)
@@ -5330,7 +5330,7 @@ modifying `mailcap-user-mime-data'."
                   (let ((mbuf (concept-follow-dwim)))
                     (when (buffer-live-p mbuf)
                       (with-current-buffer mbuf
-                        (re-search-forward value nil t)))))
+                        (occur value)))))
                  ((member "url" keys)
                   (save-excursion
                     (concept-goto-key-in-resource-block "url")
@@ -5340,7 +5340,7 @@ modifying `mailcap-user-mime-data'."
                       (sit-for 0.1)
                       (when (buffer-live-p wbuf)
                         (with-current-buffer wbuf
-                          (re-search-forward value nil t))))))
+                          (occur value))))))
                  ((and (member "emacs-package" keys)
                        (member "file-name" keys))
                   (concept-goto-key-in-resource-block "file-name")
@@ -5348,14 +5348,14 @@ modifying `mailcap-user-mime-data'."
                   (let ((fbuf (concept-follow-dwim)))
                     (when (buffer-live-p fbuf)
                       (with-current-buffer fbuf
-                        (re-search-forward value nil t)))))
+                        (occur value)))))
                  ((member "info" keys)
                   (concept-goto-key-in-resource-block "info")
                   (forward-line)
                   (concept-follow-dwim)
                   (with-current-buffer "*info*"
                     (beginning-of-buffer)
-                    (re-search-forward value nil t))))))
+                    (occur value))))))
         ((and (concept-on-exposition-line)
               (string= "point" (concept-exposition-parent-key)))
          (let ((keys (concept-resource-block-keys))
