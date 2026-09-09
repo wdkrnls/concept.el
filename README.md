@@ -4,18 +4,43 @@
 
 ## Introduction
 
-Conceptual knowledge is the often underappreciated third form knowledge which underlies the more commonly studied relational and procedural forms of knowledge. Those more celebrated forms of knowledge answer the questions:
+Conceptual knowledge is an often underappreciated third form knowledge which underlies the more commonly studied relational and procedural forms of knowledge. Those more celebrated forms of knowledge answer the questions:
 
 * What is the case?
 * How is it done?
 
-However, their specifications seem to come from nowhere. Their underlying genius resides somehow in our heads. Defining effective procedures or coherent relational databases requires firm grounding in domain knowledge. That knowledge is largely conceptual. It doesn't involve calculation, but it captures and organizes patterns in reality which we intuitively map into our own verbal reasoning. It could be thought of as answering the question:
+The specifications for these more commonly studied forms of knowledge seem to come from nowhere, residing somehow in our heads. Their underlying genius often lost with the progression of time. After which, they need to be uncovered anew, often by fresh eyes.
+
+Defining effective procedures or coherent relational databases requires firm grounding in domain knowledge. That knowledge is largely conceptual. It doesn't involve calculation, but it captures and organizes patterns in reality which we intuitively map inside our heads into our own verbal understanding.
+
+The conceptual form of knowledge then could be thought of as answering the question:
 
 * What does it mean?
 
-In this computer age, conceptual knowledge is still largely captured in free-form documents such as scientific articles or blog tutorials. While modern search tools powered by probabilistic models and artificial intelligence can help us sort through such documents, this package proposes a radically different way of expressing that knowledge: through organizing it in a computer-friendly format from the get-go.
+In this computer age, conceptual knowledge is still largely captured in free-form documents such as scientific articles, school textbooks, and blog tutorials. While modern search tools powered by probabilistic models and advanced data structures can help us sort through such documents, this package proposes a radically different way of managing it: through porting it from a linear prose structure into an inherently recursive structure. This new structure closely reflects how we as humans think and learn verbally according to educational psychologies.
 
-The text format is pretty straightforward. A concept map is a text file with a `.map` extension. Inside of the text file are a series of *ideas*. Every idea has two kinds of components: one which models the abstract conceptual understanding, and the other which captures the concrete actionable details. Every idea starts with a *focus* concept which creates a *relationship block*. Under those can be zero or more *resource blocks*.
+The text representation of this format is pretty straightforward. A concept map consists of a text file. For convenience, let's say its a text with a `.map` file extension. Inside of this text file are a series of *ideas*. An idea captures a group of closely related thoughts. There are two kinds of thoughts as far as conceptual knowledge is concerned. There are thoughts which form propositions meaningful inside of some system to thus construct our (often more or less erroneous) understanding, and then there are thoughts which ground our abstract understanding in facts, evidence, and educational materials.
+
+Following this conceptualization of our thinking when we think conceptually, in `concept.el` the representation of every idea has two kinds of components: one which models our abstract conceptual understanding, and the other which facilitates capturing the concrete actionable details which illustrate our more grand notions.
+
+In `concept.el`, every idea starts with a *focus* concept which starts a new idea as well as it's first component: the *relationship block*. This holds all the conceptual relationships relevant to the idea. The focus concept starts with a `~`. It can be thought of as analogous to the subject of a sentence. Then come one or more relationship groups which specify a common relationship, analogous to the verb of a sentence, under which comes one or more data concepts corresponding to the object of a sentence. Thus, a relationship block specifies a group of related conceptual propositions each with their own verbs and objects, but all sharing the same subject.
+
+After the *relationship block* comes zero or more *resource blocks*. These containe one or more attributes which are largely analogous to relationships, except that the data associated with each attribute is often structured more traditionally, if far more briefly.
+
+The example below gives the simplest possible idea. It has one resource block associated with it. It would still be valid if there were none. There doesn't have to be any, but adding them is recommended, especially in situations where there is ambiguity about what idea is being represented. In such an idea as the one expressed below, there is quite a lot of ambiguity!
+
+```
+~ things
+| :include
+| concepts
+@ understanding
+| note:
+| {Concepts are things considered in the mind.}
+```
+
+The focus concept (subject) of the idea is on the first line. The relationship (verb) is on the second line. It creates a relationship group which holds the one data concept (object) on the third line. The fourth line starts the only resource block associated with this idea. The attribute is on the fifth line and it's expository data is on the sixth.
+
+The weird and completely miraculous thing is that in practice, we humans hold many hundreds or thousands of ideas in our heads at any given time. So, correspondingly a concept map hold many many ideas combined together. The example concept map below is included as a file in the source code repository for `concept.el`.
 
 ```
 ~ things
@@ -113,9 +138,11 @@ The text format is pretty straightforward. A concept map is a text file with a `
 | thoughts
 ```
 
-Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. For domain experts it might seem unnecessary, but for highly multi-disciplinary situations, this can be a life saver for many people working together on a large project. The best plan can only emerge once you have a comprehensive view of the possibilities. A concept map is meant to be quite comprehensive, at least within a specific domain.
+Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. It might seem egregious and unnecessary to be so explicit, but for advanced knowledge work explicitness is commonly recognized as a best practice. This is particularly true in highly multi-disciplinary situations where team members with wildly different skillsets and expertise collaborate together.
 
-The text format used by `concept.el` is designed to be familiar and comfortable to people with experience writing a little bit of lisp code. Note that concepts, resources, relationships, and attribute keywords are intended to be assigned identifiers which look a lot like lisp symbols. This should be familiar to most people using Emacs as their editor. Once you accept this restriction on naming, you buy into a set of constraints which facilitate the creation of a bunch of very useful editing tools for making huge concept maps quickly.
+Laying out all the teams conceptual ideas about the problem they are trying to solve can be a revelation for many people working together on a large project. We believe strongly that the best plan can only emerge once everyone on a team gains a comprehensive view of the possibilities before them for solving the problem at hand.
+
+The text format used by `concept.el` is designed to be familiar and comfortable to people with experience writing a little bit of lisp code.  Concepts, resources, relationships, and attribute keywords are intended to be assigned identifiers which look like a readable subset of valid lisp symbols. This should be familiar to most people using Emacs as their editor. Once you accept this restriction on naming, you buy into a set of constraints which facilitate the creation of a bunch of very useful editing tools for making huge concept maps quickly.
 
 These editing tools include:
 
@@ -126,9 +153,10 @@ These editing tools include:
 * document navigation and re-organization system provided through `outline` just like `org` mode in addition to custom tools tailored for concept maps
 * a search interface and query language provided through `consult`
 * a minibuffer-based editing interface which provides data validation
-* data "following" tools which help the user ensure the map is meaningful by grounding it in concrete resources.
+* data "following" tools which help the user ensure the map is meaningful by grounding it in concrete resources
+* an automatically updated network graph representation of the concept map holding all the conceptual relationships stored in the relationship block portions of the buffer
 
-Together they make it feasible to develop and productively explore concept maps with hundreds of thousands of concepts and even more relationships between them.
+Together they make it feasible to productively develop and explore concept maps with hundreds of thousands of conceptsand even more relationships within them.
 
 ## Installation
 
@@ -136,13 +164,13 @@ Install via ELPA (eventually!). Run M-x `package-install`. Press `ENTER`. Type `
 
 ## Thinking about concepts
 
-When you think about a particular thing, you use the singular voice: you speak of the cat and the mouse. When you think about things in general you use the plural voice, you speak of cats and mice. When you follow this convention of naming concepts with plural words, you realize that concepts have three distinct pieces:
+When you think about a particular thing, you use the singular voice: you speak of the cat in the alleyway and the mouse she is chasing. When you think about things in general you use the plural voice, you speak of cats in the act of chasing mice and mice in the act of fleeing cats. When you follow this convention of naming concepts with plural words, you realize that concepts in english have names with three distinct components:
 
-* a classification or categorization piece
-* a core concept piece
-* a definition piece
+* a classification or categorization component
+* a core concept component
+* and a definition component
 
-For example, concept the concept:
+For example, consider the concept:
 
 > abstract-pieces-of-knowledge
 
@@ -154,7 +182,12 @@ core: pieces
 definition: of-knowledge
 ```
 
-Gaining an intuition for what this concept is about requires first understanding what is meant by knowledge, pieces, and abstraction. These are often best sharpened by finding their opposites or complements. The opposite of abstract is concrete or definite. The opposite of piece is part of something, which might contain many smaller pieces at a different level. Knowledge concerns successful prediction. Ignorance means almost suredly unsuccessful prediction.
+Gaining an intuition for what this concept is about requires first understanding what is meant by knowledge, pieces, and abstraction. These are often best sharpened by finding their opposites or complements. The opposite of abstract is concrete or definite. The opposite of a piece is a part of something, which usually itself contains many smaller pieces at a different scale. Finally, we come to the definition component. Knowledge concerns successful prediction. Ignorance means almost suredly unsuccessful prediction. Once you think about a concept this way, it's name alone suggests that a whole concept map supports it. We invite you to take a stab it at. We took some time to do this exercise and got a pretty substantial concept map out of it.
+
+```
+```
+
+Now, there is much to quibble about and much ambiguity in the above concept map. We certainly see it, but that is the point of concept maps: they give us hooks to organize our thoughts so that they can be productively criticized. It is only through this criticism, preferably open criticism, that our thought improve.
 
 In `concept.el` we encourage you to put the classification piece on the left, the core piece in the middle, and the definition piece on the right. Further, it's better to start with the core plus some definition. Then, once you have your definition, you can added a category which alludes to that definition via and `:name` relationship.
 
@@ -175,7 +208,7 @@ In `concept.el` we encourage you to put the classification piece on the left, th
 | mortal-beings
 ```
 
-Redundancy isn't too much of a problem since the main thing is that you understand what you are talking about and that you can gain that understanding by searching through a concept map. 
+Redundancy isn't too much of a problem since the main thing is that you understand what you are talking about and that you can gain that understanding by searching through a concept map.
 
 The package provides an implementation of the longest common substring algorithm to help build tools for automatically identifying these components. This can be combined with the string-distance procedure and tools which provide you a list of all concepts in the buffer to find likely core concepts. Of course, really discovering this will often require a degree of standardization which is not really possible with Emacs, but should be feasible from a dedicated data analysis environment like R.
 
@@ -193,7 +226,7 @@ Leveraging the tools in `consult.el` can be another very effective way of explor
 
 ## Editing tools for concept maps
 
-`concept.el` provides a wealth of tools for rapidly entering new ideas and editing existing concept maps to standardize their contents in order to make them as useful a learning tool as possible. Let's start by create a new concept. 
+`concept.el` provides a wealth of tools for rapidly entering new ideas and editing existing concept maps to standardize their contents in order to make them as useful a learning tool as possible. Let's start by create a new concept.
 
 Open the `example.map` concept map included in the git repository. Navigate to the beginning of the buffer with `M-<`. Then press `C-o`. This makes a new idea block by creating a new subject line. Type out `stuff`. Then, press `M-i`. This inserts an `:include` relationship and creates an object concept line. Press `M-i` again and it will enter `stuff` again automatically. `M-.` will do the same, while `C-M-.` will add the following subject instead.
 
@@ -264,7 +297,7 @@ A major challenge to the notion of canonical sorting for concept maps is figurin
 | {In english grammar, a simple sentence has a subject, a verb, and an object.}
 ```
 
-The example above demonstrates a rapid increase in complexity necessary to canonically sort concept maps. This is not remotely desirable. We could further restrict concept maps to have unique names at each grouping level. Unfortunately, this too seems undesirable since the whole point of concept mapping is to better process the ideas you are exposed to. If ideas concern the same subject, then they should have the same focus line. 
+The example above demonstrates a rapid increase in complexity necessary to canonically sort concept maps. This is not remotely desirable. We could further restrict concept maps to have unique names at each grouping level. Unfortunately, this too seems undesirable since the whole point of concept mapping is to better process the ideas you are exposed to. If ideas concern the same subject, then they should have the same focus line.
 
 Given the complexity of the problem concept maps are trying to solve, probably the best solution is to study failures of canonicalization case by case. In the example above, it seems odd that the second resource block is even included with this idea about concepts. It is probably better suited for belonging to an idea focused on ideas themselves. When you do that, the problem goes away for this concept map. The above thought experiment suggests the heuristic rule that if you need two resources with the same name in the same idea, then you should consider moving one of the resources to a new idea.
 
@@ -430,7 +463,7 @@ Once the concept map parses successfully, searching should be guaranteed to work
 
 ## Future Plans and Related Projects
 
-There is a weird bug in `C-c C-n` where `concept-last-resource-count-behavior` somehow gets assigned the values which should only be assigned to `concept-last-size-comparison-behavior`. We need to figure out why and fix it!
+It would be really nice if the *follow* interface made such information clickable with the mouse and underlined to distinguish it from other pieces of attribute data which cannot be. This would provide a visual cue which would help new users better grasph the possibilities of the system.
 
 There are still some bugs to clear up with the query language. In particular, it would be nice to allow general regular expression searches. However, at the moment this is impossible since regular expressions are already used to implement the existing search tools. Regular expressions that match regular expressions are a bit too tricky for the current implementation to handle. However, note that `^` and `$` anchors are allowed. A more sophisticated method would be required. Whatever the implementation and feature set of the search functionality, It would be nice to have an exhaustive test suite implemented which checks that basic searches work as intended.
 
@@ -452,7 +485,7 @@ Concept maps should be meaningful to many people, not just their creators. To ma
 | {What is 2+2?}
 ```
 
-The first implementation will be based around the idea of configuring the canonical sort in terms of 25 possible algorithms, or more like 12 possible algorithms each with it's reverse as well, along with one custom algorithm. The way this is done seems general enough in practice. More complicated canonical sorting can be achieved through providing helper functions to quickly create a custom sorting procedure. One easy extension I thought of was an alphabetical sort where certain reserved keywords get shown first in the given order while the remainder are sorted alphabetically. This captures the `answer:` followed by `question:` problem. 
+The first implementation will be based around the idea of configuring the canonical sort in terms of 25 possible algorithms, or more like 12 possible algorithms each with it's reverse as well, along with one custom algorithm. The way this is done seems general enough in practice. More complicated canonical sorting can be achieved through providing helper functions to quickly create a custom sorting procedure. One easy extension I thought of was an alphabetical sort where certain reserved keywords get shown first in the given order while the remainder are sorted alphabetically. This captures the `answer:` followed by `question:` problem.
 
 Another interesting pair of orderings looks at the length of the elements themselves. These would be analogous to the list sorting calls show in the block below. An advantage of looking at these orderings is that they can reveal a natural separation between the most fundamental concepts and the more derivative ones. And if there is a well defined canonical sort defined for taking diffs of the concept map, then it really doesn't matter from the perspective of tracking and merging changes. You can radically change the ordering of the concept map file over and over again and it doesn't matter since the meaningful contents have not changed.
 
