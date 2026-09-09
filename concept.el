@@ -4244,19 +4244,22 @@ next version."
 
 (defun concept-get-attribute-data ()
   "Get all the attribute data as a list of strings.
-See also concept-get-attribute which gives a single string."
-  (save-excursion
-    (next-line)
-    (let ((data '()))
-      (while (and (not (eobp))
-                  (concept-on-exposition-line))
-        (push (concept-get-expository-data) data)
-        (forward-line))
-      (nreverse data))))
+See also `concept-get-attribute' which gives a single string and
+`concept-get-child-concepts' which does a similar operation but for
+relationships.."
+  (when (concept-on-attribute-line)
+    (save-excursion
+      (next-line)
+      (let ((data '()))
+        (while (and (not (eobp))
+                    (concept-on-exposition-line))
+          (push (concept-get-expository-data) data)
+          (forward-line))
+        (nreverse data)))))
 
 (defun concept-get-child-concepts ()
   "Get all the child concepts under a relationship as a list of strings.
-See also concept-get-attribute-data."
+See also `concept-get-attribute-data'."
   (save-excursion
     (next-line)
     (let ((data '()))
