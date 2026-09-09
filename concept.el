@@ -98,6 +98,7 @@
 
 ;;; Code:
 
+(require 'seq)
 (require 'outline)
 (require 'peg)
 (require 'consult)
@@ -4268,8 +4269,6 @@ See also concept-get-attribute-data."
           (forward-line)
           (push (string-trim (substring-no-properties line start)) data)))
       data)))
-
-(require 'seq)
 
 (defun query-split (part)
   (let* ((pieces (concept--split-string-by-bare-tilde part))
