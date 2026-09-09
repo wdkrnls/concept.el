@@ -756,7 +756,8 @@ It provides bindings for quickly navigating concepts and examples.")
         vertico-sort-override-function 'identity)
   (add-to-list 'completion-category-overrides
         '((imenu (display-sort-function . nil))
-                 (styles . basic)))
+          (styles . basic)))
+  (run-mode-hooks 'concept-mode-hook)
   (setq-local font-lock-defaults '(concept-mode-font-lock-keywords)))
 
 (add-to-list 'auto-mode-alist '("\\.map\\'" . concept-mode))
