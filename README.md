@@ -243,6 +243,35 @@ Reorganizing existing attribute groups, or expository data lines can be done wit
 
 The point of all this functionality is to implement a canonical ordering of the whole concept map. With such an ordering, its feasible to get a clear diff of two concept maps without a lot of syntactic changes which mask the vastly more important sematically meaningful ones. Remember, the whole point of investing in concept mapping is to engage in meaningful learning! Why then is there a random shuffling feature? One use case is to test that the canonical sorting works as intended no matter what. There are a lot of situations to test, and in the beginning it will be hard to know which situations are most important to test. Thus, it's pretty useful to simulate a lot of situations randomly to see if there are edge cases which haven't been covered yet.
 
+## Identifying "smelly" ideas
+
+One way an idea can smell is if it cannot be canonically sorted.
+
+A major challenge to the notion of canonical sorting for concept maps is figuring out what to do with the following situation. Look at the snippet from our `example.map` concept map we have been discussing previously below. Note that under the current logic, a canonical sorting of the concept map by our current scheme is impossible. There is an ironclad guarantee that if we keep randomizing the concept map, eventually we will not be able to recover the same sorting, atleast not with purely alphabetic sorting. The only potentially canonical sort we see is to first sort by resources alplhabetically, and that only works if we can do a lexical sort, where we conditionally sort by alphabet, then length, and then we need to further sort on something else such as the length of the shortest or longest lines in the attribute data.
+
+```
+~ concepts
+| :include
+| objects
+| subjects
+@ understanding
+| note:
+| {The subject is given first and indicated with a tilde: ~.}
+| {All ideas have one and only one subject.}
+@ understanding
+| note:
+| {Here ideas correspond roughly to multiple related simple sentences.}
+| {In english grammar, a simple sentence has a subject, a verb, and an object.}
+```
+
+The example above demonstrates a rapid increase in complexity necessary to canonically sort concept maps. This is not remotely desirable. We could further restrict concept maps to have unique names at each grouping level. Unfortunately, this too seems undesirable since the whole point of concept mapping is to better process the ideas you are exposed to. If ideas concern the same subject, then they should have the same focus line. 
+
+Given the complexity of the problem concept maps are trying to solve, probably the best solution is to study failures of canonicalization case by case. In the example above, it seems odd that the second resource block is even included with this idea about concepts. It is probably better suited for belonging to an idea focused on ideas themselves. When you do that, the problem goes away for this concept map. The above thought experiment suggests the heuristic rule that if you need two resources with the same name in the same idea, then you should consider moving one of the resources to a new idea.
+
+The just discussed situation, prompts us to consider how a researcher might discover such smells in their own concept maps. Earlier in this document, we discussed how the behavior of `C-c C-n` depended modally on the value of global variables `concept-last-relationship-group-size-behavior` and `concept-last-attribute-count-behavior` which chooses between the modes `"all"`, `"unique"`, and `"diff"`. A third global variable `concept-last-resource-count-behavior` controls the how resource counts are made. The effect of changing it's value can be seen when running the commands `concept-goto-next-relationship-block-with-resource-count` or `concept-goto-previous-relationship-block-with-resource-count`. A fourth global variable `concept-last-size-comparison-behavior` taking values of `=`, `<=`, and `>` control how the size comparisons are made with these commands. In aggregate, these commands help the concept mapper discover smelly ideas that they have already created, but for which they cannot intelligibly perform a search query on because these aspects of an idea are concept and grouping name agnostic.
+
+## Following the data in a resource block
+
 Once you have your *resource block* written with all the information you want, it sure would be nice if that data could be worked with directly in the concept buffer. That is exactly what the `follow` interface is for! Pressing `C-c f` can be used on exposition lines inside of resource block out of the box. At this point there are numerous special keywords available, but let's first talk about those most useful for referencing documentation:
 
 * `file:` to open other files
@@ -401,8 +430,6 @@ Once the concept map parses successfully, searching should be guaranteed to work
 
 ## Future Plans and Related Projects
 
-It would be nice to support inequalities via `C-u` for `C-c C-n` and `C-c C-p` navigation interfaces. It seems like a negative prefix would be useful for less-than and a positive prefix for greater than. A zero prefix (the default) thus indicates equality.
-
 There are still some bugs to clear up with the query language. In particular, it would be nice to allow general regular expression searches. However, at the moment this is impossible since regular expressions are already used to implement the existing search tools. Regular expressions that match regular expressions are a bit too tricky for the current implementation to handle. However, note that `^` and `$` anchors are allowed. A more sophisticated method would be required. Whatever the implementation and feature set of the search functionality, It would be nice to have an exhaustive test suite implemented which checks that basic searches work as intended.
 
 A companion package very useful for editing concept maps in `concept.el` is the `tempel` snippet template editor. However, it's emphasis on determining the available templates based on only the major-mode is too cumbersome for the needs of writing concept maps. A concept map about math benefits from templates around a specific math textbook, but a concept map about architectural design techniques does not! In the future, I want to propose a patch to that tool which enables it to automatically recognize project-specific templates.
@@ -433,26 +460,5 @@ Another interesting pair of orderings looks at the length of the elements themse
 ;; Longest to shortest with alphabetical tie breaker
 (sort (list "z" "az") (lambda (a b) (let ((A (length a)) (B (length b))) (or (< B A) (if (eq A B) (string< b a))))))
 ```
-
-A major challenge with canonical sorting is figuring out what to do with the following situation. Look at the snippet from the `example.map` concept map below. Note that under the current logic, the canonical sorting of the concept map by our current scheme is undefined. We mean that if we randomize the concept map, there is no guarantee we can recover the same sorting with purely alphabetic sorting. The only potentially canonical sort we see is to first sort by resources alplhabetically, and only if their are ties do we conditionally sort by length, and if the lengths are still a tie, then we need to further sort on something else such as the length of the shortest or longest lines in the attribute data.
-
-```
-~ concepts
-| :include
-| objects
-| subjects
-@ understanding
-| note:
-| {The subject is given first and indicated with a tilde: ~.}
-| {All ideas have one and only one subject.}
-@ understanding
-| note:
-| {Here ideas correspond roughly to multiple related simple sentences.}
-| {In english grammar, a simple sentence has a subject, a verb, and an object.}
-```
-
-The example above demonstrates a rapid increase in complexity necessary to canonicalize concept maps. This is not desirable. We could further restrict concept maps to have unique names at each grouping level. However, this too seems undesirable given the complexity of the problem concept maps are trying to solve. Probably, the best solution is to study these failures of canonicalization in practice and correct them in the concept maps on a case-by-case basis. In the example above, it seems odd that the second resource block is even included with this idea about concepts. It is probably better suited for belonging to an idea focused on ideas themselves. When you do that, the problem goes away for this concept map. The above thought experiment suggests the heuristic rule that if you need two resources with the same name in the same idea, then you should consider moving one of the resources to a new idea.
-
-The just discussed situation, prompts us to consider how a researcher might discover such smells in their own concept maps. Earlier in this document, we discussed how the behavior of `C-c C-n` depended modally on the value of global variables `concept-last-relationship-group-size-behavior` and `concept-last-attribute-count-behavior` which chooses between the modes `"all"`, `"unique"`, and `"diff"`. A third global variable `concept-last-resource-count-behavior` might do the trick! We already have a pair of functions called `concept-goto-next-relationship-block-with-resource-count` and `concept-goto-previous-relationship-block-with-resource-count` which could me modified to accept it.
 
 Thinking about names in a standard way would really help with merging two different concept maps as well. So, in the future we hope to provide tools for parsing concepts in terms of the `{classification|core|definition}` framework discussed earlier. One challenge we have frequently seen is that concept names start getting longer and longer the more we work with concept maps. Tasteful categorization can help, but, e.g., when dealing with documenting useful elisp functions, it become useful to make some shorthand summarizations for brevity. These can challenge the power of these tools, but there may be useful conventions which can overcome these issues.
