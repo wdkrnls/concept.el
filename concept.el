@@ -6245,6 +6245,55 @@ If it doesn't parse, move the point to where the first failure is."
      (goto-char (nth 1 error-signal))
      (user-error "Parse failed at point!"))))
 
+(defvar-local concept-map--network-update-timer nil
+  "Update the concept map network after buffer modifications and a bit of inactivity.")
+
+(defun concept-map--schedule-network-update (&rest _args)
+  "Schedule a network update after a period of user inactivity."
+  (when (timerp concept-map--network-update-timer)
+    (cancel-timer concept-map--network-update-timer)
+    (concept-map--debug "Canceled previous timer in %s" (buffer-name))
+    (setq concept-map--network-update-timer
+      (run-with-idle-timer
+       5 nil
+       #'concept-map--run-scheduled-network-update
+       (current-buffer)))
+    (concept-map--debug
+     "Scheduled update for %s; modified=%S"
+     (buffer-name)
+     (buffer-modified-p))))
+
+(defun concept-map--run-scheduled-network-update (buffer)
+  "Update BUFFER's concept map network.
+This variable is stored in `concept-map-network-graph'."
+  (if (not (buffer-live-p buffer))
+      (concept-map--debug "Skipped update: buffer no longer exists")
+    (with-current-buffer buffer
+      (setq concept-map--network-update-timer nil)
+      (when (derived-mode-p 'concept-mode)
+         (concept-map--debug
+          "Running concept-map-update-network in %s"
+          (buffer-name))
+        (concept-map-update-network)))))
+
+(defun concept-mode-setup-network-updating ()
+  "Enable automatic network updates for the current buffer."
+  (add-hook 'after-change-functions
+            #'concept-map--schedule-network-update
+            nil
+            t))
+
+(defun concept-map--debug (format-string &rest args)
+  "Log concept-map update activity."
+  (with-current-buffer (get-buffer-create "*concept-map-debug*")
+    (goto-char (point-max))
+    (insert (format-time-string "[%H:%M:%S] "))
+    (insert (apply #'format format-string args))
+    (insert "\n")))
+
+(add-hook 'concept-mode-hook
+          #'concept-mode-setup-network-updating)
+
 (defvar-local concept-map-network-graph
     nil
   "Buffer local representation of the concept map as a network.")
