@@ -3248,6 +3248,24 @@ relationship is found."
           (next-line))
         (hash-table-count seen)))))
 
+(defun concept-unique-resource-block-count ()
+  "Count the number of unique resource block names for an idea.
+This starts at the focus line and increments every time a unique
+resource is found."
+  (interactive)
+  (let ((line-move-visual nil))
+    (save-excursion
+      (concept-goto-current-focus)
+      (next-line)
+      (let ((seen (make-hash-table :test #'equal))
+            resource)
+        (while (not (concept-on-focus-line))
+          (when (concept-on-resource-line)
+            (setq resource (concept-current-resource))
+            (unless (gethash resource seen)
+              (puthash resource t seen)))
+          (next-line))
+        (hash-table-count seen)))))
 
 (defun concept-insert-relationship-block (focus relationship concept)
   "Insert a new relationship block before the current line."
@@ -3739,7 +3757,9 @@ previous version."
          (size
           (if prefix
               (prefix-numeric-value prefix)
-            (read-number "Relationships: " concept-last-relationship-size))))
+            (read-number (format "Relationships (%S): "
+                                 (symbol-name concept-last-size-comparison-behavior))
+                         concept-last-relationship-size))))
     (ignore-errors
       (outline-up-heading 1))
     (ignore-errors
@@ -3747,7 +3767,7 @@ previous version."
     (setq concept-last-relationship-size size)
     (setq count (concept-relationship-count))
     (while (and (not (concept-on-last-line-p))
-                (not (eql size count)))
+                (not (concept-make-last-size-comparison count size)))
       (ignore-errors
         (outline-forward-same-level 1))
       (setq count (concept-relationship-count)))
@@ -3760,7 +3780,10 @@ previous version."
   "Whether to consider the grouping as unique or not.")
 
 (defvar-local concept-last-relationship-group-size-behavior 'all
-  "Whether to consider the grouping as `all', `unique', or `diff'.")
+  "Whether to consider the relationship grouping as `all', `unique', or `diff'.")
+
+(defvar-local concept-last-resource-count-behavior 'all
+  "Whether to consider the resource grouping as `all', `unique', or `diff'.")
 
 (defun  concept-goto-next-relationship-block-with-group-size (prefix)
   "Search for relationship blocks with certain numbers of relationship
@@ -3768,13 +3791,15 @@ groups. This is useful for finding combinatorial relationships. See also
 the previous of this command which goes (backwards) in the other direction."
   (interactive "P")
   (let* ((count 0)
+         ;; If it's defined, store the value
          (default (and concept-last-relationship-group-size
                        concept-last-relationship-group-size))
          (size
           (if prefix
               (prefix-numeric-value prefix)
             (read-number
-             (format "Relationship Groups (%S): "
+             (format "Relationship Groups (%S, %S): "
+                     (symbol-name concept-last-size-comparison-behavior)
                      concept-last-relationship-group-size-behavior)
              concept-last-relationship-group-size))))
     (ignore-errors
@@ -3786,7 +3811,7 @@ the previous of this command which goes (backwards) in the other direction."
     (let ((starting-line (line-number-at-pos))
           current-line)
       (while (and (not (concept-on-last-line-p))
-                  (not (eql size count))
+                  (not (concept-make-last-size-comparison count size))
                   (not (eobp)))
         (ignore-errors
           (outline-forward-same-level 1))
@@ -3824,7 +3849,10 @@ to implement that functionality."
          (size
           (if prefix
               (prefix-numeric-value prefix)
-            (read-number "Relationship Groups: " concept-last-relationship-group-size))))
+            (read-number (format "Relationship Groups (%S, %S): "
+                                 (symbol-name concept-last-size-comparison-behavior)
+                                 concept-last-relationship-group-size-behavior)
+                         concept-last-relationship-group-size))))
     (ignore-errors
       (outline-up-heading 1))
     (ignore-errors
@@ -3834,7 +3862,7 @@ to implement that functionality."
     (let ((starting-line (line-number-at-pos))
           current-line)
       (while (and (not (concept-on-last-line-p))
-                  (not (eql size count))
+                  (not (concept-make-last-size-comparison count size))
                   (not (eobp)))
         (ignore-errors
           (outline-backward-same-level 1))
@@ -3849,7 +3877,7 @@ to implement that functionality."
 (defvar-local concept-last-resource-count nil
   "Search based on the number of resource blocks in a relationship block.")
 
-(defun  concept-goto-next-relationship-block-with-resource-count (prefix)
+(defun concept-goto-next-relationship-block-with-resource-count (prefix)
   "Search for relationship blocks with certain numbers of resource
 blocks. See also the previous variant of this command which
 goes (backwards) in the other direction."
@@ -3859,20 +3887,23 @@ goes (backwards) in the other direction."
                        concept-last-resource-count))
          (size
           (if prefix
-              (prefix-numeric-value prefix)
-            (read-number "Resource Blocks: " concept-last-resource-count))))
+              (abs (prefix-numeric-value prefix))
+            (read-number (format "Resource Blocks (%S, %S): "
+                                 (symbol-name concept-last-size-comparison-behavior)
+                                 concept-last-resource-count-behavior)
+                         concept-last-resource-count))))
     (ignore-errors
       (outline-up-heading 1))
     (ignore-errors
       (outline-forward-same-level 1))
     (setq concept-last-resource-count size)
-    (setq count (concept-resource-block-count))
+    (setq count (concept-make-last-resource-count))
     (while (and (not (concept-on-last-line-p))
-                (not (eql size count))
+                (not (concept-make-last-size-comparison count size))
                 (not (eobp)))
       (ignore-errors
         (outline-forward-same-level 1))
-      (setq count (concept-resource-block-count)))
+      (setq count (concept-make-last-resource-count)))
     (concept-goto-current-focus)
     (when (eql count size)
       (re-search-forward "^@" nil t))
@@ -3884,7 +3915,8 @@ goes (backwards) in the other direction."
 (defvar-local concept-last-attribute-count-behavior 'all
   "Pick the attribute count of interest.
 Either `all', `unique', or `diff'. `diff' means the difference between
-`all' and `unique'.")
+`all' and `unique'. Note that this functionality totals up all the
+attributes in all the resource blocks under the given idea.")
 
 (defun concept-set-last-attribute-count-behavior ()
   "Set the desired behavior for counting attribute keywords associated with
@@ -3902,7 +3934,7 @@ a relationship block."
              concept-last-attribute-count-behavior)))
 
 (defun concept-set-last-relationship-size-behavior ()
-  "Set the desired behavior for counting attribute keywords associated with
+  "Set the desired behavior for counting relationship keywords associated with
 a relationship block. See also `concept-set-last-attribute-count-behavior'."
   (interactive)
   (let ((choice (read-multiple-choice "Select an option for relationship count behavior"
@@ -3915,6 +3947,41 @@ a relationship block. See also `concept-set-last-attribute-count-behavior'."
       (?c (setq-local concept-last-relationship-group-size-behavior 'diff)))
     (message "Setting `concept-last-relationship-group-size-behavior' to `%S'."
              concept-last-relationship-group-size-behavior)))
+
+(defun concept-set-last-resource-count-behavior ()
+  "Set the desired behavior for counting attribute keywords associated with
+a relationship block. See also `concept-set-last-attribute-count-behavior'."
+  (interactive)
+  (let ((choice (read-multiple-choice "Select an option for resource count behavior"
+                                      '((?a "All" "Count all keywords")
+                                        (?b "Unique" "Count only unique keywords")
+                                        (?c "Diff" "Difference between all and unique")))))
+    (pcase (car choice)
+      (?a (setq-local concept-last-resource-count-behavior 'all))
+      (?b (setq-local concept-last-resource-count-behavior 'unique))
+      (?c (setq-local concept-last-resource-count-behavior 'diff)))
+    (message "Setting `concept-last-resource-count-behavior' to `%S'."
+             concept-last-resource-count-behavior)))
+
+(defvar concept-last-size-comparison-behavior
+  '=
+  "Determine how comparisons based on relevant sizes of ideas are made.
+ Allowed values are '=, '<=, and '>")
+
+(defun concept-set-last-size-comparison-behavior ()
+  "Set the desired behavior for comparing sizes in a concept map.
+This modifies the global variable `concept-last-size-comparison-behavior'."
+  (interactive)
+  (let ((choice (read-multiple-choice "Select an option for size comparison behavior"
+                                      '((?a "="  "Keep idea sizes which match exactly")
+                                        (?b "<=" "Keep sizes less than or equal to")
+                                        (?c ">"  "Keep sizes greater than the level")))))
+    (pcase (car choice)
+      (?a (setq-local concept-last-size-comparison-behavior '=))
+      (?b (setq-local concept-last-size-comparison-behavior '<=))
+      (?c (setq-local concept-last-size-comparison-behavior '>)))
+    (message "Setting `concept-last-size-comparison-behavior' to `%S'."
+             concept-last-size-comparison-behavior)))
 
 (defun concept-resource-keyword-count ()
   "Count the number of keywords associated with a resource."
@@ -3943,6 +4010,28 @@ the idea."
             (concept-unique-relationship-block-attribute-count)))
         (t (error "Unknown attribute count state! Please stick to all, unique, or diff."))))
 
+(defun concept-make-last-resource-count ()
+  "Dispatch to the right procedure for counting resources.
+Note that resource counts are totalled by ideas."
+  (cond ((eq concept-last-resource-count-behavior 'all)
+         (concept-resource-block-count))
+        ((eq concept-last-resource-count-behavior 'unique)
+         (concept-unique-resource-block-count))
+        ((eq concept-last-resource-count-behavior 'diff)
+         (- (concept-resource-block-count)
+            (concept-unique-resource-block-count)))
+        (t (error "Unknown resource count state! Please stick to 'all, 'unique, or 'diff."))))
+
+(defun concept-make-last-size-comparison (a b)
+  "Dispatch to the right procedure for comparing idea sizes."
+  (cond ((eq concept-last-size-comparison-behavior '=)
+         (equal a b))
+        ((eq concept-last-size-comparison-behavior '<=)
+         (<= a b))
+        ((eq concept-last-size-comparison-behavior '>)
+         (< b a))
+        (t (error "Unknown size comparison behavior! Please stick to '=, '<=, or '>."))))
+
 (defun concept-goto-next-relationship-block-with-attribute-count (prefix)
   "Search for relationship blocks with certain numbers of keyword
 attributes summed across all containing resource blocks. See also the
@@ -3961,7 +4050,8 @@ are the same options which make sense for
          (size
           (if prefix
               (prefix-numeric-value prefix)
-            (read-number (format "Keyword Count (%S): "
+            (read-number (format "Keyword Count (%S, %S): "
+                                 (symbol-name concept-last-size-comparison-behavior)
                                  concept-last-attribute-count-behavior)
                          concept-last-attribute-count))))
     (ignore-errors
@@ -3971,13 +4061,13 @@ are the same options which make sense for
     (setq concept-last-attribute-count size)
     (setq count (concept-make-last-attribute-count))
     (while (and (not (concept-on-last-line-p))
-                (not (eql size count))
+                (not (concept-make-last-size-comparison count size))
                 (not (eobp)))
       (ignore-errors
         (outline-forward-same-level 1))
       (setq count (concept-make-last-attribute-count)))
     (concept-goto-current-focus)
-    (when (and (< 0 size) (eq size count))
+    (when (and (< 0 size) (concept-make-last-size-comparison count size))
       (re-search-forward "^@" nil t)
       (re-search-forward ": *$"))
     (end-of-line)))
@@ -3992,15 +4082,21 @@ user can change the behavior of this function in order to find
 relationship blocks with different interesting properties. There are
 three of them at the moment. They are documented in that command. These
 are the same options which make sense for
-`concept-set-last-relationship-size-behavior' as well."
+`concept-set-last-relationship-size-behavior' as well.
+
+When a PREFIX argument is supplied, its absolute value is used to
+determine the count boundary. The global variable
+`concept-last-size-comparison-behavior' determines whether '=, '<=, or
+'> are used."
   (interactive "P")
   (let* ((count 0)
          (default (and concept-last-attribute-count
                        concept-last-attribute-count))
          (size
           (if prefix
-              (prefix-numeric-value prefix)
-            (read-number (format "Keyword Count (%S): "
+              (abs (prefix-numeric-value prefix))
+            (read-number (format "Keyword Count (%S, %S): "
+                                 (symbol-name concept-last-size-comparison-behavior)
                                  concept-last-attribute-count-behavior)
                          concept-last-attribute-count))))
     (ignore-errors
@@ -4010,13 +4106,13 @@ are the same options which make sense for
     (setq concept-last-attribute-count size)
     (setq count (concept-make-last-attribute-count))
     (while (and (not (concept-on-last-line-p))
-                (not (eql size count))
+                (not (concept-make-last-size-comparison count size))
                 (not (eobp)))
       (ignore-errors
         (outline-backward-same-level 1))
       (setq count (concept-make-last-attribute-count)))
     (concept-goto-current-focus)
-    (when (and (< 0 size) (eq size count))
+    (when (and (< 0 size) (concept-make-last-size-comparison count size))
       (re-search-forward "^@" nil t)
       (re-search-forward ": *$"))
     (end-of-line)))
@@ -4028,16 +4124,17 @@ next version."
   (interactive "P")
   (let ((count 0)
         (size (if prefix
-                  (prefix-numeric-value prefix)
+                  (abs (prefix-numeric-value prefix))
                 (string-to-number
-                 (read-string "Relationships: "
+                 (read-string (format "Relationships (%S): "
+                                      (symbol-name concept-last-size-comparison-behavior))
                               (number-to-string concept-last-relationship-size))))))
     (ignore-errors
       (outline-up-heading 1))
     (outline-backward-same-level 1)
     (setq count (concept-relationship-count))
     (while (and (not (concept-on-first-line-p))
-                (not (eql size count)))
+                (not (concept-make-last-size-comparison count size)))
       (outline-backward-same-level 1)
       (setq count (concept-relationship-count)))
     (concept-goto-current-focus)))
@@ -6204,8 +6301,10 @@ If it doesn't parse, move the point to where the first failure is."
 (define-key concept-mode-map (kbd "C-c C-n")     #'concept-goto-next-dwim)
 (define-key concept-mode-map (kbd "C-c C-p")     #'concept-goto-previous-dwim)
 (define-key concept-mode-map (kbd "C-c C-e")     #'concept-expand-combinatorial-relationship-block)
-(define-key concept-mode-map (kbd "C-c C-= r")   #'concept-set-last-relationship-size-behavior)
+(define-key concept-mode-map (kbd "C-c C-= g")   #'concept-set-last-relationship-size-behavior)
 (define-key concept-mode-map (kbd "C-c C-= a")   #'concept-set-last-attribute-count-behavior)
+(define-key concept-mode-map (kbd "C-c C-= r")   #'concept-set-last-resource-count-behavior)
+(define-key concept-mode-map (kbd "C-c C-= c")   #'concept-set-last-size-comparison-behavior)
 (define-key concept-mode-map (kbd "C-c M-p")     #'concept-cleanup-map)
 (define-key concept-mode-map (kbd "C-c C-v")     #'concept-map-check-parse)
 (define-key concept-mode-map (kbd "C-c C-t")     #'concept-map-export-to-table)
