@@ -5621,6 +5621,12 @@ modifying `mailcap-user-mime-data'."
                     (when (buffer-live-p fbuf)
                       (with-current-buffer fbuf
                         (occur value)))))
+                 ((member "directory" keys)
+                  (let ((dir (save-excursion
+                               (concept-goto-key-in-resource-block "directory")
+                               (forward-line)
+                               (file-name-directory (concept-current-exposition)))))
+                    (consult-grep dir value)))
                  ((member "info" keys)
                   (concept-goto-key-in-resource-block "info")
                   (forward-line)
