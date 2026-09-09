@@ -302,6 +302,10 @@ These are subject concepts. They were called focus concepts.")
       (goto-char (point-min)))
     (display-buffer "*Concept Imenu Index*")))
 
+(defun concept-current-line ()
+  "Get the current line of text from the buffer."
+  (string-trim-right (thing-at-point 'line t)))
+
 (defun concept--concept-word-count (name)
   (with-temp-buffer
     (insert name)
@@ -1170,12 +1174,7 @@ this."
 (defun concept-on-data-line ()
   "Test if the current line is a data line.
 A data line starts with a vertical bar."
-  (save-excursion
-    (beginning-of-line)
-    (string-match-p
-     "^[|]"
-     (buffer-substring-no-properties
-      (point) (min (+ 1 (point)) (line-end-position))))))
+  (string-match-p "^|" (concept-current-line)))
 
 (defun concept-on-blank-line ()
   "Test if the current line is a partially blank line.
@@ -1183,23 +1182,20 @@ This still expects it to be part of the concept.el world. This differs
 from `concept-current-line-blank-p' in that it expects a concept map
 line with a prefix character like `|' or `@' or `~'. That other one
 would work on any buffer with trailing blank characters."
-  (save-excursion
-    (beginning-of-line)
-    (string-match-p
-     "^[|@~] *$"
-     (buffer-substring-no-properties
-      (line-beginning-position) (line-end-position)))))
+  (string-match-p "^[|@~] *$" (concept-current-line)))
 
 (defun concept-last-concept ()
   "Get the last concept before the current position if on a data line."
+  ;; TODO: Clean this up! It seems like this function ought to be
+  ;; renamed as well
   (let ((is-data (concept-on-data-line))
         (is-focus (concept-on-focus-line)))
     (if is-data
       (save-excursion
         (re-search-backward "^~")
         (beginning-of-line)
-        (forward-char 2)
-        (buffer-substring-no-properties (point) (line-end-position)))
+        (forward-char 2) ; FIX
+        (buffer-substring-no-properties (point) (line-end-position))) ; FIX
       (when is-focus
         (save-excursion
           (while (not (and (concept-in-relationship-block)
@@ -1207,8 +1203,8 @@ would work on any buffer with trailing blank characters."
             (re-search-backward "^| ")
             (beginning-of-line))
           (when (concept-on-data-line)
-            (forward-char 2) ; because the first should be a relationship
-            (buffer-substring-no-properties (point) (line-end-position))))))))
+            (forward-char 2) ; FIX
+            (buffer-substring-no-properties (point) (line-end-position)))))))) ; FIX
 
 (defun concept-last-relationship ()
   "Get the last concept before the current position if on a data line."
@@ -1726,7 +1722,7 @@ inside a resource block."
 
 (defun concept-on-concept-or-resource-looking-line ()
   "Test if the current line looks like a concept line."
-  (let ((line (thing-at-point 'line t)))
+  (let ((line (concept-current-line)))
     (string-match-p (concat "^[@|~] +" concept-group-name-restriction-regexp) line)))
 
 (defun concept-on-resource-line ()
@@ -1760,35 +1756,23 @@ A resource line starts with an `@' symbol."
 (defun concept-on-relationship-line ()
   "Test if the current line is a relationship line."
   (and (not (concept-on-exposition-line))
-       (save-excursion
-         (beginning-of-line)
-         (let ((line
-                (buffer-substring-no-properties
-                 (point) (line-end-position))))
-           (and (string-match-p "^[|]" line)
-                (string-match-p ":[^ ]+" line))))))
+       (let ((line (concept-current-line)))
+         (string-match-p "^| +:[^: ]+" line))))
 
 (defun concept-on-attribute-line ()
   "Test if the current line is an attribute line.
 An attribute line ends with a colon."
-  (save-excursion
-    (beginning-of-line)
-    (let ((line
-           (buffer-substring-no-properties
-            (point) (line-end-position))))
-      (and (string-match-p "^[|]" line)
-           (string-match-p "[^ ]+: *$" line)))))
+  (let ((line (concept-current-line)))
+    (and (string-match-p "^| +" line)
+         (string-match-p "[^: ]+: *$" line))))
 
 (defun concept-get-attribute ()
   "Store the attribute group keyword as a string."
   (when (concept-on-attribute-line)
-    (save-excursion
-      (beginning-of-line)
-      (let* ((pattern " +[^:]+:")
-             (line  (thing-at-point 'line t))
-             (end   (string-match ":" line))
-             (start 2))
-        (string-trim (substring-no-properties line start end))))))
+    (let* ((line (concept-current-line))
+           (end  (string-match ":" line))
+           (start (1+ (string-match "|" line))))
+      (string-trim (substring line start end)))))
 
 (defun concept-get-resource-block-attributes ()
   "Get a list of all the attribute names in a resource block."
@@ -1838,12 +1822,9 @@ An attribute line ends with a colon."
 (defun concept-get-relationship ()
   "Get the relationship name of a relationship line."
   (when (concept-on-relationship-line)
-    (save-excursion
-      (beginning-of-line)
-      (let* ((pattern " +:[^:]+ *$")
-             (line (string-trim (thing-at-point 'line t)))
-             (start (string-match ":" line)))
-        (substring-no-properties line (1+ start))))))
+    (let* ((line (concept-current-line))
+           (start (string-match ":" line)))
+      (substring line (1+ start)))))
 
 (defun concept-on-exposition-line ()
   "Test if the current line is an exposition line.
@@ -1851,18 +1832,13 @@ An exposition line is a line in a resource block where expository text
 is added to give an illustrated example. Practically, it consists of a
 line that starts with open and closing squiggly brackets, usually. It
 can also start with square brackets, or maybe unicode quotes: ‘’."
-  (save-excursion
-    (beginning-of-line)
-    (let ((line (buffer-substring-no-properties
-                 (point) (line-end-position))))
-      (or
-       (and
-        (string-match-p "^[|][ ]*[{]" line)
-        (string-match-p "[}][ ]*$" line))
-       (and
-        (string-match-p "^[|][ ]*\\[" line)
-        (string-match-p "\\][ ]*$" line))
-       (string-match-p "| +‘[^‘]*’ *$" line)))))
+  (let ((line (concept-current-line)))
+    (or
+     (string-match-p "^|[ ]+{[^}]*} *$" line)
+     (string-match-p "| +‘[^‘]*’ *$" line)
+     (and
+      (string-match-p "^|[ ]*\\[" line)
+      (string-match-p "\\][ ]*$" line)))))
 
 (defun concept-insert-note-block ()
   "Insert a note block.
@@ -1906,11 +1882,10 @@ Sort this relationship in order of usage frequency."
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward pattern nil t)
-        (let* ((line (thing-at-point 'line t))
+        (let* ((line (concept-current-line))
                (start (1+ (string-match ":" line)))
                (end (length line))
-               (bracket (string-match "[{]" line))
-               (entry (string-trim (substring-no-properties line start end))))
+               (entry (string-trim (substring line start end))))
           (when (concept-on-relationship-line)
             (concept--increment-frequency entry relationships)))))
     (let (counts '())
@@ -1928,10 +1903,10 @@ Sort these attributes in order of usage frequency."
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward pattern nil t)
-        (let* ((line (thing-at-point 'line t))
+        (let* ((line (concept-current-line))
                (end (string-match ":" line))
                (start 2)
-               (bracket (string-match "[{]" line))
+               (bracket (string-match "{" line))
                (entry (string-trim (substring-no-properties line start end))))
           (when (concept-on-attribute-line)
             (concept--increment-frequency entry attributes)))))
@@ -1950,11 +1925,10 @@ Sort these names in order of usage frequency."
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward pattern nil t)
-        (let* ((line (thing-at-point 'line t))
+        (let* ((line (concept-current-line))
                (end (length line))
-               (start 2)
-               (bracket (string-match "[{]" line))
-               (entry (string-trim (substring-no-properties line start end))))
+               (start (1+ (string-match "@")))
+               (entry (substring line start end)))
           (when (concept-on-resource-line)
             (concept--increment-frequency entry resources)))))
     (let (counts '())
@@ -1991,7 +1965,7 @@ Sort these names in order of usage frequency."
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward pattern nil t)
-        (let* ((line (thing-at-point 'line t))
+        (let* ((line (concept-current-line))
                (end (length line))
                (start 2)
                (entry (string-trim (substring-no-properties line start end))))
@@ -2011,7 +1985,7 @@ Sort these names in order of usage frequency."
     (and (concept-on-attribute-line)
          (save-excursion
            (beginning-of-line)
-           (let* ((line (thing-at-point 'line t))
+           (let* ((line (concept-current-line))
                   (start (string-match "[^| :]" line))
                   (end (string-match ":" line))
                   (entry (string-trim (substring-no-properties line start end))))
@@ -2022,7 +1996,7 @@ Sort these names in order of usage frequency."
   (when (concept-on-exposition-line)
     (save-excursion
       (beginning-of-line)
-      (let* ((line (thing-at-point 'line t))
+      (let* ((line (concept-current-line))
              (start (string-match "{" line))
              (end (string-match "}" line))
              (entry (string-trim (substring-no-properties line (1+ start) end))))
@@ -2031,7 +2005,7 @@ Sort these names in order of usage frequency."
 (defun concept-current-concept ()
   "Get the current concept and return as a string."
   (when (concept-on-concept-line)
-    (let* ((line (thing-at-point 'line t))
+    (let* ((line (concept-current-line))
            (end (length line))
            (start 2)
            (entry (string-trim (substring-no-properties line start end))))
@@ -2063,7 +2037,7 @@ Sort these names in order of usage frequency."
 (defun concept-current-resource ()
   "Get the current resource and return as a string."
   (when (concept-on-resource-line)
-    (let* ((line (thing-at-point 'line t))
+    (let* ((line (concept-current-line))
            (end (length line))
            (start 2)
            (entry (string-trim (substring-no-properties line start end))))
@@ -3451,7 +3425,7 @@ Place each relationship into its own block."
                     (concept-on-exposition-line))))
          (let ((resource (concept-current-resource-name))
                (keyword  (concept-current-attribute))
-               (data     (string-trim-right (thing-at-point 'line t))))
+               (data     (concept-current-line)))
            (kill-whole-line)
            (concept-goto-current-resource)
            (previous-line)
@@ -4236,7 +4210,7 @@ next version."
   "Get the data on the line at point."
   (when (not (derived-mode-p 'concept-mode))
     (user-error  "This function was called outside of a concept map. Aborting!"))
-  (let* ((line (thing-at-point 'line t))
+  (let* ((line (concept-current-line))
          (start (string-match "[{[‘]" line))
          (end   (string-match "[]}’] *$" line)))
     (save-excursion
@@ -4266,7 +4240,7 @@ See also `concept-get-attribute-data'."
       (while (and (not (eobp))
                   (not (concept-on-relationship-line))
                   (concept-on-data-line))
-        (let* ((line (thing-at-point 'line t))
+        (let* ((line (concept-current-line))
                (start 2))
           (forward-line)
           (push (string-trim (substring-no-properties line start)) data)))
@@ -4354,7 +4328,7 @@ one match for this part of the query."
           (concept-on-focus-line))
       (save-excursion
         (beginning-of-line)
-        (let* ((line  (thing-at-point 'line t))
+        (let* ((line  (concept-current-line))
                (start 2))
           (string-trim (substring-no-properties line start))))
     (save-excursion
@@ -6102,7 +6076,7 @@ This table is fairly convenient to work with from `igraph'."
 (defun concept-table-get--helper (field)
   (when (and (string= (buffer-name) "*concept-map-export*")
              (< 1 (line-number-at-pos (point))))
-    (let ((line (thing-at-point 'line t)))
+    (let ((line (concept-current-line)))
       (with-temp-buffer
         (insert line)
         (shell-command-on-region
@@ -6111,7 +6085,7 @@ This table is fairly convenient to work with from `igraph'."
          (format "cut -f%d" field)
          nil
          t)
-        (string-trim-right
+        (string-trim-right ; TODO: probably don't need this anymore!
          (buffer-string))))))
 
 (defun concept-table-get-parent ()
