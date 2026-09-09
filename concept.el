@@ -1841,10 +1841,9 @@ An attribute line ends with a colon."
     (save-excursion
       (beginning-of-line)
       (let* ((pattern " +:[^:]+ *$")
-             (line  (thing-at-point 'line t))
-             (start   (string-match ":" line))
-             (start 2))
-        (string-trim (substring-no-properties line (1+ start)))))))
+             (line (string-trim (thing-at-point 'line t)))
+             (start (string-match ":" line)))
+        (substring-no-properties line (1+ start))))))
 
 (defun concept-on-exposition-line ()
   "Test if the current line is an exposition line.
