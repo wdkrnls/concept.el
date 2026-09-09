@@ -430,6 +430,8 @@ Once the concept map parses successfully, searching should be guaranteed to work
 
 ## Future Plans and Related Projects
 
+There is a weird bug in `C-c C-n` where `concept-last-resource-count-behavior` somehow gets assigned the values which should only be assigned to `concept-last-size-comparison-behavior`. We need to figure out why and fix it!
+
 There are still some bugs to clear up with the query language. In particular, it would be nice to allow general regular expression searches. However, at the moment this is impossible since regular expressions are already used to implement the existing search tools. Regular expressions that match regular expressions are a bit too tricky for the current implementation to handle. However, note that `^` and `$` anchors are allowed. A more sophisticated method would be required. Whatever the implementation and feature set of the search functionality, It would be nice to have an exhaustive test suite implemented which checks that basic searches work as intended.
 
 A companion package very useful for editing concept maps in `concept.el` is the `tempel` snippet template editor. However, it's emphasis on determining the available templates based on only the major-mode is too cumbersome for the needs of writing concept maps. A concept map about math benefits from templates around a specific math textbook, but a concept map about architectural design techniques does not! In the future, I want to propose a patch to that tool which enables it to automatically recognize project-specific templates.

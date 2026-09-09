@@ -3888,9 +3888,9 @@ goes (backwards) in the other direction."
          (size
           (if prefix
               (abs (prefix-numeric-value prefix))
-            (read-number (format "Resource Blocks (%S, %S): "
+            (read-number (format "Resource Blocks (%s, %s): "
                                  (symbol-name concept-last-size-comparison-behavior)
-                                 concept-last-resource-count-behavior)
+                                 (symbol-name concept-last-resource-count-behavior))
                          concept-last-resource-count))))
     (ignore-errors
       (outline-up-heading 1))
