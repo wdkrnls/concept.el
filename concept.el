@@ -6245,6 +6245,122 @@ If it doesn't parse, move the point to where the first failure is."
      (goto-char (nth 1 error-signal))
      (user-error "Parse failed at point!"))))
 
+(defvar-local concept-map-network-graph
+    nil
+  "Buffer local representation of the concept map as a network.")
+
+(defun concept-map-update-network (&optional relationship-regexp)
+  "Extract the concept map network into the SEXP.
+Store the resulting data structure in `concept-map-network-graph'.
+
+The form of this data structure is a hash table where the keys are
+concepts and the values are list of concepts that are children of the key:
+
+ '((foo . (bar))
+   (bar . (baz))
+   (baz . ()))
+"
+  (unless (derived-mode-p 'concept-mode)
+    (user-error "This only works inside of a concept-mode buffer holding a valid concept map!"))
+  (when (null relationship-regexp)
+    (setq relationship-regexp ".+"))
+  (save-excursion
+    (let ((graph (make-hash-table :test #'equal)))
+      (concept--goto-first-heading)
+      (concept-goto-next-relationship)
+      (while (not (eobp))
+        (let ((relationship (concept-get-relationship)))
+          (when (string-match-p relationship-regexp relationship)
+            (let ((parent (concept-current-focus))
+                  (children (concept-get-child-concepts)))
+              (puthash parent (delete-dups (append (gethash parent graph) children)) graph))))
+        (concept-goto-next-relationship))
+      (setq-local concept-map-network-graph graph)
+      graph)))
+
+(defun concept-map-network-reachable-p (start goal)
+  "Return non-nil if GOAL is reachable from START."
+  (let ((graph (or concept-map-network-graph
+                   (concept-map-update-network)))
+        (visited (make-hash-table :test #'equal))
+        (pending (list start)))
+    (catch 'found
+      (while pending
+        (let ((node (pop pending)))
+          (unless (gethash node visited)
+            (puthash node t visited)
+            (when (equal node goal)
+              (throw 'found t))
+            (dolist (child (gethash node graph))
+              (unless (gethash child visited)
+                (push child pending))))))
+      nil)))
+
+(defun concept-map-network-path (start goal)
+  "Return a path from START to GOAL, or nil if GOAL is unreachable."
+  (let ((graph (or concept-map-network-graph
+                   (concept-map-update-network)))
+        (visited (make-hash-table :test #'equal))
+        (pending (list (cons start (list start)))))
+    (catch 'path-found
+      (while pending
+        (let* ((entry (pop pending))
+               (node (car entry))
+               (path (cdr entry)))
+          (unless (gethash node visited)
+            (puthash node t visited)
+            (if (equal node goal)
+                (throw 'path-found (reverse path))
+              (dolist (child (gethash node graph))
+                (unless (gethash child visited)
+                  (push (cons child (cons child path))
+                        pending))))))
+        nil))))
+
+(defun concept--find-cycle-from (node path graph state)
+  "Find a cycle reachable from NODE.
+
+PATH is the current DFS path. STATE records nodes as
+:visiting or :done. Return a cycle, or nil."
+  (let ((node-state (gethash node state)))
+    (cond
+     ((eq node-state :visiting)
+      (let ((cycle-start (member node path)))
+        (append cycle-start (list node))))
+     ((eq node-state :done)
+      nil)
+     (t
+      (puthash node :visiting state)
+      (let ((cycle nil))
+        (dolist (child (gethash node graph))
+          (unless cycle
+            (setq cycle
+                  (concept--find-cycle-from
+                   child
+                   (append path (list child))
+                   graph
+                   state))))
+        (puthash node :done state)
+        cycle)))))
+
+(defun concept-map-network-find-cycle ()
+  "Return the first directed cycle in the network, or nil.
+A cycle is returned with its starting node repeated at the end.
+For example: (a b c a)."
+  (let ((graph (or concept-map-network-graph
+                   (concept-map-update-network)))
+        (state (make-hash-table :test #'equal)))
+    (catch 'cycle-found
+      (maphash
+       (lambda (node _children)
+         (unless (gethash node state)
+           (let ((cycle
+                  (concept--find-cycle-from node (list node) graph state)))
+             (when cycle
+               (throw 'cycle-found cycle)))))
+       graph)
+      nil)))
+
 (define-key concept-mode-map (kbd "C-M-o")       #'concept-add-new-data)
 (define-key concept-mode-map (kbd "M-j")         #'concept-add-new-data)
 (define-key concept-mode-map (kbd "M-k")         #'concept-add-data)
