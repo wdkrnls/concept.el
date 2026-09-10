@@ -884,13 +884,13 @@ selected line then this will return nil.
 
 (defun concept-attribute-group-data-count ()
   "Return the number of exposition lines in the current attribute group."
-  (when (concept-on-attribute-line)
-    (length (concept-get-attribute-data)))
-  (when (concept-on-exposition-line)
-    (save-excursion
-      (concept-goto-previous-attribute-boundary)
-      (end-of-line)
-      (length (concept-get-attribute-data)))))
+  (cond ((concept-on-attribute-line)
+         (length (concept-get-attribute-data)))
+        ((concept-on-exposition-line)
+         (save-excursion
+           (concept-goto-previous-attribute-boundary)
+           (end-of-line)
+           (length (concept-get-attribute-data))))))
 
 (defun concept-reverse-attribute-data ()
   "Reverse the order of the attribute data included in the current attribute group."
@@ -1078,7 +1078,7 @@ By default the length of a section is the number of characters which are needed 
 
 (defun concept-data-concept-length ()
   "Compute the number of characters in the current data concept."
-  (when (concept-on-data-concept)
+  (when (concept-on-data-concept-line)
     (length (concept-current-concept))))
 
 (defun concept-exposition-length ()
@@ -3176,7 +3176,7 @@ relationship line is found."
   "Sort the attribute groups in alphabetical order."
   (interactive "P")
   (when (and (concept-in-resource-block)
-             (or (< 1 (concept-attribute-group-count))
+             (or (< 1 (concept-resource-keyword-count))
                  (end-of-line)))
     (when (null max-iter)
       (setq max-iter 10001))
