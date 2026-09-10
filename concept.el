@@ -1153,7 +1153,7 @@ reordering resource blocks alphabetically."
     (setq max-iter 10001))
   (let ((n (concept-resource-block-count)))
     (catch 'done
-      (cond ((< 2 n)
+      (cond ((< n 2)
              (throw 'done 'sorted))
             (t
              (concept-goto-first-resource-block-in-idea)
@@ -1164,14 +1164,12 @@ reordering resource blocks alphabetically."
 	               (b (concept-next-resource))
                        (length-b (concept-next-resource-length)))
                    (cond
-                    ((or (null a) (null b))
+                    ((null b)
                      (when (null swapped)
                        (throw 'done 'sorted))
                      (setq swapped nil)
 	             (concept-goto-first-resource-block-in-idea))
                     ((concept-string-lessp-with-length-tie-break a b length-a length-b)
-	             (outline-forward-same-level 1))
-                    ((string= a b)
                      (outline-forward-same-level 1))
                     (t
                      (setq swapped t)
