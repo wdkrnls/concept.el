@@ -982,6 +982,126 @@ selected line then this will return nil.
         (user-error "Landed on a blank line in the middle of randomizing the file. Aborting!")))
     (concept--goto-first-heading)))
 
+(defun concept-string-lessp-with-length-tie-break (a b &optional length-a length-b)
+  "Test of A is less than B in terms of lexicographic (alphabetic) order.
+By default the length of a section is the number of characters which are needed to represent it."
+  (when (null length-a)
+    (setq length-a 0))
+  (when (null length-b)
+    (setq length-b 0))
+  (or (string< a b)
+      (and (string= a b)
+           (< length-a length-b))))
+
+(defun concept-idea-length ()
+  "Compute the number of characters in the current idea."
+  (save-excursion
+    (concept-goto-current-focus)
+    (let ((beg (line-beginning-position)))
+      (outline-end-of-subtree)
+      (let ((end (point)))
+        (- end beg)))))
+
+(defun concept-next-idea-length ()
+  "Compute the number of characters in the next idea."
+  (save-excursion
+    (concept-goto-next-focus)
+    (concept-idea-length)))
+
+(defun concept-resource-length ()
+  "Compute the number of characters in the current resource."
+  (when (concept-in-resource-block)
+    (save-excursion
+      (concept-goto-current-resource)
+      (let ((beg (line-beginning-position)))
+        (outline-end-of-subtree)
+        (let ((end (point)))
+          (- end beg))))))
+
+(defun concept-next-resource-length ()
+  "Compute the number of characters in the current resource."
+  (when (concept-in-resource-block)
+    (save-excursion
+      (concept-goto-current-resource)
+      (condition-case no-more-resources
+          (progn
+            (outline-forward-same-level 1)
+            (end-of-line)
+            (concept-resource-length))
+        (error nil)))))
+
+(defun concept-relationship-group-length ()
+  "Compute the number of characters in the current relationship group."
+  (when (or (concept-on-data-concept-line)
+            (concept-on-relationship-line))
+    (save-excursion
+      (when (concept-on-data-concept-line)
+        (concept-goto-last-relationship))
+      (let ((beg (line-beginning-position)))
+        (forward-line)
+        (concept-goto-next-relationship-boundary)
+        (backward-char)
+        (let ((end (point)))
+          (- end beg))))))
+
+(defun concept-next-relationship-group-length ()
+  "Compute the number of characters in the next relationship group."
+  (when (or (concept-on-data-concept-line)
+            (concept-on-relationship-line))
+    (save-excursion
+      (concept-goto-next-relationship-boundary)
+      (when (concept-on-relationship-line)
+        (concept-relationship-group-length)))))
+
+(defun concept-attribute-group-length ()
+  "Compute the number of characters in the current attribute group."
+  (when (or (concept-on-exposition-line)
+            (concept-on-attribute-line))
+    (save-excursion
+      (when (concept-on-exposition-line)
+        (concept-goto-last-attribute))
+      (let ((beg (line-beginning-position)))
+        (forward-line)
+        (concept-goto-next-attribute-boundary)
+        (backward-char)
+        (let ((end (point)))
+          (- end beg))))))
+
+(defun concept-next-attribute-group-length ()
+  "Compute the number of characters in the next attribute group."
+  (when (or (concept-on-exposition-line)
+            (concept-on-attribute-line))
+    (save-excursion
+      (concept-goto-next-attribute-boundary)
+      (when (concept-on-attribute-line)
+        (concept-attribute-group-length)))))
+
+(defun concept-data-concept-length ()
+  "Compute the number of characters in the current data concept."
+  (when (concept-on-data-concept)
+    (length (concept-current-concept))))
+
+(defun concept-exposition-length ()
+  "Compute the number of characters in the current relationship group."
+  (when (concept-on-exposition-line)
+    (length (concept-current-exposition))))
+
+(defun concept-next-exposition-length ()
+  "Compute the number of characters in the current relationship group."
+  (when (concept-on-exposition-line)
+    (save-excursion
+      (forward-line)
+      (when (concept-on-exposition-line)
+        (concept-exposition-length)))))
+
+(defun concept-next-data-concept-length ()
+  "Compute the number of characters in the next data concept."
+  (when (concept-on-data-concept-line)
+    (save-excursion
+      (forward-line)
+      (when (concept-on-data-concept-line)
+        (concept-data-concept-length)))))
+
 (defun concept-partial-sort (&optional max-iter)
   "Interactive tool for automatically reordering concepts or examples.
 
@@ -1002,14 +1122,16 @@ with similar names next to each other."
     (let ((swapped nil))
       (while (< 0 max-iter)
         (let ((a (concept-current-focus))
-	      (b (concept-next-focus)))
+              (length-a (concept-idea-length))
+	      (b (concept-next-focus))
+              (length-b (concept-next-idea-length)))
       (cond
        ((or (null a) (null b))
         (when (null swapped)
           (throw 'done 'sorted))
         (setq swapped nil)
 	(concept--goto-first-heading))
-       ((string< a b)
+       ((concept-string-lessp-with-length-tie-break a b length-a length-b)
 	(outline-forward-same-level 1))
        ((string= a b)
         (outline-forward-same-level 1))
@@ -1038,14 +1160,16 @@ reordering resource blocks alphabetically."
              (let ((swapped nil))
                (while (< 0 max-iter)
                  (let ((a (concept-current-resource))
-	               (b (concept-next-resource)))
+                       (length-a (concept-resource-length))
+	               (b (concept-next-resource))
+                       (length-b (concept-next-resource-length)))
                    (cond
                     ((or (null a) (null b))
                      (when (null swapped)
                        (throw 'done 'sorted))
                      (setq swapped nil)
 	             (concept-goto-first-resource-block-in-idea))
-                    ((string< a b)
+                    ((concept-string-lessp-with-length-tie-break a b length-a length-b)
 	             (outline-forward-same-level 1))
                     ((string= a b)
                      (outline-forward-same-level 1))
@@ -1087,14 +1211,16 @@ places ideas with similar names next to each other."
               (swapped nil))
           (while (< i max-iter)
             (let ((a (concept-current-concept))
-	          (b (concept-next-data-concept)))
+                  (length-a (concept-data-concept-length))
+	          (b (concept-next-data-concept))
+                  (length-b (concept-next-data-concept-length)))
               (cond
                ((concept-on-last-line-in-block-p)
                 (when (null swapped)
                   (throw 'done 'sorted))
                 (setq swapped nil)
                 (concept-goto-first-data-concept-in-relationship-group))
-               ((string< a b)
+               ((concept-string-lessp-with-length-tie-break a b length-a length-b)
 	        (concept-goto-next-data-concept))
                (t
                 (setq swapped t)
@@ -1200,16 +1326,14 @@ would work on any buffer with trailing blank characters."
 
 (defun concept-last-concept ()
   "Get the last concept before the current position if on a data line."
-  ;; TODO: Clean this up! It seems like this function ought to be
-  ;; renamed as well
   (let ((is-data (concept-on-data-line))
         (is-focus (concept-on-focus-line)))
     (if is-data
       (save-excursion
         (re-search-backward "^~")
         (beginning-of-line)
-        (forward-char 2) ; FIX
-        (buffer-substring-no-properties (point) (line-end-position))) ; FIX
+        (forward-char 2)
+        (buffer-substring-no-properties (point) (line-end-position)))
       (when is-focus
         (save-excursion
           (while (not (and (concept-in-relationship-block)
@@ -1217,8 +1341,8 @@ would work on any buffer with trailing blank characters."
             (re-search-backward "^| ")
             (beginning-of-line))
           (when (concept-on-data-line)
-            (forward-char 2) ; FIX
-            (buffer-substring-no-properties (point) (line-end-position)))))))) ; FIX
+            (forward-char 2)
+            (buffer-substring-no-properties (point) (line-end-position))))))))
 
 (defun concept-last-relationship ()
   "Get the last concept before the current position if on a data line."
@@ -1459,7 +1583,7 @@ interactive editing by a user, this makes sense."
   "Test if the current line is a blank line."
   (save-excursion
     (beginning-of-line)
-    (looking-at-p "[[:blank:]]*$"))) ; TODO: Shouldn't there be a `^'?
+    (looking-at-p "^[[:blank:]]*$")))
 
 (defun concept-repeat-concept-as-focus ()
   "Repeat the current data concept as a focus concept.
@@ -2004,6 +2128,14 @@ Sort these names in order of usage frequency."
                   (entry (string-trim (substring-no-properties line start end))))
              entry)))))
 
+(defun concept-next-attribute ()
+  "Get the next attribute and return it as a string."
+  (when (and (concept-in-resource-block)
+             (not (concept-on-resource-line)))
+    (save-excursion
+      (concept-goto-next-attribute-boundary)
+      (concept-current-attribute))))
+
 (defun concept-current-exposition ()
   "Get the current exposition and return it as a string."
   (when (concept-on-exposition-line)
@@ -2263,6 +2395,13 @@ This is a wrapper function useful for interactive usage."
   (unless (concept-on-focus-line)
     (ignore-errors
       (outline-up-heading 1)))
+  (end-of-line))
+
+(defun concept-goto-next-focus ()
+  "Navigate back to the next focus line."
+  (interactive)
+  (concept-goto-current-focus)
+  (outline-forward-same-level 1)
   (end-of-line))
 
 (defun concept-goto-current-resource ()
@@ -2949,6 +3088,15 @@ relationship line is found."
       (or (concept-on-resource-line)
           (concept-on-focus-line)))))
 
+(defun concept-in-last-attribute-in-block-p ()
+  "Test if the curent attribute is the last attribute in the block."
+  (when (and (concept-in-resource-block)
+             (concept-on-data-line))
+    (save-excursion
+      (concept-goto-next-attribute-boundary)
+      (or (concept-on-resource-line)
+          (concept-on-focus-line)))))
+
 (defun concept-goto-first-relationship-group-in-block ()
   "Navigate back to the first relationship group in the current relationship block."
   (concept-goto-current-focus)
@@ -3006,18 +3154,53 @@ relationship line is found."
               (swapped nil))
           (while (< i max-iter)
             (let ((a (concept-current-relationship))
-	          (b (concept-next-relationship)))
+                  (length-a (concept-relationship-group-length))
+	          (b (concept-next-relationship))
+                  (length-b (concept-next-relationship-group-length)))
               (cond
                ((concept-in-last-relationship-in-block-p)
                 (when (null swapped)
                   (throw 'done 'sorted))
                 (setq swapped nil)
                 (concept-goto-first-relationship-group-in-block))
-               ((string< a b)
+               ((concept-string-lessp-with-length-tie-break a b length-a length-b)
 	        (concept-goto-next-relationship))
                (t
                 (setq swapped t)
 	        (concept-move-relationship-group-down))))
+            (setq i (1+ i)))))
+      (goto-line line)
+      (end-of-line))))
+
+(defun concept-attribute-group-partial-sort (&optional max-iter)
+  "Sort the attribute groups in alphabetical order."
+  (interactive "P")
+  (when (and (concept-in-resource-block)
+             (or (< 1 (concept-attribute-group-count))
+                 (end-of-line)))
+    (when (null max-iter)
+      (setq max-iter 10001))
+    (concept-goto-first-attribute-group-in-block)
+    (let ((line (line-number-at-pos (point))))
+      (catch 'done
+        (let ((i 0)
+              (swapped nil))
+          (while (< i max-iter)
+            (let ((a (concept-current-attribute))
+                  (length-a (concept-attribute-group-length))
+	          (b (concept-next-attribute))
+                  (length-b (concept-next-attribute-group-length)))
+              (cond
+               ((concept-in-last-attribute-in-block-p)
+                (when (null swapped)
+                  (throw 'done 'sorted))
+                (setq swapped nil)
+                (concept-goto-first-attribute-group-in-block))
+               ((concept-string-lessp-with-length-tie-break a b length-a length-b)
+	        (concept-goto-next-attribute))
+               (t
+                (setq swapped t)
+	        (concept-move-attribute-down))))
             (setq i (1+ i)))))
       (goto-line line)
       (end-of-line))))
@@ -3062,10 +3245,10 @@ you are interested in.")
   "Six capital letter string setting the sorting order.
 The different letters mean:
 
-A) for alphabetical sort (i.e., `concept-alphabetical-sort-dwim')
+A) for alphabetical sort with length tie break (i.e., `concept-alphabetical-sort-dwim')
 B) for alphabetical sort except for a few patterns which when matched come first in specified order
 E) for alphabetical sort except for a few patterns which when matched come last in specified order
-Z) for reverse alphabetical sort (i.e., reversing `concept-alphabetical-sort-dwim')
+Z) for reverse alphabetical sort with length tie break (i.e., reversing `concept-alphabetical-sort-dwim')
 Y) for reverse alphabetical sort except for a few patterns which come last in a specified order
 X) for reverse alphabetical sort except for a few patterns which come first in a specified order
 J) for no sort leaving them just so (i.e., doing nothing)
@@ -3093,17 +3276,20 @@ other piece of functionality become appealing.")
 (defun concept-canonical-sort-string-is-valid-p (string)
   "Test whether the value  of the variable `concept-canonical-sort-string' is valid."
   (and (eq 6 (length string))
-       (string-match-p "^[AZJX]+$")))
+       (string-match-p "^[ABCEXYZLSJ]+$")))
 
 (defun concept-canonical-sort-dwim (arg)
   "Perform a canonical sort of the whole concept map.
 The user has significant control over what a canonical sort is. This
-control is exercised through modifying a 6 character string stored in
+control is exercised through modifying the global variables:
 `concept-canonical-sort-string'."
   (interactive "P")
   (unless (concept-canonical-sort-string-is-valid-p
            concept-canonical-sort-string)
-    (user-error "Invalid canonical sort string!"))
+    (user-error "Invalid within-group canonical sort string!"))
+  (unless (concept-canonical-between-group-sort-string-is-valid-p
+           concept-canonical-between-group-sort-string)
+    (user-error "Invalid between-group canonical sort string!"))
   (if (null arg)
       (cond ((concept-on-data-concept-line)
              (concept-data-canoncial-sort))
