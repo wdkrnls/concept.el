@@ -25,7 +25,7 @@ Following this conceptualization of our thinking when we think conceptually, in 
 
 In `concept.el`, every idea starts with a *focus* concept which starts a new idea as well as it's first component: the *relationship block*. This holds all the conceptual relationships relevant to the idea. The focus concept starts with a `~`. It can be thought of as analogous to the subject of a sentence. Then come one or more relationship groups which specify a common relationship, analogous to the verb of a sentence, under which comes one or more data concepts corresponding to the object of a sentence. Thus, a relationship block specifies a group of related conceptual propositions each with their own verbs and objects, but all sharing the same subject.
 
-After the *relationship block* comes zero or more *resource blocks*. These containe one or more attributes which are largely analogous to relationships, except that the data associated with each attribute is often structured more traditionally, if far more briefly.
+After the *relationship block* comes zero or more *resource blocks*. These contain one or more attributes which are largely analogous to relationships, except that the data associated with each attribute is often structured more traditionally, if far more briefly.
 
 The example below gives the simplest possible idea. It has one resource block associated with it. It would still be valid if there were none. There doesn't have to be any, but adding them is recommended, especially in situations where there is ambiguity about what idea is being represented. In such an idea as the one expressed below, there is quite a lot of ambiguity!
 
@@ -138,7 +138,7 @@ The weird and completely miraculous thing is that in practice, we humans hold ma
 | thoughts
 ```
 
-Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. It might seem egregious and unnecessary to be so explicit, but for advanced knowledge work explicitness is commonly recognized as a best practice. This is particularly true in highly multi-disciplinary situations where team members with wildly different skillsets and expertise collaborate together.
+Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. It might seem egregious and unnecessary to be so explicit, but for advanced knowledge work explicitness is commonly recognized as a best practice. This is particularly true in highly multi-disciplinary situations where team members with wildly different skill-sets and expertise collaborate together.
 
 Laying out all the teams conceptual ideas about the problem they are trying to solve can be a revelation for many people working together on a large project. We believe strongly that the best plan can only emerge once everyone on a team gains a comprehensive view of the possibilities before them for solving the problem at hand.
 
@@ -156,7 +156,7 @@ These editing tools include:
 * data "following" tools which help the user ensure the map is meaningful by grounding it in concrete resources
 * an automatically updated network graph representation of the concept map holding all the conceptual relationships stored in the relationship block portions of the buffer
 
-Together they make it feasible to productively develop and explore concept maps with hundreds of thousands of conceptsand even more relationships within them.
+Together they make it feasible to productively develop and explore concept maps with hundreds of thousands of concepts and even more relationships within them.
 
 ## Installation
 
@@ -182,7 +182,7 @@ core: pieces
 definition: of-knowledge
 ```
 
-Gaining an intuition for what this concept is about requires first understanding what is meant by knowledge, pieces, and abstraction. These are often best sharpened by finding their opposites or complements. The opposite of abstract is concrete or definite. The opposite of a piece is a part of something, which usually itself contains many smaller pieces at a different scale. Finally, we come to the definition component. Knowledge concerns successful prediction. Ignorance means almost suredly unsuccessful prediction. Once you think about a concept this way, it's name alone suggests that a whole concept map supports it. We invite you to take a stab it at. We took some time to do this exercise and got a pretty substantial concept map out of it.
+Gaining an intuition for what this concept is about requires first understanding what is meant by knowledge, pieces, and abstraction. These are often best sharpened by finding their opposites or complements. The opposite of abstract is concrete or definite. The opposite of a piece is a part of something, which usually itself contains many smaller pieces at a different scale. Finally, we come to the definition component. Knowledge concerns successful prediction. Ignorance means almost assuredly unsuccessful prediction. Once you think about a concept this way, it's name alone suggests that a whole concept map supports it. We invite you to take a stab it at. We took some time to do this exercise and got a pretty substantial concept map out of it.
 
 ```
 ```
@@ -210,7 +210,7 @@ In `concept.el` we encourage you to put the classification piece on the left, th
 
 Redundancy isn't too much of a problem since the main thing is that you understand what you are talking about and that you can gain that understanding by searching through a concept map.
 
-The package provides an implementation of the longest common substring algorithm to help build tools for automatically identifying these components. This can be combined with the string-distance procedure and tools which provide you a list of all concepts in the buffer to find likely core concepts. Of course, really discovering this will often require a degree of standardization which is not really possible with Emacs, but should be feasible from a dedicated data analysis environment like R.
+The package provides an implementation of the longest common sub-string algorithm to help build tools for automatically identifying these components. This can be combined with the string-distance procedure and tools which provide you a list of all concepts in the buffer to find likely core concepts. Of course, really discovering this will often require a degree of standardization which is not really possible with Emacs, but should be feasible from a dedicated data analysis environment like R.
 
 ## Navigating through concept maps
 
@@ -274,13 +274,13 @@ Reorganizing existing attribute groups, or expository data lines can be done wit
 * reverse ordering
 * random shuffling
 
-The point of all this functionality is to implement a canonical ordering of the whole concept map. With such an ordering, its feasible to get a clear diff of two concept maps without a lot of syntactic changes which mask the vastly more important sematically meaningful ones. Remember, the whole point of investing in concept mapping is to engage in meaningful learning! Why then is there a random shuffling feature? One use case is to test that the canonical sorting works as intended no matter what. There are a lot of situations to test, and in the beginning it will be hard to know which situations are most important to test. Thus, it's pretty useful to simulate a lot of situations randomly to see if there are edge cases which haven't been covered yet.
+The point of all this functionality is to implement a canonical ordering of the whole concept map. With such an ordering, its feasible to get a clear diff of two concept maps without a lot of syntactic changes which mask the vastly more important semantically meaningful ones. Remember, the whole point of investing in concept mapping is to engage in meaningful learning! Why then is there a random shuffling feature? One use case is to test that the canonical sorting works as intended no matter what. There are a lot of situations to test, and in the beginning it will be hard to know which situations are most important to test. Thus, it's pretty useful to simulate a lot of situations randomly to see if there are edge cases which haven't been covered yet.
 
 ## Identifying "smelly" ideas
 
 One way an idea can smell is if it cannot be canonically sorted.
 
-A major challenge to the notion of canonical sorting for concept maps is figuring out what to do with the following situation. Look at the snippet from our `example.map` concept map we have been discussing previously below. Note that under the current logic, a canonical sorting of the concept map by our current scheme is impossible. There is an ironclad guarantee that if we keep randomizing the concept map, eventually we will not be able to recover the same sorting, atleast not with purely alphabetic sorting. The only potentially canonical sort we see is to first sort by resources alplhabetically, and that only works if we can do a lexical sort, where we conditionally sort by alphabet, then length, and then we need to further sort on something else such as the length of the shortest or longest lines in the attribute data.
+A major challenge to the notion of canonical sorting for concept maps is figuring out what to do with the following situation. Look at the snippet from our `example.map` concept map we have been discussing previously below. Note that under the current logic, a canonical sorting of the concept map by our current scheme is impossible. There is an ironclad guarantee that if we keep randomizing the concept map, eventually we will not be able to recover the same sorting, at least not with purely alphabetic sorting. The only potentially canonical sort we see is to first sort by resources alphabetically, and that only works if we can do a lexical sort, where we conditionally sort by alphabet, then length, and then we need to further sort on something else such as the length of the shortest or longest lines in the attribute data.
 
 ```
 ~ concepts
@@ -308,9 +308,9 @@ The just discussed situation, prompts us to consider how a researcher might disc
 Once you have your *resource block* written with all the information you want, it sure would be nice if that data could be worked with directly in the concept buffer. That is exactly what the `follow` interface is for! Pressing `C-c f` can be used on exposition lines inside of resource block out of the box. At this point there are numerous special keywords available, but let's first talk about those most useful for referencing documentation:
 
 * `file:` to open other files
-* `url:` to open webpages in an `EWW` buffer
+* `url:` to open web pages in an `EWW` buffer
 * `info:` to open info documentation
-* `man:` to open manpages
+* `man:` to open man pages
 
 Of these, the most interesting by far is `file`. Thanks to the Emacs add-on package `pdf-tools` and a bunch of built-in image support in Emacs proper, many file formats can be viewed and even editing directly inside of an Emacs buffer. However, thanks to lots of support builtin to Emacs for handling email attachments, `file:` also can be used other kinds of files you wouldn't open with Emacs. If the file path given under a `file:` keyword cannot be intelligibly opened from within Emacs, `concept.el` will try to open it with M-x `mailcap-view-data`. This will consult your `mailcap` file if it exists. Note there is an environment variable `MAILCAPS` which may be helpful to read about. Here is an example part of a mailcap file.
 
@@ -319,7 +319,7 @@ video/*; mpv -- %s
 audio/*; mpv -- %s
 ```
 
-That is enough to tell `concept.el` how to open dynamic multimedia files with `mpv` in an external process. Otherwise, the Emacs MIME machinery will look at the Emacs variable `mailcap-user-mime-data`. Below is an example emacs variable which tells Emacs how to open a video file with the `mpv` shell command.
+That is enough to tell `concept.el` how to open dynamic multimedia files with `mpv` in an external process. Otherwise, the Emacs MIME machinery will look at the Emacs variable `mailcap-user-mime-data`. Below is an example Emacs variable which tells Emacs how to open a video file with the `mpv` shell command.
 
 ```
 (setopt mailcap-user-mime-data
@@ -341,14 +341,14 @@ Sticking to the topic of documentation, there is also integration with the Emacs
 In addition, attribute data under the following keywords can be followed leveraging common Emacs facilities:
 
 * `emacs-buffer:` to run `switch-to-buffer`
-* `emacs-command` (or `M-x:`) to run `call-interactively` on the intern'd data
+* `emacs-command` (or `M-x:`) to run `call-interactively` on the interned data
 * `emacs-lisp` (or `elisp`) to run arbitrary Emacs Lisp expressions
 
-Of course, running emacs commands and lisp code can be dangerous. Use responsibly! Emacs Lisp expressions output their results into a dedicated buffer which can be readily changed into a subset of Markdown called Gemtext. So, you can easily change this to buffer from special mode into Markdown or Gemtext, whichever you prefer!
+Of course, running Emacs commands and lisp code can be dangerous. Use responsibly! Emacs Lisp expressions output their results into a dedicated buffer which can be readily changed into a subset of Markdown called Gemtext. So, you can easily change this to buffer from special mode into Markdown or Gemtext, whichever you prefer!
 
 There is also support for running arbitrary shell commands through a wrapper over the Emacs M-x `compile` system. This is accessed through including a `shell-command` or `shell` keyword. These use the builtin Emacs package `ansi-color` to hold the same nice colors you would see in a dedicated M-x `shell` buffer.
 
-Both `emacs-lisp:` and `shell-command:` support the `directory:` modifying keyword which changes the directory in which commands are run. `emacs-lisp:` additionally supports `emacs-buffer:` as a modifier keyword which changes which buffer the code is run in. For shell commands that involve interactive prompts, there is a `prompt:` modifier keyword which switches on the comint feature of M-x `compile` so that those work, while in `emacs-lisp:` there is a `side-effects:` modifier keyword which skips all of the gemtext reporting in favor of just getting some interesting side-effect like opening up notmuch and reading your email.
+Both `emacs-lisp:` and `shell-command:` support the `directory:` modifying keyword which changes the directory in which commands are run. `emacs-lisp:` additionally supports `emacs-buffer:` as a modifier keyword which changes which buffer the code is run in. For shell commands that involve interactive prompts, there is a `prompt:` modifier keyword which switches on the comint feature of M-x `compile` so that those work, while in `emacs-lisp:` there is a `side-effects:` modifier keyword which skips all of the Gemtext reporting in favor of just getting some interesting side-effect like opening up notmuch and reading your email.
 
 There are a lot of opportunities for extending the `follow` functionality for specific research applications. Note that we have really just scratched the surface of what could be useful. Right now, there is preliminary dired integration through the `file-path:` keyword. Please send in your ideas for what kinds of keywords might be useful for your research!
 
@@ -453,7 +453,7 @@ Now type `C-u C-c C-s` and the query:
 doc~book~Darwin:doc~@file
 ```
 
-This will take you to the first fragment without a file. If you have the file already in your `kill-ring`, you can select it with `M-y` which I have bound to `yank-pop`. That lets you find the same clipboard entry over and over reliably. This approach works quite well in conjunction with defining keyboard macros with  `C-x (` and `C-x )`. Once you have a macro defined which adds the file to one resource block, filling them all in becomes nearly effortly via `C-u 0 C-x e` which repeats the keyboard macro over and over until all relevant resources have been edited. This way, it's easy to make several hundreds of edits in a minute or so.
+This will take you to the first fragment without a file. If you have the file already in your `kill-ring`, you can select it with `M-y` which I have bound to `yank-pop`. That lets you find the same clipboard entry over and over reliably. This approach works quite well in conjunction with defining keyboard macros with  `C-x (` and `C-x )`. Once you have a macro defined which adds the file to one resource block, filling them all in becomes nearly effortless via `C-u 0 C-x e` which repeats the keyboard macro over and over until all relevant resources have been edited. This way, it's easy to make several hundreds of edits in a minute or so.
 
 ## Checking the concept map syntax
 
@@ -463,7 +463,7 @@ Once the concept map parses successfully, searching should be guaranteed to work
 
 ## Future Plans and Related Projects
 
-It would be really nice if the *follow* interface made such information clickable with the mouse and underlined to distinguish it from other pieces of attribute data which cannot be. This would provide a handy visual cue which would help new users better grasph the possibilities of the follow system. I've worked with clickable links in the past and have noticed they can really slow things down when applied to whole buffer. The trick then seems to be to restrict the clickable links to the visible region and recompute as that region changes. It should be something like:
+It would be really nice if the *follow* interface made such information clickable with the mouse and underlined to distinguish it from other pieces of attribute data which cannot be. This would provide a handy visual cue which would help new users better grasp the possibilities of the follow system. I've worked with clickable links in the past and have noticed they can really slow things down when applied to whole buffer. The trick then seems to be to restrict the clickable links to the visible region and recompute as that region changes. It should be something like:
 
 ```
   (add-text-properties
@@ -479,9 +479,9 @@ I have some notes on this problem and hope to get to it eventually after I have 
 
 We're working towards having a reliable and scalable background process which keeps an up-to-date graph representation of the concept map in memory and available for performing basic network analysis operations on command. These operations include utilities for detecting network dependency cycles and finding paths connecting two concepts. These are quite helpful features for performing red face tests against complex concept maps.
 
-Of course, Emacs cannot do everything here and exploring more advanced possibilities for analyzing concept maps via network analysis is where we aim to focus our time with the conceptuel R package. However, that doesn't rule out implementing an Emacs subsystem for exposing network analysis tools for concept maps developed in R paritcularly convenient for Emacs users.
+Of course, Emacs cannot do everything here and exploring more advanced possibilities for analyzing concept maps via network analysis is where we aim to focus our time with the conceptuel R package. However, that doesn't rule out implementing an Emacs subsystem for exposing network analysis tools for concept maps developed in R particularly convenient for Emacs users.
 
-Our Emacs-based network analysis interface is currently buggy, incomplete, and not very scalable. It's buggy because we started building a hook-based timer system to keep the graph up-to-date with changes in the buffer. As far as we can tell, this system is completely non-functional. If it did work, it is not at all scalable and we fear even trying it on our larger concept maps. We expect that what is really needed is for a buffer overlay system which partitions the concept map into different compartments each holding it's own subgraph hash table. We heared that the `after-change-functions` provides buffer region information about changes similar to what the undo system provides. If an overaly compartment overlaps with the buffer change, then that overlap compartment should be recomputed. Then, the overall network should be regenerated from all of the separate overlay hash tables. This way will hopefully avoid expensive network regeneration operations for large concept maps. Of course, we will first try to get the basic naive system working and run some tests on it with our larger concept maps.
+Our Emacs-based network analysis interface is currently buggy, incomplete, and not very scalable. It's buggy because we started building a hook-based timer system to keep the graph up-to-date with changes in the buffer. As far as we can tell, this system is completely non-functional. If it did work, it is not at all scalable and we fear even trying it on our larger concept maps. We expect that what is really needed is for a buffer overlay system which partitions the concept map into different compartments each holding it's own sub-graph hash table. We heard that the `after-change-functions` provides buffer region information about changes similar to what the undo system provides. If an overlay compartment overlaps with the buffer change, then that overlap compartment should be recomputed. Then, the overall network should be regenerated from all of the separate overlay hash tables. This way will hopefully avoid expensive network regeneration operations for large concept maps. Of course, we will first try to get the basic naive system working and run some tests on it with our larger concept maps.
 
 For what is functional, the few network analysis tools we have do seem to work. However, they are incomplete in that it really should be convenient for the user to recompute the graph of the concept map on command when the user decides that a new set of relationships and concepts should be excluded. Ideally, there will be two buffer-local variables which pick custom functions, exclusion lists, or regular expressions for readily filtering what data makes it into the constructed graph. The timer system (or something else) should be smart enough to detect a change in these variables and immediately recompute the entire graph. Another global variable might be useful for giving the user the option of propagating these filters to the data table export functionality as well.
 
@@ -489,9 +489,9 @@ There are still some bugs to clear up with the query language. In particular, it
 
 A companion package very useful for editing concept maps in `concept.el` is the `tempel` snippet template editor. However, it's emphasis on determining the available templates based on only the major-mode is too cumbersome for the needs of writing concept maps. A concept map about math benefits from templates around a specific math textbook, but a concept map about architectural design techniques does not! In the future, I want to propose a patch to that tool which enables it to automatically recognize project-specific templates.
 
-In the future it would be nice to have the facilities for users to add their own following interfaces without having to fork the package. At the very least, the existing procedures should become more modular instead of the sprawling nested cond-forms that currently exist. We foresee the possibility of having an addon-package just as snippets packages like `yasnippet` and `tempel` do.
+In the future it would be nice to have the facilities for users to add their own following interfaces without having to fork the package. At the very least, the existing procedures should become more modular instead of the sprawling nested cond-forms that currently exist. We foresee the possibility of having an add-on-package just as snippets packages like `yasnippet` and `tempel` do.
 
-In the future it would be nice if this dependency on `consult.el` could be made optional. The problem is that I just don't see how to effectively explore a large concept map without it's interactive preview features. The next level nature of editing capability consult provides over the core Emacs features is very impressive! The closest thing I've found to it is the "Auto Occurence Display" feature in M-x `occur`. However, to be equivalent occur would need an interface which swaps out the search interface.
+In the future it would be nice if this dependency on `consult.el` could be made optional. The problem is that I just don't see how to effectively explore a large concept map without it's interactive preview features. The next level nature of editing capability consult provides over the core Emacs features is very impressive! The closest thing I've found to it is the "Auto Occurrence Display" feature in M-x `occur`. However, to be equivalent occur would need an interface which swaps out the search interface.
 
 One way a programmer might think of a concept map (as imagined in `concept.el`) is as a language grammar. Or. The package could use some tools which probe the implicit conceptual relationships and help make them into explicit conceptual relationships. However, such a feature might be better served by `conceptuel`, an R package which takes as input the tabular output generated by `concept-map-export-to-table`. That R package will also focus on providing tools for extracting conceptual data from paragraphs of text. Emacs just doesn't have the text analysis tools for that use case.
 
@@ -517,3 +517,7 @@ Another interesting pair of orderings looks at the length of the elements themse
 ```
 
 Thinking about names in a standard way would really help with merging two different concept maps as well. So, in the future we hope to provide tools for parsing concepts in terms of the `{classification|core|definition}` framework discussed earlier. One challenge we have frequently seen is that concept names start getting longer and longer the more we work with concept maps. Tasteful categorization can help, but, e.g., when dealing with documenting useful elisp functions, it become useful to make some shorthand summarizations for brevity. These can challenge the power of these tools, but there may be useful conventions which can overcome these issues.
+
+<!-- Local Variables: -->
+<!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
+<!-- End: -->
