@@ -1696,7 +1696,9 @@ This largely operates below the current line."
          (re-search-backward "^~" nil t)
          (concept-repeat-focus-concept))
         ((concept-on-exposition-line)
-         (concept-insert-note-block))
+         (if (string= "question" (concept-current-attribute))
+             (concept-insert-keyword-block "answer")
+           (concept-insert-note-block)))
         ((concept-on-resource-line)
          (let ((resource (concept-current-resource)))
            (outline-end-of-subtree)
@@ -1875,6 +1877,16 @@ Such lines go inside a relationship block."
     (concept-add-new-data)
     (insert (format ":%s" relationship))))
 
+(defun concept-insert-keyword-line (name)
+  "Insert a keyword attribute.
+An attribute ends with a colon and is only appropriate when
+inside a resource block."
+  (when (concept-in-resource-block)
+    (unless (string-match-p concept-group-name-regexp name)
+      (user-error "%s is not a valid keyword name!" name))
+    (concept-add-new-data)
+    (insert (concat name ":"))))
+
 (defun concept-insert-note-line ()
   "Insert a note attribute.
 An attribute ends with a colon and is only appropriate when
@@ -2021,9 +2033,18 @@ can also start with square brackets, or maybe unicode quotes: ‘’."
 A note block has an open and closing bracket. It is the characteristic
 syntax to flesh out details on an exposition line."
   (concept-insert-note-line)
-           (concept-add-new-data)
-           (insert "{}")
-           (backward-char 1))
+  (concept-add-new-data)
+  (insert "{}")
+  (backward-char 1))
+
+(defun concept-insert-keyword-block (name)
+  "Insert a keyword block with NAME.
+A keyword block has an open and closing bracket. It is the characteristic
+syntax to flesh out details on an exposition line."
+  (concept-insert-keyword-line name)
+  (concept-add-new-data)
+  (insert "{}")
+  (backward-char 1))
 
 (defun concept-toggle-brackets ()
   "Toggle brackets between {} and [].
