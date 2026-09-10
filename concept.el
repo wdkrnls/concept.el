@@ -1187,9 +1187,8 @@ reordering resource blocks alphabetically."
       (concept-goto-last-relationship))
     (forward-line)))
 
-(defun concept-data-partial-sort (&optional max-iter)
-  "Interactive tool for automatically reordering concepts or examples.
-
+(defun concept-data-concept-partial-sort (&optional max-iter)
+  "Interactive tool for automatically reordering concepts.
 The commands `concept-exchange-concept-up' and
 `concept-exchange-concept-down' are enough to implement a naive sorting
 algorithm for interactively reordering concepts seeking a canonical
@@ -1225,6 +1224,47 @@ places ideas with similar names next to each other."
                (t
                 (setq swapped t)
 	        (concept-exchange-concept-down))))
+            (setq i (1+ i)))))
+      (goto-line line)
+      (end-of-line))))
+
+(defun concept-exposition-partial-sort (&optional max-iter)
+  "Interactive tool for automatically reordering concepts.
+The commands `concept-exchange-exposition-up' and
+`concept-exchange-exposition-down' are enough to implement a naive
+sorting algorithm for interactively reordering concepts seeking a
+canonical ordering. A canonical ordering is useful for avoiding
+semantically spurious diffs, e.g., in commits to version control
+systems. It is also useful for reducing the difficulty of refactoring
+concept maps. It places ideas with similar names next to each other."
+  (interactive "P")
+  (when (and (concept-in-resource-block)
+             (not (concept-on-resource-line))
+             (or (< 1 (concept-attribute-group-data-count))
+                 (end-of-line)))
+    (when (null max-iter)
+      (setq max-iter 10001))
+    (concept-goto-first-exposition-line-in-attribute-group)
+    (let ((line (line-number-at-pos (point))))
+      (catch 'done
+        (let ((i 0)
+              (swapped nil))
+          (while (< i max-iter)
+            (let ((a (concept-current-exposition))
+                  (length-a (concept-exposition-length))
+	          (b (concept-next-exposition))
+                  (length-b (concept-next-exposition-length)))
+              (cond
+               ((concept-on-last-line-in-block-p)
+                (when (null swapped)
+                  (throw 'done 'sorted))
+                (setq swapped nil)
+                (concept-goto-first-exposition-line-in-attribute-group))
+               ((concept-string-lessp-with-length-tie-break a b length-a length-b)
+	        (concept-goto-next-exposition))
+               (t
+                (setq swapped t)
+	        (concept-exchange-exposition-down))))
             (setq i (1+ i)))))
       (goto-line line)
       (end-of-line))))
@@ -2146,6 +2186,14 @@ Sort these names in order of usage frequency."
              (end (string-match "}" line))
              (entry (string-trim (substring-no-properties line (1+ start) end))))
         entry))))
+
+(defun concept-next-exposition ()
+  "Get the next exposition and return it as a string."
+  (when (concept-on-exposition-line)
+    (save-excursion
+      (forward-line)
+      (when (concept-on-exposition-line)
+        (concept-current-exposition)))))
 
 (defun concept-current-concept ()
   "Get the current concept and return as a string."
@@ -3210,13 +3258,15 @@ relationship line is found."
   (interactive "P")
   (if (null arg)
       (cond ((concept-on-data-concept-line)
-             (concept-data-partial-sort))
+             (concept-data-concept-partial-sort))
             ((concept-on-attribute-line)
              (concept-attribute-group-partial-sort))
             ((concept-on-relationship-line)
              (concept-relationship-group-partial-sort))
             ((concept-on-resource-line)
              (concept-resource-partial-sort))
+            ((concept-on-exposition-line)
+             (concept-exposition-partial-sort))
             ((concept-on-focus-line)
              (concept-partial-sort)))
     (concept--goto-first-heading)
