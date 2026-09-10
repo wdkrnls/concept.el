@@ -6346,7 +6346,7 @@ concepts and the values are list of concepts that are children of the key:
                 (push child pending))))))
       nil)))
 
-(defun concept-map-network-path (start goal)
+(defun concept-map--network-path (start goal)
   "Return a path from START to GOAL, or nil if GOAL is unreachable."
   (let ((graph (or concept-map-network-graph
                    (concept-map-update-network)))
@@ -6366,6 +6366,36 @@ concepts and the values are list of concepts that are children of the key:
                   (push (cons child (cons child path))
                         pending))))))
         nil))))
+
+(defun concept-map-find-network-path (start goal)
+  "Search for a path from a proposed ANCESTOR to a proposed DESCENDANT.
+When a path is found, print it out in the minibuffer and return the list
+representation."
+  (interactive
+   (let* ((concepts (concept-find-all-concepts))
+          (start
+           (completing-read
+            "Starting concept: "
+            concepts nil t))
+          (remaining (delete start (copy-sequence concepts)))
+          (goal
+           (completing-read
+            "Destination concept: "
+            remaining
+            nil t)))
+     (list start goal)))
+     (let ((path (concept-map--network-path start goal)))
+       (when (called-interactively-p 'interactive)
+         (if path
+             (let ((path-string
+                    (mapconcat
+                     (lambda (node)
+                       (format "%s" node))
+                     path
+                     " -> ")))
+               (message "%s" path-string))
+           (message "No path from %s to %s found!" start goal)))
+       path))
 
 (defun concept--find-cycle-from (node path graph state)
   "Find a cycle reachable from NODE.
@@ -6393,23 +6423,42 @@ PATH is the current DFS path. STATE records nodes as
         (puthash node :done state)
         cycle)))))
 
-(defun concept-map-network-find-cycle ()
+(defun concept-map-find-network-cycle ()
   "Return the first directed cycle in the network, or nil.
-A cycle is returned with its starting node repeated at the end.
-For example: (a b c a)."
+
+When called interactively, display the cycle as a string such as:
+A -> B -> C -> A"
+  (interactive)
   (let ((graph (or concept-map-network-graph
                    (concept-map-update-network)))
-        (state (make-hash-table :test #'equal)))
+        (state (make-hash-table :test #'equal))
+        cycle)
     (catch 'cycle-found
       (maphash
        (lambda (node _children)
          (unless (gethash node state)
-           (let ((cycle
-                  (concept--find-cycle-from node (list node) graph state)))
-             (when cycle
-               (throw 'cycle-found cycle)))))
-       graph)
-      nil)))
+           (setq cycle
+                 (concept--find-cycle-from
+                  node
+                  (list node)
+                  graph
+                  state))
+           (when cycle
+             (throw 'cycle-found cycle))))
+       graph))
+    (if (called-interactively-p 'interactive)
+        (if cycle
+            (let ((cycle-string
+                   (mapconcat
+                    (lambda (node)
+                      (format "%s" node))
+                    cycle
+                    " -> ")))
+              (message "%s" cycle-string)
+              cycle-string)
+          (message "No dependency cycles found!")
+          nil)
+      cycle)))
 
 (define-key concept-mode-map (kbd "C-M-o")       #'concept-add-new-data)
 (define-key concept-mode-map (kbd "M-j")         #'concept-add-new-data)
@@ -6464,6 +6513,8 @@ For example: (a b c a)."
 (define-key concept-mode-map (kbd "C-c C-r")     #'concept-reverse-order-dwim)
 (define-key concept-mode-map (kbd "C-c M-r")     #'concept-randomize-dwim)
 (define-key concept-mode-map (kbd "C-c C-o")     #'concept-canonical-sort-dwim)
+(define-key concept-mode-map (kbd "C-c C-d")     #'concept-map-find-network-cycle)
+(define-key concept-mode-map (kbd "C-c C-f")     #'concept-map-find-network-path)
 
 (provide 'concept)
 ;;; concept.el ends here
