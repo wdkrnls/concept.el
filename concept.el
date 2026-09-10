@@ -1102,42 +1102,6 @@ By default the length of a section is the number of characters which are needed 
       (when (concept-on-data-concept-line)
         (concept-data-concept-length)))))
 
-(defun concept-partial-sort (&optional max-iter)
-  (interactive)
-  (when (null max-iter)
-    (setq max-iter 10001))
-  (concept--goto-first-heading)
-  (catch 'done
-    (let ((swapped nil)
-          (n (concept-map-idea-count))
-          (buffer-undo-list t)
-          (iter max-iter))
-      (when (< 499 n)
-        (message "This is a large map with %d ideas. Buffer undo history will be cleared for safety!" n))
-      (while (< 0 iter)
-        (let ((a (concept-current-focus))
-              (length-a (concept-idea-length))
-	      (b (concept-next-focus))
-              (length-b (concept-next-idea-length)))
-      (cond
-       ((or (null a) (null b))
-        (when (null swapped)
-          (message "Bubble sort completed in %d iterations when performed on %d ideas." iter n)
-          (when (< 499 n)
-            (setq buffer-undo-list nil))
-          (throw 'done 'sorted))
-        (setq swapped nil)
-	(concept--goto-first-heading))
-       ((concept-string-lessp-with-length-tie-break a b length-a length-b)
-	(outline-forward-same-level 1))
-       ((string= a b)
-        (outline-forward-same-level 1))
-       (t
-        (setq swapped t)
-	(outline-move-subtree-down 1))))
-        (setq iter (1- iter)))
-      (throw 'done 'iterations-exhausted))))
-
 (defvar concept-large-concept-map-idea-threshold
   500
   "Threshold for deciding if a concept map is big or not.
@@ -1148,7 +1112,7 @@ bubble sort.")
   10001
   "Default maximum iterations for bubble sort.")
 
-(defun concept-partial-sort (&optional max-iter)
+(defun concept-idea-partial-sort (&optional max-iter)
     "Interactive tool for automatically reordering concepts or examples.
 This clears the buffer undo history, so please be careful when you do
 this!
@@ -3354,7 +3318,7 @@ relationship line is found."
             ((concept-on-exposition-line)
              (concept-exposition-partial-sort))
             ((concept-on-focus-line)
-             (concept-partial-sort)))
+             (concept-idea-partial-sort)))
     (concept--goto-first-heading)
     (while (not (or (eobp) (concept-on-last-line-p)))
       (when (or (concept-on-first-concept)
