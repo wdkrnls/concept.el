@@ -1103,24 +1103,18 @@ By default the length of a section is the number of characters which are needed 
         (concept-data-concept-length)))))
 
 (defun concept-partial-sort (&optional max-iter)
-  "Interactive tool for automatically reordering concepts or examples.
-
-Emacs provides `outline-forward-same-level' and
-`outline-move-subtree-down' procedures out of the box. These are
-enough to implement a naive sorting algorithm for interactively
-reordering concepts seeking a canonical ordering.
-
-A canonical ordering is useful for avoiding semantically spurious diffs,
-e.g., in commits to version control systems. It is also useful for
-reducing the difficulty of refactoring concept maps. It places ideas
-with similar names next to each other."
   (interactive)
   (when (null max-iter)
     (setq max-iter 10001))
   (concept--goto-first-heading)
   (catch 'done
-    (let ((swapped nil))
-      (while (< 0 max-iter)
+    (let ((swapped nil)
+          (n (concept-map-idea-count))
+          (buffer-undo-list t)
+          (iter max-iter))
+      (when (< 499 n)
+        (message "This is a large map with %d ideas. Buffer undo history will be cleared for safety!" n))
+      (while (< 0 iter)
         (let ((a (concept-current-focus))
               (length-a (concept-idea-length))
 	      (b (concept-next-focus))
@@ -1128,6 +1122,9 @@ with similar names next to each other."
       (cond
        ((or (null a) (null b))
         (when (null swapped)
+          (message "Bubble sort completed in %d iterations when performed on %d ideas." iter n)
+          (when (< 499 n)
+            (setq buffer-undo-list nil))
           (throw 'done 'sorted))
         (setq swapped nil)
 	(concept--goto-first-heading))
@@ -1138,8 +1135,72 @@ with similar names next to each other."
        (t
         (setq swapped t)
 	(outline-move-subtree-down 1))))
-        (setq max-iter (1- max-iter)))
+        (setq iter (1- iter)))
       (throw 'done 'iterations-exhausted))))
+
+(defvar concept-large-concept-map-idea-threshold
+  500
+  "Threshold for deciding if a concept map is big or not.
+Ideas in large concept map probably cannot be sorted efficiently using
+bubble sort.")
+
+(defvar concept-map-bubble-sort-maximum-iterations
+  10001
+  "Default maximum iterations for bubble sort.")
+
+(defun concept-partial-sort (&optional max-iter)
+    "Interactive tool for automatically reordering concepts or examples.
+This clears the buffer undo history, so please be careful when you do
+this!
+
+Emacs provides `outline-forward-same-level' and
+`outline-move-subtree-down' procedures out of the box. These are enough
+to implement a naive sorting algorithm for interactively reordering
+concepts in lexicographic order."
+  (interactive)
+  (setq max-iter (or max-iter concept-map-bubble-sort-maximum-iterations))
+  (concept--goto-first-heading)
+  (let ((result
+         (let ((swapped nil)
+               (n (concept-map-idea-count))
+               (buffer-undo-list t)
+               (iter max-iter))
+           (when (<= concept-large-concept-map-idea-threshold n)
+             (message "This is a large map with %d ideas. Undo history will be cleared." n))
+           (catch 'done
+             (while (< 0 iter)
+               (let ((a        (concept-current-focus))
+                     (length-a (concept-idea-length))
+                     (b        (concept-next-focus))
+                     (length-b (concept-next-idea-length)))
+                 (cond
+                  ((or (null a) (null b))
+                   (if (null swapped)
+                       (throw 'done
+                              (list 'sorted (- max-iter iter) n))
+                     (setq swapped nil)
+                     (concept--goto-first-heading)))
+                  ((concept-string-lessp-with-length-tie-break
+                    a b length-a length-b)
+                   (outline-forward-same-level 1))
+                  (t
+                   (setq swapped t)
+                   (outline-move-subtree-down 1))))
+               (setq iter (1- iter)))
+             (list 'iterations-exhausted (- max-iter iter) n)))))
+    (when (<= concept-large-concept-map-idea-threshold (nth 2 result))
+      (setq buffer-undo-list nil))
+    (pcase (car result)
+      ('sorted
+       (message
+        "Bubble sort completed in %d iterations on %d ideas."
+        (nth 1 result)
+        (nth 2 result)))
+      ('iterations-exhausted
+       (message
+        "Bubble sort stopped after %d iterations on %d ideas."
+        (nth 1 result)
+        (nth 2 result))))))
 
 (defun concept-resource-partial-sort (&optional max-iter)
   "Interactive tool for automatically reordering resource blocks.
@@ -1150,7 +1211,7 @@ enough to implement a naive sorting algorithm for interactively
 reordering resource blocks alphabetically."
   (interactive)
   (when (null max-iter)
-    (setq max-iter 10001))
+    (setq max-iter concept-map-bubble-sort-maximum-iterations))
   (let ((n (concept-resource-block-count)))
     (catch 'done
       (cond ((< n 2)
@@ -1200,7 +1261,7 @@ places ideas with similar names next to each other."
              (or (< 1 (concept-relationship-group-concept-count))
                  (end-of-line)))
     (when (null max-iter)
-      (setq max-iter 10001))
+      (setq max-iter concept-map-bubble-sort-maximum-iterations))
     (concept-goto-first-data-concept-in-relationship-group)
     (let ((line (line-number-at-pos (point))))
       (catch 'done
@@ -1241,7 +1302,7 @@ concept maps. It places ideas with similar names next to each other."
              (or (< 1 (concept-attribute-group-data-count))
                  (end-of-line)))
     (when (null max-iter)
-      (setq max-iter 10001))
+      (setq max-iter concept-map-bubble-sort-maximum-iterations))
     (concept-goto-first-exposition-line-in-attribute-group)
     (let ((line (line-number-at-pos (point))))
       (catch 'done
@@ -3219,7 +3280,7 @@ relationship line is found."
              (or (< 1 (concept-relationship-group-count))
                  (end-of-line)))
     (when (null max-iter)
-      (setq max-iter 10001))
+      (setq max-iter concept-map-bubble-sort-maximum-iterations))
     (concept-goto-first-relationship-group-in-block)
     (let ((line (line-number-at-pos (point))))
       (catch 'done
@@ -3252,7 +3313,7 @@ relationship line is found."
              (or (< 1 (concept-resource-keyword-count))
                  (end-of-line)))
     (when (null max-iter)
-      (setq max-iter 10001))
+      (setq max-iter concept-map-bubble-sort-maximum-iterations))
     (concept-goto-first-attribute-group-in-block)
     (let ((line (line-number-at-pos (point))))
       (catch 'done
