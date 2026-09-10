@@ -2464,11 +2464,17 @@ This is a wrapper function useful for interactive usage."
       (outline-up-heading 1)))
   (end-of-line))
 
+(defun concept-goto-next-blank-line ()
+  "Search for the next blank line."
+  (re-search-forward "^[[:blank:]]*$" nil t))
+
 (defun concept-goto-next-focus ()
   "Navigate back to the next focus line."
   (interactive)
   (concept-goto-current-focus)
-  (outline-forward-same-level 1)
+  (condition-case err
+      (outline-forward-same-level 1)
+    (error (concept-goto-next-blank-line)))
   (end-of-line))
 
 (defun concept-goto-current-resource ()
@@ -4799,8 +4805,14 @@ matches.
 
 Here are some example queries to illustrate solving interesting search tasks.
 
-The query `doc~page~127:doc~guid~fgc9' should find resources concerning
-page 127 of the fgc9 guide.
+The query `doc~page~127:doc~guid~football' should find resources concerning
+page 127 of the football guide.
+
+Note that like `concept-search-concept-blocks' this takes a prefix
+argument. When that prefix argument is `C-u' it conducts a search from
+right after the current match. When that prefix argument is `C-u C-u' or
+there is no prefix argument, or anything else, it starts the search from
+the beginning of the buffer.
 "
   (interactive)
   (when (null first-match-only)
@@ -4818,7 +4830,10 @@ page 127 of the fgc9 guide.
              #'concept--substring-between-tildes parts))
            (matching-blocks '()))
       (save-excursion
-        (goto-char (point-min))
+        (if (or (null first-match-only)
+                (eq first-match-only 16))
+            (goto-char (point-min))
+          (concept-goto-next-resource))
         (while (and (or (not first-match-only) (not found-first-match))
                     (concept-map-has-more-resources))
           (concept-goto-next-resource)
@@ -5068,9 +5083,11 @@ This is used to perform relationship agnostic idea queries."
 (defvar search-concept-blocks-history nil
   "History for concept-search-concept-blocks command.")
 
-(defun  concept-search-concept-blocks (&optional first-match-only)
+(defun concept-search-concept-blocks (&optional first-match-only)
   "Search for concept blocks with certain relationships or combinations of concepts.
-With FIRST-MATCH-ONLY, return immediately after the first match.
+With FIRST-MATCH-ONLY, return immediately after the first
+match. Depending on the value of FIRST-MATCH-ONLY, start from either the
+beginning of the buffer or the next idea after previous match.
 
 For searching relationships, the query syntax should look like:
 `CON1~REL1~CON2:~REL2~CON3:CON4~REL3:CON5' which finds matching resource
@@ -5133,7 +5150,10 @@ The query `old\;@new' matches all query blocks with old but not new terms.
       (error "Invalid idea query syntax!"))
     (if (concept--is-relationship-agnostic-idea-query-p query)
         (save-excursion
-          (goto-char (point-min))
+          (if (or (null first-match-only)
+                  (eq first-match-only 16))
+              (goto-char (point-min))
+            (concept-goto-next-focus))
           (while (and (or (not first-match-only)
                           (not found-first-match))
                       (concept-map-has-more-concept-blocks))
@@ -5144,60 +5164,63 @@ The query `old\;@new' matches all query blocks with old but not new terms.
                 (setq found-first-match t)
                 (push (cons block-pt block-name) matching-blocks)))
             (end-of-line)))
-    (let* ((parts (split-string query ":" t))
-           (first-parts
-            (concept-take-positive-clause-data
-             #'concept--substring-before-tilde parts))
-           (second-parts
-            (concept-take-positive-clause-data
-             #'concept--substring-between-tildes parts))
-           (third-parts
-            (concept-take-positive-clause-data
-             #'concept--substring-final-clause parts)))
-    (save-excursion
-      (goto-char (point-min))
-      (while (and (or (not first-match-only)
-                      (not found-first-match))
-                  (concept-map-has-more-concept-blocks))
-        (re-search-forward "^~" nil t)
-        (if (or first-parts second-parts third-parts)
-            (while (and (not (eobp))
-                        (concept-map-has-more-concept-blocks)
-                        (or (and first-parts
-                                 (not (concept-focus-line-matches-all first-parts)))
-                            (and second-parts
-                                 (not (concept-relationships-match-all second-parts)))
-                            (and third-parts
-                                 (not (concept-data-concepts-match-all third-parts)))))
-              (cond (third-parts
-                     (concept-goto-next-focus-with-data-like third-parts))
-                    (first-parts
-                     (concept-goto-next-focus-with-any-of first-parts))
-                    (second-parts
-                     (concept-goto-next-focus-with-relationships-like second-parts))))
-          (while (and (not (eobp))
-                      (concept-map-has-more-concept-blocks)
-                      (not (concept-on-focus-line)))
-            (concept-goto-next-concept-block)))
-        (when (not (eobp))
-          (save-restriction
-            (concept-narrow-to-concept-block)
-            (let ((block-name (concept-get-block-name))
-                  (block-pt   (point-min))
-                  (block-end  (point-max)))
-              (concept-goto-next-relationship)
-              (let ((relationship-data '()))
-                (while (concept-on-relationship-line)
-                  (let ((r (concept-get-relationship))
-                        (c (concept-get-child-concepts)))
-                    (push (list r c) relationship-data))
-                  (if (concept-map-has-more-relationships)
-                      (concept-goto-next-relationship)
-                    (forward-line)))
-                (when (relationship-queries-succeeded
-                       block-name relationship-data parts)
-                  (setq found-first-match t)
-                  (push (cons block-pt block-name) matching-blocks))))))))))
+      (let* ((parts (split-string query ":" t))
+             (first-parts
+              (concept-take-positive-clause-data
+               #'concept--substring-before-tilde parts))
+             (second-parts
+              (concept-take-positive-clause-data
+               #'concept--substring-between-tildes parts))
+             (third-parts
+              (concept-take-positive-clause-data
+               #'concept--substring-final-clause parts)))
+        (save-excursion
+          (if (or (null first-match-only)
+                  (eq first-match-only 16))
+              (goto-char (point-min))
+            (concept-goto-next-focus))
+          (while (and (or (not first-match-only)
+                          (not found-first-match))
+                      (concept-map-has-more-concept-blocks))
+            (re-search-forward "^~" nil t)
+            (if (or first-parts second-parts third-parts)
+                (while (and (not (eobp))
+                            (concept-map-has-more-concept-blocks)
+                            (or (and first-parts
+                                     (not (concept-focus-line-matches-all first-parts)))
+                                (and second-parts
+                                     (not (concept-relationships-match-all second-parts)))
+                                (and third-parts
+                                     (not (concept-data-concepts-match-all third-parts)))))
+                  (cond (third-parts
+                         (concept-goto-next-focus-with-data-like third-parts))
+                        (first-parts
+                         (concept-goto-next-focus-with-any-of first-parts))
+                        (second-parts
+                         (concept-goto-next-focus-with-relationships-like second-parts))))
+              (while (and (not (eobp))
+                          (concept-map-has-more-concept-blocks)
+                          (not (concept-on-focus-line)))
+                (concept-goto-next-concept-block)))
+            (when (not (eobp))
+              (save-restriction
+                (concept-narrow-to-concept-block)
+                (let ((block-name (concept-get-block-name))
+                      (block-pt   (point-min))
+                      (block-end  (point-max)))
+                  (concept-goto-next-relationship)
+                  (let ((relationship-data '()))
+                    (while (concept-on-relationship-line)
+                      (let ((r (concept-get-relationship))
+                            (c (concept-get-child-concepts)))
+                        (push (list r c) relationship-data))
+                      (if (concept-map-has-more-relationships)
+                          (concept-goto-next-relationship)
+                        (forward-line)))
+                    (when (relationship-queries-succeeded
+                           block-name relationship-data parts)
+                      (setq found-first-match t)
+                      (push (cons block-pt block-name) matching-blocks))))))))))
     (nreverse matching-blocks)))
 
 (put 'narrow-to-region 'disabled nil)
