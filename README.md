@@ -463,7 +463,27 @@ Once the concept map parses successfully, searching should be guaranteed to work
 
 ## Future Plans and Related Projects
 
-It would be really nice if the *follow* interface made such information clickable with the mouse and underlined to distinguish it from other pieces of attribute data which cannot be. This would provide a visual cue which would help new users better grasph the possibilities of the system.
+It would be really nice if the *follow* interface made such information clickable with the mouse and underlined to distinguish it from other pieces of attribute data which cannot be. This would provide a handy visual cue which would help new users better grasph the possibilities of the follow system. I've worked with clickable links in the past and have noticed they can really slow things down when applied to whole buffer. The trick then seems to be to restrict the clickable links to the visible region and recompute as that region changes. It should be something like:
+
+```
+  (add-text-properties
+     beg end
+     `(keymap ,map
+       mouse-face highlight
+       help-echo "Click or press `C-c f'"
+       action concept-follow-dwim
+       follow-link t))))
+```
+
+I have some notes on this problem and hope to get to it eventually after I have managed to fix the main system.
+
+We're working towards having a reliable and scalable background process which keeps an up-to-date graph representation of the concept map in memory and available for performing basic network analysis operations on command. These operations include utilities for detecting network dependency cycles and finding paths connecting two concepts. These are quite helpful features for performing red face tests against complex concept maps.
+
+Of course, Emacs cannot do everything here and exploring more advanced possibilities for analyzing concept maps via network analysis is where we aim to focus our time with the conceptuel R package. However, that doesn't rule out implementing an Emacs subsystem for exposing network analysis tools for concept maps developed in R paritcularly convenient for Emacs users.
+
+Our Emacs-based network analysis interface is currently buggy, incomplete, and not very scalable. It's buggy because we started building a hook-based timer system to keep the graph up-to-date with changes in the buffer. As far as we can tell, this system is completely non-functional. If it did work, it is not at all scalable and we fear even trying it on our larger concept maps. We expect that what is really needed is for a buffer overlay system which partitions the concept map into different compartments each holding it's own subgraph hash table. We heared that the `after-change-functions` provides buffer region information about changes similar to what the undo system provides. If an overaly compartment overlaps with the buffer change, then that overlap compartment should be recomputed. Then, the overall network should be regenerated from all of the separate overlay hash tables. This way will hopefully avoid expensive network regeneration operations for large concept maps. Of course, we will first try to get the basic naive system working and run some tests on it with our larger concept maps.
+
+For what is functional, the few network analysis tools we have do seem to work. However, they are incomplete in that it really should be convenient for the user to recompute the graph of the concept map on command when the user decides that a new set of relationships and concepts should be excluded. Ideally, there will be two buffer-local variables which pick custom functions, exclusion lists, or regular expressions for readily filtering what data makes it into the constructed graph. The timer system (or something else) should be smart enough to detect a change in these variables and immediately recompute the entire graph. Another global variable might be useful for giving the user the option of propagating these filters to the data table export functionality as well.
 
 There are still some bugs to clear up with the query language. In particular, it would be nice to allow general regular expression searches. However, at the moment this is impossible since regular expressions are already used to implement the existing search tools. Regular expressions that match regular expressions are a bit too tricky for the current implementation to handle. However, note that `^` and `$` anchors are allowed. A more sophisticated method would be required. Whatever the implementation and feature set of the search functionality, It would be nice to have an exhaustive test suite implemented which checks that basic searches work as intended.
 
