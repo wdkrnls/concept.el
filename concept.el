@@ -5833,7 +5833,7 @@ modifying `mailcap-user-mime-data'."
                            (when (buffer-live-p fbuf)
                              (with-current-buffer fbuf
                                (goto-char (point-min))
-                               (occur value nil t)))))
+                               (occur value nil)))))
                         ((concept--is-pdf (concept-get-expository-data))
                          (let ((pbuf (concept-follow-dwim)))
                            (sit-for 0.1)
