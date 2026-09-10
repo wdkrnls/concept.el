@@ -171,7 +171,7 @@
   "Heading symbols for `outline-heading-alist'.")
 
 (defvar concept-subject-or-object-line-regexp
-  "^[~|] *[^][:{}‘’ ]+ *$"
+  "^[~|] +[^][:{}‘’ ]+ *$"
   "Regular expression for detecting valid subject or object concepts.")
 
 (defvar concept-object-name-regexp
@@ -1867,8 +1867,8 @@ distinct behaviors."
 
 (defun concept--increment-frequency (key table)
   "Increment the occurrence count for KEY in the hash table."
-  (let ((current-count (gethash key table 0))) ; Get current count, default to 0
-    (puthash key (1+ current-count) table))) ; Increment and store the new count
+  (let ((current-count (gethash key table 0)))
+    (puthash key (1+ current-count) table)))
 
 (defun concept--frequency (key table)
   "Return the occurrence count for KEY in the hash table."
@@ -1959,18 +1959,17 @@ Sort these names in order of usage frequency."
 
 (defun concept-find-all-concepts ()
   "Find all concept names in a file.
-
 Sort these names in order of usage frequency."
   (let ((pattern concept-subject-or-object-line-regexp)
         (concepts (make-hash-table :test 'equal)))
     (save-excursion
-      (goto-char (point-min))
+      (concept--goto-first-heading)
       (while (re-search-forward pattern nil t)
-        (let* ((line (concept-current-line))
-               (end (length line))
-               (start 2)
-               (entry (string-trim (substring-no-properties line start end))))
-          (concept--increment-frequency entry concepts))))
+        (unless (concept-on-blank-line)
+          (let* ((line (concept-current-line))
+                 (start 2)
+                 (entry (string-trim-left (substring line start))))
+            (concept--increment-frequency entry concepts)))))
     (let (counts '())
       (maphash (lambda (key count)
                  (push (cons key count) counts))
@@ -2006,11 +2005,13 @@ Sort these names in order of usage frequency."
 (defun concept-current-concept ()
   "Get the current concept and return as a string."
   (when (concept-on-concept-line)
-    (let* ((line (concept-current-line))
-           (end (length line))
-           (start 2)
-           (entry (string-trim (substring-no-properties line start end))))
-      entry)))
+    (if (concept-on-blank-line)
+        ""
+      (let* ((line (concept-current-line))
+             (end (length line))
+             (start 2)
+             (entry (string-trim (substring line start end))))
+        entry))))
 
 (defun concept-next-data-concept ()
   "Get the next data concept and return it a as a string."
@@ -2056,7 +2057,6 @@ Sort these names in order of usage frequency."
 
 Choose the new concept from initially ordered list of all resources."
   (interactive)
-  ;; TODO: remove blank concept from choices in completing read
   (when (concept-on-concept-line)
     (let* ((choices (concept-find-all-concepts))
            (current (concept-current-concept))
@@ -3635,12 +3635,13 @@ Also remove every other element of the list which looks the same."
   (let ((element (nth n list)))
     (delq element list)))
 
-(add-hook 'concept-mode-hook
-          (lambda ()
-            (setq-local dabbrev-case-replace nil)
-            (concept--setup-hippie-expand)
-            (local-set-key (kbd "M-q") #'ignore)))
-(put 'upcase-region 'disabled nil)
+(defun concept--setup-niceties-including-hippie-expand ()
+  "Setup hippie expand for concept maps."
+  (setq-local dabbrev-case-replace nil)
+  (concept--setup-hippie-expand)
+  (local-set-key (kbd "M-q") #'ignore))
+
+(add-hook 'concept-mode-hook #'concept--setup-niceties-including-hippie-expand)
 
 (defun concept-insert-unicode-quote-brackets ()
   "Insert unicode quote brackets.
@@ -5570,7 +5571,7 @@ modifying `mailcap-user-mime-data'."
                            (sit-for 0.1)
                            (when (buffer-live-p pbuf)
                              (with-current-buffer pbuf
-                               (pdf-occur value))))))) ; TODO: would be nice to use isearch instead of occur
+                               (pdf-occur value)))))))
                  ((member "man" keys)
                   (concept-goto-key-in-resource-block "man")
                   (forward-line)
@@ -6295,6 +6296,11 @@ This variable is stored in `concept-map-network-graph'."
 (add-hook 'concept-mode-hook
           #'concept-mode-setup-network-updating)
 
+(defvar-local concept-map-network-relationship-regexp
+    ".+"
+  "Buffer local setting for picking the relationships added to the network
+representation of the concept map.")
+
 (defvar-local concept-map-network-graph
     nil
   "Buffer local representation of the concept map as a network.")
@@ -6456,10 +6462,16 @@ A -> B -> C -> A"
                     " -> ")))
               (message "%s" cycle-string)
               cycle-string)
-          (message "No dependency cycles found!")
+          (message "No concept dependency cycles found!")
           nil)
       cycle)))
 
+(defun concept-do-nothing ()
+  (interactive)
+  (message "Nothing was do because upcasing all the text in a concept map is a bad idea.")
+  nil)
+
+(define-key concept-mode-map (kbd "C-x C-u")     #'concept-do-nothing)
 (define-key concept-mode-map (kbd "C-M-o")       #'concept-add-new-data)
 (define-key concept-mode-map (kbd "M-j")         #'concept-add-new-data)
 (define-key concept-mode-map (kbd "M-k")         #'concept-add-data)
