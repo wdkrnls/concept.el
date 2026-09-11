@@ -2304,11 +2304,12 @@ Sort these names in order of usage frequency."
 (defun concept-current-resource ()
   "Get the current resource and return as a string."
   (when (concept-on-resource-line)
-    (let* ((line (concept-current-line))
-           (end (length line))
-           (start 2)
-           (entry (string-trim (substring-no-properties line start end))))
-      entry)))
+    (unless (concept-on-blank-line)
+      (let* ((line (concept-current-line))
+             (end (length line))
+             (start 2)
+             (entry (string-trim (substring-no-properties line start end))))
+        entry))))
 
 (defun concept-current-resource-name ()
   "Get the name of the current resource."
@@ -6304,10 +6305,8 @@ resource line."
              (message concept--edit-is-the-same-msg))
             ((string-match-p focus-regexp new-text)
              (beginning-of-line)
-             (re-search-forward "[^~ ]" (line-end-position) t)
-             (backward-sexp)
              (kill-line)
-             (insert new-text))
+             (insert "~ " new-text))
             (t (message concept--edit-group-restriction-failed-msg)))))
   (end-of-line))
 
@@ -6329,10 +6328,8 @@ resource line."
                (message concept--edit-is-the-same-msg))
               ((string-match-p resource-regexp new-text)
                (beginning-of-line)
-               (re-search-forward "[^@ ]+" (line-end-position) t)
-               (backward-sexp)
                (kill-line)
-               (insert new-text))
+               (insert "@ " new-text))
               (t (message concept--edit-group-restriction-failed-msg)))))
     (end-of-line)))
 
@@ -6352,10 +6349,10 @@ resource line."
              (message concept--edit-is-the-same-msg))
             ((string-match-p concept-regexp new-text)
              (beginning-of-line)
-             (re-search-forward "| +" (line-end-position) t)
              (kill-line)
-             (insert new-text))
-            (t (message concept--edit-group-restriction-failed-msg))))))
+             (insert "| " new-text))
+            (t (message concept--edit-group-restriction-failed-msg))))
+    (end-of-line)))
 
 (defun concept-edit-relationship ()
   "Edit the current resource block and replace it with a new one if valid."
@@ -6380,7 +6377,8 @@ resource line."
                (re-search-forward "^| +:" (line-end-position) t)
                (kill-line)
                (insert new-text))
-              (t (message concept--edit-group-restriction-failed-msg)))))))
+              (t (message concept--edit-group-restriction-failed-msg)))))
+    (end-of-line)))
 
 (defun concept-edit-keyword ()
   "Edit the current resource block and replace it with a new one if valid."
@@ -6441,7 +6439,8 @@ resource line."
           (kill-line)
           (insert needed-delims)
           (search-forward (substring needed-delims 0 1))
-          (insert new-text))))))
+          (insert new-text))))
+    (end-of-line)))
 
 (defun concept-edit-line-dwim ()
   "Edit the line at point in the concept map. However that is done!"
