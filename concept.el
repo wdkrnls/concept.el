@@ -6191,6 +6191,14 @@ modifying `mailcap-user-mime-data'."
              (with-current-buffer target-buffer
                (concept-eval-elisp code side-effects)))))
         ((and (concept-on-exposition-line)
+              (string= "map" (concept-exposition-parent-key)))
+         (when (package-installed-p 'osm)
+           (osm (concept-current-exposition))))
+        ((and (concept-on-exposition-line)
+              (string= "place" (concept-exposition-parent-key)))
+         (when (package-installed-p 'osm)
+           (osm-search (concept-current-exposition))))
+        ((and (concept-on-exposition-line)
               (string= "file" (concept-exposition-parent-key)))
          (save-excursion
            (beginning-of-line)
