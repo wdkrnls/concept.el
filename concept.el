@@ -245,6 +245,22 @@ These are subject concepts. They were called focus concepts.")
   (concat "^[^^: -,;]" concept-group-name-restriction-regexp "+[[:alnum:]]$")
   "Regular expression to match any kind .")
 
+(defun concept-read-string-with-completion (prompt candidates &optional initial-input history default-value inherit-input-method)
+  (let ((complete
+         (lambda ()
+           (interactive)
+           (completion-in-region
+            (line-beginning-position)
+            (line-end-position)
+            candidates))))
+    (minibuffer-with-setup-hook
+        (lambda ()
+          ;; Make this minibuffer's keymap private.
+          (use-local-map (copy-keymap (current-local-map)))
+          (define-key (current-local-map) (kbd "TAB") complete)
+          (define-key (current-local-map) (kbd "<tab>") complete))
+      (read-string prompt initial-input history default-value inherit-input-method))))
+
 (defun concept--imenu-create-index ()
   "Create an imenu index"
   (let ((concepts      nil)
@@ -1718,8 +1734,11 @@ This largely operates below the current line."
   (cond ((concept-on-focus-line)
          (concept-repeat-focus-concept))
         ((concept-on-relationship-line)
-         (re-search-backward "^~" nil t)
-         (concept-repeat-focus-concept))
+         (let ((rel (concept-current-relationship)))
+           (cond ((string= "take" rel)
+                  (concept-insert-relationship-group "give"))
+                 (t
+                  (concept-insert-relationship-group rel)))))
         ((concept-on-exposition-line)
          (if (string= "question" (concept-current-attribute))
              (concept-insert-keyword-block "answer")
@@ -2071,6 +2090,15 @@ syntax to flesh out details on an exposition line."
   (insert "{}")
   (backward-char 1))
 
+(defun concept-insert-relationship-group (name)
+  "Insert a relationship group with NAME.
+A relationship group has a minimum of two lines. It is the
+characteristic syntax to flesh out details on a data concept line."
+  (concept-goto-next-relationship-boundary)
+  (backward-char)
+  (concept-insert-relationship-line name)
+  (concept-add-new-data))
+
 (defun concept-toggle-brackets ()
   "Toggle brackets between {} and [].
 This has been deprecated in favor of M-r which rotates between three
@@ -2149,7 +2177,7 @@ Sort these names in order of usage frequency."
       (while (re-search-forward pattern nil t)
         (let* ((line (concept-current-line))
                (end (length line))
-               (start (1+ (string-match "@")))
+               (start (1+ (string-match "@" line)))
                (entry (substring line start end)))
           (when (concept-on-resource-line)
             (concept--increment-frequency entry resources)))))
@@ -6264,17 +6292,24 @@ resource line."
   (interactive)
   (save-excursion
     (concept-goto-current-focus)
-    (let* ((old-text (concept-current-focus))
-           (new-text (string-trim (read-string "Subject: " old-text 'concept-focus-editing-history old-text)))
+    (let* ((candidates (concept-find-all-concepts))
+           (old-text (concept-current-focus))
+           (new-text
+            (string-trim
+             (concept-read-string-with-completion
+              "Subject: " candidates
+              old-text 'concept-focus-editing-history old-text)))
            (focus-regexp concept-group-name-regexp))
       (cond ((equal old-text new-text)
              (message concept--edit-is-the-same-msg))
             ((string-match-p focus-regexp new-text)
              (beginning-of-line)
-             (re-search-forward "[^~ ]+" (line-end-position) t)
+             (re-search-forward "[^~ ]" (line-end-position) t)
+             (backward-sexp)
              (kill-line)
              (insert new-text))
-            (t (message concept--edit-group-restriction-failed-msg))))))
+            (t (message concept--edit-group-restriction-failed-msg)))))
+  (end-of-line))
 
 (defun concept-edit-resource ()
   "Edit the current resource block and replace it with a new one if valid."
@@ -6282,24 +6317,36 @@ resource line."
   (when (concept-in-resource-block)
     (save-excursion
       (concept-goto-current-resource)
-      (let* ((old-text (concept-current-resource))
-             (new-text (string-trim (read-string "Resource: " old-text 'concept-resource-editing-history old-text)))
+      (let* ((candidates (concept-find-all-resources))
+             (old-text (concept-current-resource))
+             (new-text
+              (string-trim
+               (concept-read-string-with-completion
+                "Resource: " candidates
+                old-text 'concept-resource-editing-history old-text)))
              (resource-regexp concept-group-name-regexp))
         (cond ((equal old-text new-text)
                (message concept--edit-is-the-same-msg))
               ((string-match-p resource-regexp new-text)
                (beginning-of-line)
                (re-search-forward "[^@ ]+" (line-end-position) t)
+               (backward-sexp)
                (kill-line)
                (insert new-text))
-              (t (message concept--edit-group-restriction-failed-msg)))))))
+              (t (message concept--edit-group-restriction-failed-msg)))))
+    (end-of-line)))
 
 (defun concept-edit-data-concept ()
   "Edit the current resource block and replace it with a new one if valid."
   (interactive)
   (when (concept-on-data-concept-line)
-    (let* ((old-text (concept-current-concept))
-           (new-text (string-trim (read-string "Object: " old-text 'concept-concept-editing-history old-text)))
+    (let* ((candidates (concept-find-all-concepts))
+           (old-text (concept-current-concept))
+           (new-text
+            (string-trim
+             (concept-read-string-with-completion
+              "Object: " candidates
+              old-text 'concept-concept-editing-history old-text)))
            (concept-regexp concept-group-name-regexp))
       (cond ((equal old-text new-text)
              (message concept--edit-is-the-same-msg))
@@ -6318,8 +6365,13 @@ resource line."
     (when (concept-on-data-concept-line)
       (concept-goto-last-relationship))
     (save-excursion
-      (let* ((old-text (concept-current-relationship))
-             (new-text (string-trim (read-string "Object: " old-text 'concept-relationship-editing-history old-text)))
+      (let* ((candidates (concept-find-all-relationships))
+             (old-text (concept-current-relationship))
+             (new-text
+              (string-trim
+               (concept-read-string-with-completion
+                "Relationship: " candidates
+                old-text 'concept-relationship-editing-history old-text)))
              (relationship-regexp concept-group-name-regexp))
         (cond ((equal old-text new-text)
                (message concept--edit-is-the-same-msg))
@@ -6338,16 +6390,23 @@ resource line."
     (when (concept-on-exposition-line)
       (concept-goto-last-attribute))
     (save-excursion
-      (let* ((old-text (concept-current-attribute))
-             (new-text (string-trim (read-string "Keyword: " old-text 'concept-attribute-editing-history old-text)))
+      (let* ((candidates (concept-find-all-attributes))
+             (old-text (concept-current-attribute))
+             (new-text
+              (string-trim
+               (concept-read-string-with-completion
+                "Keyword: " candidates
+                old-text 'concept-attribute-editing-history old-text)))
              (keyword-regexp concept-group-name-regexp))
-        (cond ((and (not (equal old-text new-text))
-                    (string-match-p keyword-regexp new-text))
+        (cond ((equal old-text new-text)
+               (message "No changes were found between this edit and the original text!"))
+              ((string-match-p keyword-regexp new-text)
                (beginning-of-line)
                (re-search-forward "^| +" (line-end-position) t)
                (kill-line)
                (insert new-text ":"))
-              (t (message concept--edit-group-restriction-failed-msg)))))))
+              (t (message concept--edit-group-restriction-failed-msg)))))
+    (end-of-line)))
 
 (defun concept-pick-needed-data-delimiters (text)
   "Pick the simplest pair of delimiters needed to store the string in a concept map."
@@ -6367,8 +6426,14 @@ resource line."
   (when (and (concept-in-resource-block)
              (concept-on-exposition-line))
     (save-excursion
-      (let* ((old-text (concept-current-exposition))
-             (new-text (string-trim (read-string "Data: " old-text 'concept-editing-exposition-history old-text)))
+      (let* ((keyword (concept-current-attribute))
+             (candidates (concept-find-all-expositions keyword))
+             (old-text (concept-current-exposition))
+             (new-text
+              (string-trim
+               (concept-read-string-with-completion
+                "Data: " candidates
+                old-text 'concept-editing-exposition-history old-text)))
              (needed-delims (concept-pick-needed-data-delimiters new-text)))
         (when (not (equal old-text new-text))
           (beginning-of-line)
