@@ -6735,20 +6735,26 @@ If it doesn't parse, move the point to where the first failure is."
 (defvar-local concept-map--network-update-timer nil
   "Update the concept map network after buffer modifications and a bit of inactivity.")
 
+(defvar concept-map-wait-time-before-network-update
+  5
+  "Seconds to wait during idle time before trying to update the concept map
+network graph hash table.")
+
 (defun concept-map--schedule-network-update (&rest _args)
   "Schedule a network update after a period of user inactivity."
   (when (timerp concept-map--network-update-timer)
     (cancel-timer concept-map--network-update-timer)
-    (concept-map--debug "Canceled previous timer in %s" (buffer-name))
-    (setq concept-map--network-update-timer
-      (run-with-idle-timer
-       5 nil
-       #'concept-map--run-scheduled-network-update
-       (current-buffer)))
-    (concept-map--debug
-     "Scheduled update for %s; modified=%S"
-     (buffer-name)
-     (buffer-modified-p))))
+    (concept-map--debug "Canceled previous timer in %s" (buffer-name)))
+  (setq concept-map--network-update-timer
+        (run-with-idle-timer
+         concept-map-wait-time-before-network-update
+         nil
+         #'concept-map--run-scheduled-network-update
+         (current-buffer)))
+  (concept-map--debug
+   "Scheduled update for %s; modified=%S"
+   (buffer-name)
+   (buffer-modified-p)))
 
 (defun concept-map--run-scheduled-network-update (buffer)
   "Update BUFFER's concept map network.
@@ -6763,10 +6769,20 @@ This variable is stored in `concept-map-network-graph'."
           (buffer-name))
         (concept-map-update-network)))))
 
+(defun concept-map--cancel-network-update-timer ()
+  "Cancel any pending network update for the current buffer."
+  (when (timerp concept-map--network-update-timer)
+    (cancel-timer concept-map--network-update-timer))
+  (setq concept-map--network-update-timer nil))
+
 (defun concept-mode-setup-network-updating ()
   "Enable automatic network updates for the current buffer."
   (add-hook 'after-change-functions
             #'concept-map--schedule-network-update
+            nil
+            t)
+  (add-hook 'kill-buffer-hook
+            #'concept-map--cancel-network-update-timer
             nil
             t))
 
@@ -6914,7 +6930,6 @@ PATH is the current DFS path. STATE records nodes as
 
 (defun concept-map-find-network-cycle ()
   "Return the first directed cycle in the network, or nil.
-
 When called interactively, display the cycle as a string such as:
 A -> B -> C -> A"
   (interactive)
