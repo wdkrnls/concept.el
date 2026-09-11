@@ -3303,6 +3303,67 @@ relationship line is found."
       (goto-line line)
       (end-of-line))))
 
+(defun concept-sift-down (root end)
+  "Repair the heap rooted at ROOT.
+Only indices less than END belong to the heap."
+  (let* ((left (+ (* 2 root) 1))
+         (right (+ (* 2 root) 2))
+         (largest root)
+         left-name
+         left-length
+         right-name
+         right-length
+         largest-name
+         largest-length)
+    (concept-goto-nth-idea largest)
+    (setq largest-length (concept-idea-length)
+          largest-name   (concept-current-concept))
+    (when (and (< left end)
+               (progn
+                 (concept-goto-nth-idea left)
+                 (setq left-length (concept-idea-length)
+                       left-name   (concept-current-concept))
+                 (concept-string-lessp-with-length-tie-break
+                  largest-name left-name
+                  largest-length left-length)))
+      (setq largest left
+            largest-name left-name
+            largest-length left-length))
+    (when (and (< right end)
+               (progn
+                 (concept-goto-nth-idea right)
+                 (setq right-length (concept-idea-length)
+                       right-name   (concept-current-concept))
+                 (concept-string-lessp-with-length-tie-break
+                  largest-name right-name
+                  largest-length right-length)))
+      (setq largest right
+            largest-name right-name
+            largest-length right-length))
+    (when (/= largest root)
+      (concept-exchange-ideas root largest)
+      (concept-sift-down largest end))))
+
+(defun concept-idea-fast-sort ()
+    "Interactive tool for automatically reordering ideas in a concept map.
+Emacs provides `outline-forward-same-level' and
+`outline-move-subtree-down' procedures out of the box. These are enough
+to implement a naive sorting algorithm for interactively reordering
+concepts in lexicographic order."
+  (interactive)
+  (let* ((n (concept-map-idea-count))
+         (buffer-undo-list t)
+         (start (/ n 2)))
+    (while (> start 0)
+      (setq start (1- start))
+      (concept-sift-down start n))
+    (let ((end n))
+      (while (> end 1)
+        (setq end (1- end))
+        (concept-exchange-ideas 0 end)
+        (concept-sift-down 0 end))))
+  (concept--goto-first-heading))
+
 (defun concept-alphabetic-sort-dwim (arg)
   "Perform a partial sort of the thing at point."
   (interactive "p")
