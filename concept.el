@@ -4012,12 +4012,23 @@ simple."
   (interactive "r")
   (replace-regexp-in-region "^[^@~|]+" "" beg end))
 
+(defun concept-squish-leading-whitespace ()
+  "Squish away leading whitespace before the interesting content.
+There should only be one space there, not several."
+  (replace-regexp "^\\([|~@]\\) +" "\\1 "))
+
+(defun concept-insert-missing-leading-whitespace ()
+  "Insert missing whitespace between the opening sigil and the interesting content."
+  (replace-regexp "^\\([|~@]\\)\\([^[:space:]]+\\)" "\\1 \\2"))
+
 (defun concept-cleanup-map ()
   "Remove whitespace, blank lines, and fix common mistakes with resource blocks."
   (interactive)
   (delete-trailing-whitespace)
   (delete-blank-lines)
-  (concept-delete-leading-text)
+  (concept-delete-leading-text (point-min) (point-max))
+  (concept-squish-leading-whitespace)
+  (concept-insert-missing-leading-whitespace)
   (concept-fix-resource-blocks))
 
 (defun concept--delq-nth (n list)
