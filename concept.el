@@ -748,19 +748,20 @@ list, and the empty string if no nonempty substring is shared."
 
 (defvar concept-mode-map
   (let ((map (make-sparse-keymap)))
-  (define-key map (kbd "M-N")   #'outline-move-subtree-down)
-  (define-key map (kbd "M-n")   #'outline-next-visible-heading)
-  (define-key map (kbd "C-M-n") #'outline-forward-same-level)
-  (define-key map (kbd "M-P")   #'outline-move-subtree-up)
-  (define-key map (kbd "C-M-p") #'outline-backward-same-level)
-  (define-key map (kbd "M-p")   #'outline-previous-visible-heading)
-  map)
+    (define-key map (kbd "M-N")   #'outline-move-subtree-down)
+    (define-key map (kbd "M-n")   #'outline-next-visible-heading)
+    (define-key map (kbd "C-M-n") #'outline-forward-same-level)
+    (define-key map (kbd "M-P")   #'outline-move-subtree-up)
+    (define-key map (kbd "C-M-p") #'outline-backward-same-level)
+    (define-key map (kbd "M-p")   #'outline-previous-visible-heading)
+    map)
   "Keymap for `concept-mode'.
 It provides bindings for quickly navigating concepts and examples.")
 
 (define-derived-mode concept-mode text-mode "CONCEPT"
   "Major mode for CONCEPT buffers."
   :keymap concept-mode-map
+  (define-key concept-mode-map [menu-bar text] #'undefined)
   ;; Then enable `outline-minor-mode' to start folding the headings.
   (setq-local outline-regexp "^[~@]"
 	      outline-heading-alist concept-heading-alist)
