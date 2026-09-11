@@ -6861,14 +6861,12 @@ representation."
 
 (defun concept--find-cycle-from (node path graph state)
   "Find a cycle reachable from NODE.
-
 PATH is the current DFS path. STATE records nodes as
 :visiting or :done. Return a cycle, or nil."
   (let ((node-state (gethash node state)))
     (cond
      ((eq node-state :visiting)
-      (let ((cycle-start (member node path)))
-        (append cycle-start (list node))))
+      (member node path))
      ((eq node-state :done)
       nil)
      (t
