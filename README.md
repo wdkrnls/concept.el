@@ -463,6 +463,10 @@ Once the concept map parses successfully, searching should be guaranteed to work
 
 ## Future Plans and Related Projects
 
+I am still working towards finishing the bubble sort implementation of the full alphabetic sort. It seems like it's getting stuck in the last idea of the concept map. I need to explore debugging that.
+
+I have also created a first implementation of a heapsort algorithm for sorting ideas. I have made one successful sort of a fairly large concept map greater than 14,000 lines. I will investigate this path forward further to see if I can get any easy speedups.
+
 It would be really nice if the *follow* interface made such information clickable with the mouse and underlined to distinguish it from other pieces of attribute data which cannot be. This would provide a handy visual cue which would help new users better grasp the possibilities of the follow system. I've worked with clickable links in the past and have noticed they can really slow things down when applied to whole buffer. The trick then seems to be to restrict the clickable links to the visible region and recompute as that region changes. It should be something like:
 
 ```
