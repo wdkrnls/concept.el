@@ -108,6 +108,8 @@
 (require 'xml)
 (require 'eww)
 (require 'ansi-color)
+(require 'url-parse)
+(require 'url-util)
 
 ;;; Reference for internal resources
 
@@ -5596,7 +5598,18 @@ enough for now."
   "Flag the current EWW buffer as having finished rendering."
   (setq-local concept-eww-buffer-has-rendered t))
 
-(defun concept-eww-browse-url (url &optional new-window)
+(defun concept-search-gemipedia (term)
+  "Conduct a wikipedia search via gemipedia."
+  (if (package-installed-p 'elpher)
+    (let ((url (concat "gemini://gemi.dev/cgi-bin/wp.cgi/view?"
+                       (url-hexify-string term)))
+          (elpher-buffer-name (concat "*Gemipedia*<" term ">")))
+      (if (bufferp (get-buffer elpher-buffer-name))
+          (switch-to-buffer elpher-buffer-name)
+        (elpher-go url)))
+    (message "You do not have 'elpher install. Please install it!")))
+
+(defun concept-browse-url (url &optional new-window)
   "Ask the EWW browser to load URL but return the buffer.
 
 This is a fork of `eww-browse-url'. It returns a reference to the
@@ -5614,19 +5627,28 @@ in the tab-bar on an existing frame.  See more options in
 Non-interactively, this uses the optional second argument NEW-WINDOW
 instead of `browse-url-new-window-flag'."
   (let ((url-allow-non-local-files t)
-        (start-time (float-time)))
-    (eww url)
-    (add-hook 'eww-after-render-hook
-              'concept-set-eww-buffer-as-rendered
-              nil
-              t)
-    (while (and (not concept-eww-buffer-has-rendered)
-                (< (- (float-time) start-time) 30))
-      (accept-process-output nil 0.1)))
-  (remove-hook 'eww-after-render-hook
-               'concept-set-eww-buffer-as-rendered
-               t)
-  (current-buffer))
+        (start-time (float-time))
+        (type (url-type (url-generic-parse-url url))))
+    (cond ((member type (list "gopher" "gemini" "finger"))
+           (elpher-go url))
+          ((and (equal ".gmi" (url-file-extension url))
+                (or (not type)
+                    (not (string-match-p type url))))
+           (let ((elpher-buffer-name (concat "*Local Gem*<" url ">")))
+             (elpher-go (concat "file://" (expand-file-name url)))))
+          (t
+           (eww url)
+           (add-hook 'eww-after-render-hook
+                     'concept-set-eww-buffer-as-rendered
+                     nil
+                     t)
+           (while (and (not concept-eww-buffer-has-rendered)
+                       (< (- (float-time) start-time) 30))
+             (accept-process-output nil 0.1)))
+          (remove-hook 'eww-after-render-hook
+                       'concept-set-eww-buffer-as-rendered
+                       t)
+          (current-buffer))))
 
 (defun concept-info-follow ()
   "Make an info-follow analogous to what man-follow does for man pages."
@@ -6073,8 +6095,15 @@ modifying `mailcap-user-mime-data'."
          (save-excursion
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
-           (let ((browse-url-browser-function 'concept-eww-browse-url))
-             (browse-url-at-point))))
+           (let ((browse-url-browser-function 'concept-browse-url))
+             (browse-url (concept-current-exposition)))))
+        ((and (concept-on-exposition-line)
+              (let ((key (concept-exposition-parent-key)))
+                (or (string= "wikipedia" key)
+                    (string= "gemipedia" key)
+                    (string= "wiki" key))))
+         (save-excursion
+           (concept-search-gemipedia (concept-current-exposition))))
         ((and (concept-on-exposition-line)
               (string= "emacs-package" (concept-exposition-parent-key)))
          (save-excursion
@@ -6150,7 +6179,7 @@ modifying `mailcap-user-mime-data'."
                           (expand-file-name (concept-get-expository-data))))
                    default-directory))
                   (side-effects
-                   (member "side-effects" (concept-resource-block-keys)))
+                   (or (member "side-effect" (concept-resource-block-keys))))
                   (target-buffer
                    (if (member "emacs-buffer" (concept-resource-block-keys))
                        (concept--closest-buffer-by-longest-common-substring
