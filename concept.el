@@ -2068,7 +2068,7 @@ line that starts with open and closing squiggly brackets, usually. It
 can also start with square brackets, or maybe unicode quotes: ‘’."
   (let ((line (concept-current-line)))
     (or
-     (string-match-p "^|[ ]+{[^}]*} *$" line)
+     (string-match-p "^| +{[^}]*} *$" line)
      (string-match-p "| +‘[^‘]*’ *$" line)
      (and
       (string-match-p "^|[ ]*\\[" line)
@@ -5609,6 +5609,19 @@ enough for now."
         (elpher-go url)))
     (message "You do not have 'elpher install. Please install it!")))
 
+(defun concept-parse-date (string)
+  "This currently only understands two date formats common in the United
+States: MM/DD/YYYY and YYYY-MM-DD."
+  (if (string-match-p "[/]" string)
+      (mapcar #'string-to-number (split-string string "[/]" t))
+    (nreverse (mapcar #'string-to-number (split-string string "-" t)))))
+
+(defun concept-open-calendar (date &optional diary)
+  (let ((date (concept-parse-date date)))
+    (calendar)
+    (setq-local diary-file diary) ; TODO: I'm not convince this works in Emacs
+    (calendar-goto-date date)))
+
 (defun concept-browse-url (url &optional new-window)
   "Ask the EWW browser to load URL but return the buffer.
 
@@ -6198,6 +6211,16 @@ modifying `mailcap-user-mime-data'."
               (string= "place" (concept-exposition-parent-key)))
          (when (package-installed-p 'osm)
            (osm-search (concept-current-exposition))))
+        ((and (concept-on-exposition-line)
+              (string= "date" (concept-exposition-parent-key)))
+         (let ((diary-file
+                (or (when (member "diary" (concept-resource-block-keys))
+                      (save-excursion
+                        (concept-goto-key-in-resource-block "diary")
+                        (forward-line)
+                        (expand-file-name (concept-get-expository-data))))
+                    diary-file)))
+           (concept-open-calendar (concept-current-exposition) diary-file)))
         ((and (concept-on-exposition-line)
               (string= "file" (concept-exposition-parent-key)))
          (save-excursion
