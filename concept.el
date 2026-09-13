@@ -1221,6 +1221,14 @@ reordering resource blocks alphabetically."
                  (setq max-iter (1- max-iter)))
                (throw 'done 'iterations-exhausted)))))))
 
+(defun concept-goto-last-line-in-relationship-block ()
+  "Navigate to the last data concept in a relationship block."
+  (when (concept-in-relationship-block)
+    (while (concept-on-data-line)
+      (forward-line))
+    (previous-line)
+    (end-of-line)))
+
 (defun concept-goto-first-data-concept-in-relationship-group ()
   "Navigate back to the first data concept in the group."
   (when (and (concept-in-relationship-block)
