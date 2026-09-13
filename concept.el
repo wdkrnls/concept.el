@@ -1738,6 +1738,39 @@ is blank, insert it. Otherwise, make a new line and insert it."
       (insert "~")
       (end-of-line))))
 
+(defun concept-fork-dwim ()
+  "Create new blocks from the current block.
+See also `concept-repeat-dwim' which repeats stuff at the same level of
+the current data."
+  (interactive)
+  (cond ((concept-on-focus-line)
+         (concept-repeat-focus-concept))
+        ((concept-on-relationship-line)
+         (cond ((= 1 (concept-relationship-group-count))
+                (concept-repeat-current-block)
+                (outline-end-of-subtree))
+               ((save-excursion
+                  (previous-line)
+                  (concept-on-data-concept-line))
+                (beginning-of-line)
+                (let ((focus (concept-current-focus)))
+                  (open-line 1)
+                  (insert "~ " focus)))
+               ((and (save-excursion
+                       (previous-line)
+                       (concept-on-focus-line))
+                     (save-excursion
+                       (forward-line)
+                       (concept-goto-next-relationship-boundary)
+                       (not (concept-on-focus-line))))
+                (let ((focus (concept-current-focus)))
+                  (concept-goto-next-relationship-boundary)
+                  (when (concept-on-relationship-line)
+                    (open-line 1)
+                    (insert "~ " focus))))))
+        ((concept-on-data-concept-line)
+         (concept-repeat-concept-as-focus))
+        (t (message "Not sure what to do yet!"))))
 
 (defun concept-relationship-block-has-blank-lines ()
   "Test whether the current relationship block has any blank lines."
