@@ -1401,6 +1401,13 @@ this."
          (end-of-line)
          (not (re-search-forward "^[~|]" nil t)))))
 
+(defun concept-on-first-resource ()
+  "Test if the resource is the first concept in the file."
+  (and (concept-on-resource-line)
+       (save-excursion
+         (beginning-of-line)
+         (not (re-search-backward "^@" nil t)))))
+
 (defun concept-on-last-resource ()
   "Test if the resource line is the last resource in the file."
   (and (concept-on-resource-line)
@@ -1424,8 +1431,9 @@ would work on any buffer with trailing blank characters."
 (defun concept-last-concept ()
   "Get the last concept before the current position if on a data line."
   (let ((is-data (concept-on-data-line))
-        (is-focus (concept-on-focus-line)))
-    (if is-data
+        (is-focus (concept-on-focus-line))
+        (is-resource (concept-on-resource-line)))
+    (if (or is-data is-resource)
       (save-excursion
         (re-search-backward "^~")
         (beginning-of-line)
@@ -1518,18 +1526,25 @@ This procedure takes an option argument ARG which advances multiple concepts at 
         (insert last-concept)))))
 
 (defun concept-insert-focus-as-new (arg)
-  "Repeat the current concept in focus as a data concept."
+  "Repeat the current concept in focus as data.
+This was originally conceived to only work inside of relationship
+blocks."
   (interactive "P")
-  (let* ((last-concept (if (or (concept-on-first-line-p)
-                               (concept-on-first-concept))
-                           (concept-next-concept)
-                         (concept-last-concept)))
-         (k            (if (numberp arg) arg 0))
-         (last-part    (concept-remove-part last-concept k)))
-    (when last-concept
-      (when (or (concept-on-data-line)
-                (concept-on-focus-line))
-        (insert last-part)))))
+  (unless (or (concept-on-resource-line)
+              (concept-on-relationship-line)
+              (concept-on-attribute-line))
+    (let* ((last-concept (if (or (concept-on-first-line-p)
+                                 (concept-on-first-concept))
+                             (concept-next-concept)
+                           (concept-last-concept)))
+           (k            (if (numberp arg) arg 0))
+           (last-part    (concept-remove-part last-concept k)))
+      (when last-concept
+        (when (or (concept-on-data-line)
+                  (concept-on-focus-line))
+          (unless (and (concept-on-exposition-line)
+                       (not (concept-inside-delimeters-p)))
+            (insert last-part)))))))
 
 (defun concept-insert-next-concept-as-data ()
   "Repeat the current concept in focus as a data concept."
@@ -1540,7 +1555,9 @@ This procedure takes an option argument ARG which advances multiple concepts at 
       (insert next-concept))))
 
 (defun concept-insert-next-concept-as-data-2 (arg)
-  "Repeat the current concept in focus as a data concept."
+  "Repeat the current concept in focus as a data concept.
+With a prefix argument, take just the part of the concept which is
+relevant."
   (interactive "P")
   (let ((next-concept (concept-next-concept))
         (k (if (numberp arg) arg 0)))
@@ -1642,25 +1659,30 @@ previously. In that case the command inserts the next data concept and
 calls it the last data concept. Since this function is only used for
 interactive editing by a user, this makes sense."
   (interactive "P")
-  (let* ((last-concept (or (and (concept-on-first-concept)
-                                (concept-next-focus))
-                           (concept-last-data-concept)
-                           (or (and (< 1 (concept-relationship-group-concept-count))
-                                    (if (concept-on-last-concept)
-                                        (concept-last-concept)
-                                      (concept-next-data-concept)))
-                               (concept-next-focus))))
-         (k            (if (numberp arg) arg 0)))
-    (when last-concept
-      (let ((is-blank-line (concept-on-blank-line))
-            (last-part (concept-remove-part last-concept k)))
-        (when is-blank-line
-          (end-of-line)
-          (insert last-part)
-          (search-backward " ")
-          (forward-char 1))
-        (when (not is-blank-line)
-          (insert last-part))))))
+  (unless (or (concept-on-resource-line)
+              (concept-on-attribute-line)
+              (and (concept-on-exposition-line)
+                   (not (concept-inside-delimeters-p)))
+              (concept-on-relationship-line))
+    (let* ((last-concept (or (and (concept-on-first-concept)
+                                  (concept-next-focus))
+                             (concept-last-data-concept)
+                             (or (and (< 1 (concept-relationship-group-concept-count))
+                                      (if (concept-on-last-concept)
+                                          (concept-last-concept)
+                                        (concept-next-data-concept)))
+                                 (concept-next-focus))))
+           (k            (if (numberp arg) arg 0)))
+      (when last-concept
+        (let ((is-blank-line (concept-on-blank-line))
+              (last-part (concept-remove-part last-concept k)))
+          (when is-blank-line
+            (end-of-line)
+            (insert last-part)
+            (search-backward " ")
+            (forward-char 1))
+          (when (not is-blank-line)
+            (insert last-part)))))))
 
 (defun concept-repeat-current-block ()
   "Repeat the current block again."
@@ -3387,6 +3409,22 @@ block."
       (let ((pt (point)))
         (buffer-substring-no-properties pt (1+ pt))))))
 
+(defun concept-inside-delimeters-p ()
+  "On exposition lines, test whether the cursor is inside of the delimiters."
+  (save-excursion
+    (and (concept-on-exposition-line)
+         (let ((delim (concept-current-delimiter))
+               (pt (point)))
+           (cond ((equal delim "{")
+                  (and (search-backward "{" (line-beginning-position) t)
+                       (not (search-forward "}" pt t))))
+                 ((equal delim "[")
+                  (and (search-backward "[" (line-beginning-position) t)
+                       (not (search-forward "]" pt t))))
+                 ((equal delim "‘")
+                  (and (search-backward "‘" (line-beginning-position) t)
+                       (not (search-forward  "’" pt t)))))))))
+
 (defun concept-go-one-group-down ()
   "Navigate forwards to the next group."
   (interactive)
@@ -3952,15 +3990,6 @@ Place each relationship into its own block."
           (if (concept-on-last-concept)
               (concept-insert-last-concept-as-new k)
             (concept-insert-next-concept-as-data-2 k))))))
-
-(defun concept-insert-resource-dwim ()
-  (if (concept-on-resource-line)
-      (if (concept-on-last-resource)
-          (concept-insert-last-resource)
-        (concept-insert-next-resource))
-    (if (concept-on-last-resource)
-        (concept-insert-last-resource-as-new k)
-      (concept-insert-next-resource-as-data-2 k))))
 
 (defun concept-split-dwim ()
   "Split blocks up into two."
