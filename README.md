@@ -226,7 +226,19 @@ Leveraging the tools in `consult.el` can be another very effective way of explor
 
 ## Editing tools for concept maps
 
-`concept.el` provides a wealth of tools for rapidly entering new ideas and editing existing concept maps to standardize their contents in order to make them as useful a learning tool as possible. Let's start by create a new concept.
+`concept.el` provides a wealth of tools for both rapidly entering new ideas and rapidly editing existing ones. We believe that for concepts to become the best learning tools they can be, we must be able to write programs on their data. To be able to write programs on them, concept maps must become as internally consistent and as comprehensive as feasible. Internal consistency makes writing programs much easier. We have far fewer special cases to deal with. Comprehensiveness, makes it so that we have interesting programs to write. If we just stuck to the ordinary plain text editing regime provided out of the box by most text editors, concept maps stay as "write only" constructions. However, we feel that good design should be both "read and write".
+
+When developing concepts, whether starting from a blank slate or from an already sprawling base with thousands of existing concepts, it helps to have a small tailored suite of powerful frameworks at your fingertips. These frameworks are ideally conceptualized as distinct actions you can take. In `concept.el` that means the editing commands are grouped into a small number of keybindings that you make over and over, and those keybindings help you fall into a pit of success. We are still working on good names, but they are right now:
+
+* insert
+* kill
+* split
+* fork
+* isolate
+* slurp
+* barf
+
+Lispers familiar with `paredit` mode will atleast recognize slurp and barf from that major mode, but don't get the wrong idea if you are and you hated it. `concept.el` is a lot more forgiving that `paredit` is. You can always ignore all of it's features and edit concept maps using most regular text editor motions. Just don't expect all standard Emacs key bindings to behave exactly how you expect them. In particular, the key bindings `M-o`, `C-o`, `C-M-o`, `M-i`, `C-;`, `M-;`, and `C-M-;`, `M-.`, and `C-.` are by far the most common keybindings you will be pressing if you are open to opt-in to the data editing philosophy of `concept.el`.
 
 Open the `example.map` concept map included in the git repository. Navigate to the beginning of the buffer with `M-<`. Then press `C-o`. This makes a new idea block by creating a new subject line. Type out `stuff`. Then, press `M-i`. This inserts an `:include` relationship and creates an object concept line. Press `M-i` again and it will enter `stuff` again automatically. `M-.` will do the same, while `C-M-.` will add the following subject instead.
 
