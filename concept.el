@@ -1395,11 +1395,18 @@ this."
          (not (re-search-backward "^~" nil t)))))
 
 (defun concept-on-last-concept ()
-  "Test if the concept is the first concept in the file."
+  "Test if the concept is the last concept in the file."
   (and (concept-on-concept-line)
        (save-excursion
          (end-of-line)
          (not (re-search-forward "^[~|]" nil t)))))
+
+(defun concept-on-last-resource ()
+  "Test if the resource line is the last resource in the file."
+  (and (concept-on-resource-line)
+       (save-excursion
+         (end-of-line)
+         (not (re-search-forward "^@" nil t)))))
 
 (defun concept-on-data-line ()
   "Test if the current line is a data line.
@@ -1719,7 +1726,8 @@ is blank, insert it. Otherwise, make a new line and insert it."
   "Repeat the current focus concept on the next line."
   (interactive)
   (let ((line-move-visual nil))
-    (when (concept-on-focus-line)
+    (when (concept-in-relationship-block)
+      (concept-goto-current-focus)
       (beginning-of-line)
       (kill-ring-save (point) (line-end-position))
       (end-of-line)
@@ -1768,8 +1776,15 @@ the current data."
                   (when (concept-on-relationship-line)
                     (open-line 1)
                     (insert "~ " focus))))))
+        ((concept-in-resource-block)
+         (let ((resource (concept-current-resource-name)))
+           (outline-end-of-subtree)
+           (insert "\n@ " resource)))
         ((concept-on-data-concept-line)
-         (concept-repeat-concept-as-focus))
+         (let ((next-concept (concept-next-focus)))
+           (concept-goto-next-relationship-boundary)
+           (insert "~ " next-concept "\n")
+           (backward-char)))
         (t (message "Not sure what to do yet!"))))
 
 (defun concept-kill-dwim ()
@@ -1795,7 +1810,11 @@ the current data."
          (end-of-line))
         ((concept-on-exposition-line)
          (kill-whole-line)
-         (end-of-line))
+         (cond ((concept-on-exposition-line)
+                (beginning-of-line)
+                (re-search-forward "[^| ]" (line-end-position) t))
+               (t
+                (end-of-line))))
         (t (error "Should not have made it here!"))))
 
 (defun concept-relationship-block-has-blank-lines ()
@@ -1873,6 +1892,17 @@ first one of those instead of adding a new relationship."
     (forward-line)
     (concept-goto-next-blank-attribute-data)))
 
+(defun concept-insert-keyword-block-at-beginning* (keyword)
+  "Insert a new relationship group at the beginning of the relationship
+block. Do this unless there is a blank data line in the block. If there
+is, then go to the first one of those instead of adding a new
+relationship."
+  (when (concept-in-resource-block)
+    (if (concept-resource-block-has-blank-data)
+        (concept-goto-first-blank-data-in-resource-block)
+      (concept-goto-current-resource)
+      (concept-insert-keyword-block keyword))))
+
 (defun concept-insert-keyword-block-at-end* (keyword)
   "Insert a new relationship group at the end of the relationship block.
 Do this unless there is a blank data line. If there is, then go to the
@@ -1883,10 +1913,10 @@ first one of those instead of adding a new relationship."
       (outline-end-of-subtree)
       (concept-insert-keyword-block keyword))))
 
-(defun concept-repeat-dwim ()
+(defun concept-repeat-dwim (arg)
   "Repeat what I mean to repeat.
 This largely operates below the current line."
-  (interactive)
+  (interactive "p")
   (cond ((concept-on-focus-line)
          (concept-repeat-focus-concept))
         ((concept-on-relationship-line)
@@ -1945,18 +1975,20 @@ This largely operates below the current line."
                  (t 
                   (concept-insert-keyword-block-at-end* "note")))))
         ((concept-on-data-concept-line)
-         (let ((rel (concept-current-relationship))
-               (rels (concept-get-concept-block-relationships)))
-           (cond ((and (string= rel "take")
-                       (not (member "give" rels)))
-                  (concept-insert-relationship-group-after* "give"))
-                 ((and (string= rel "include")
-                       (not (member "have" rels)))
-                  (concept-insert-relationship-group-after* "have"))
-                 ((and (string= rel "have")
-                       (not (member "hold" rels)))
-                  (concept-insert-relationship-group-after* "hold"))
-                 (t (concept-insert-relationship-group-after* "include")))))
+         (if (eq arg 1)
+             (concept-repeat-concept-as-focus)
+           (let ((rel (concept-current-relationship))
+                 (rels (concept-get-concept-block-relationships)))
+             (cond ((and (string= rel "take")
+                         (not (member "give" rels)))
+                    (concept-insert-relationship-group-after* "give"))
+                   ((and (string= rel "include")
+                         (not (member "have" rels)))
+                    (concept-insert-relationship-group-after* "have"))
+                   ((and (string= rel "have")
+                         (not (member "hold" rels)))
+                    (concept-insert-relationship-group-after* "hold"))
+                   (t (concept-insert-relationship-group-after* "include"))))))
         (t
          (concept-repeat-concept-as-focus))))
 
@@ -1978,12 +2010,7 @@ supplied, in which case it goes below."
   (beginning-of-line)
   (let ((p (thing-at-point 'symbol t)))
     (cond ((concept-on-resource-line)
-           (if (eq 1 arg)
-               (previous-line)
-             (forward-line))
-           (end-of-line)
-           (newline)
-           (insert "| "))
+           (concept-insert-keyword-block-at-beginning* "note"))
           ((and (concept-on-focus-line)
                 (eq 1 arg))
            (concept-add-concept))
@@ -1991,23 +2018,32 @@ supplied, in which case it goes below."
            (if (eq 1 arg)
                (concept-add-data)
              (concept-add-new-data)))
-          ((and (concept-in-resource-block)
-                (save-excursion
-                  (previous-line)
-                  (concept-on-resource-line)))
-           (if (eq 1 arg)
-               (previous-line)
-             (forward-line))
-           (end-of-line)
-           (concept-insert-note-block))
-          ((and (concept-in-resource-block)
-                (concept-on-data-line))
-           (concept-add-data)
-           (insert "{}")
-           (backward-char))
-          (t (if (eq 1 arg)
-                 (concept-add-data)
-               (concept-add-new-data))))))
+          ((concept-on-attribute-line)
+           (cond ((eq 1 arg)
+                  (if (concept-resource-block-has-blank-data)
+                      (concept-goto-first-blank-data-in-resource-block)
+                    (concept-add-data)
+                    (concept-insert-keyword-block "note")
+                    (previous-line 2)
+                    (kill-whole-line)
+                    (forward-line 2)
+                    (backward-char 2)))
+                 (t
+                  (concept-insert-keyword-block-after* "note"))))
+          ((concept-on-blank-exposition-line)
+           (beginning-of-line)
+           (re-search-forward "[^| ]" (line-end-position) t))
+          ((concept-on-exposition-line)
+           (if (concept-resource-block-has-blank-data)
+               (concept-goto-first-blank-data-in-resource-block)
+             (if (/= 1 arg)
+                 (concept-add-new-data)
+               (concept-add-data))
+             (insert "{}")
+             (backward-char)))
+          ((t (if (eq 1 arg)
+                  (concept-add-data)
+                (concept-add-new-data)))))))
 
 (defun concept-toggle-attribute-relationship ()
   "Toggle between an attribute and a relationship.
@@ -2529,7 +2565,8 @@ Sort these names in order of usage frequency."
 
 (defun concept-current-resource ()
   "Get the current resource and return as a string."
-  (when (concept-on-resource-line)
+  (when (concept-in-resource-block)
+    (concept-goto-current-resource)
     (unless (concept-on-blank-line)
       (let* ((line (concept-current-line))
              (end (length line))
@@ -3907,16 +3944,26 @@ Place each relationship into its own block."
   "Insert a concept in the position if it makes sense."
   (interactive "P")
   (let ((k (if (numberp arg) arg 0)))
-    (if (concept-on-focus-line)
-        (if (concept-on-last-concept)
-            (concept-insert-last-concept-as-focus)
-          (concept-insert-next-concept-as-focus k))
-      (if (concept-on-last-concept)
-          (concept-insert-last-concept-as-new k)
-        (concept-insert-next-concept-as-data-2 k)))))
+    (if (concept-in-relationship-block)
+        (if (concept-on-focus-line)
+            (if (concept-on-last-concept)
+                (concept-insert-last-concept-as-focus)
+              (concept-insert-next-concept-as-focus k))
+          (if (concept-on-last-concept)
+              (concept-insert-last-concept-as-new k)
+            (concept-insert-next-concept-as-data-2 k))))))
+
+(defun concept-insert-resource-dwim ()
+  (if (concept-on-resource-line)
+      (if (concept-on-last-resource)
+          (concept-insert-last-resource)
+        (concept-insert-next-resource))
+    (if (concept-on-last-resource)
+        (concept-insert-last-resource-as-new k)
+      (concept-insert-next-resource-as-data-2 k))))
 
 (defun concept-split-dwim ()
-  "Split the relationship block up into two ideas."
+  "Split blocks up into two."
   (interactive)
   (cond ((and (concept-on-first-data-concept-line-in-block)
               (save-excursion
@@ -3951,7 +3998,12 @@ Place each relationship into its own block."
              (insert focus)
              (newline)
              (insert "| :")
-             (insert relationship))))))
+             (insert relationship))))
+        ((concept-on-attribute-line)
+         (let (resource (concept-current-resource))
+           (beginning-of-line)
+           (open-line 1)
+           (insert "@ " resource)))))
 
 (defun concept-isolate-each-concept-in-relationship-group ()
   "Isolate each concept in a relationship group."
@@ -3977,6 +4029,7 @@ Place each relationship into its own block."
   
 (defun concept-data-split-dwim ()
   "Split the relationship block up into two ideas."
+  ;; TODO: clearly distinguish data-split-dwim from split-dwim
   (interactive)
   (cond ((and (concept-on-data-concept-line)
               (save-excursion
@@ -4129,14 +4182,18 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
            (newline)
            (insert "| {}")
            (backward-char))
+          ((concept-on-blank-exposition-line)
+           (beginning-of-line)
+           (re-search-forward "[^| ]" (line-end-position) t))
           ((and (concept-on-exposition-line)
                 (save-excursion
                   (ignore-errors
                     (forward-line)
                     (concept-on-exposition-line))))
            (end-of-line)
-           (newline)
-           (insert "| note:"))
+           (concept-add-new-data)
+           (insert "{}")
+           (backward-char))
           ((and (concept-on-focus-line)
                 (concept-on-blank-line))
            (if (concept-on-first-concept)
