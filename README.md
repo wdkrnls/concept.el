@@ -184,9 +184,6 @@ definition: of-knowledge
 
 Gaining an intuition for what this concept is about requires first understanding what is meant by knowledge, pieces, and abstraction. These are often best sharpened by finding their opposites or complements. The opposite of abstract is concrete or definite. The opposite of a piece is a part of something, which usually itself contains many smaller pieces at a different scale. Finally, we come to the definition component. Knowledge concerns successful prediction. Ignorance means almost assuredly unsuccessful prediction. Once you think about a concept this way, it's name alone suggests that a whole concept map supports it. We invite you to take a stab it at. We took some time to do this exercise and got a pretty substantial concept map out of it.
 
-```
-```
-
 Now, there is much to quibble about and much ambiguity in the above concept map. We certainly see it, but that is the point of concept maps: they give us hooks to organize our thoughts so that they can be productively criticized. It is only through this criticism, preferably open criticism, that our thought improve.
 
 In `concept.el` we encourage you to put the classification piece on the left, the core piece in the middle, and the definition piece on the right. Further, it's better to start with the core plus some definition. Then, once you have your definition, you can added a category which alludes to that definition via and `:name` relationship.
@@ -226,19 +223,11 @@ Leveraging the tools in `consult.el` can be another very effective way of explor
 
 ## Editing tools for concept maps
 
-`concept.el` provides a wealth of tools for both rapidly entering new ideas and rapidly editing existing ones. We believe that for concepts to become the best learning tools they can be, we must be able to write programs on their data. To be able to write programs on them, concept maps must become as internally consistent and as comprehensive as feasible. Internal consistency makes writing programs much easier. We have far fewer special cases to deal with. Comprehensiveness, makes it so that we have interesting programs to write. If we just stuck to the ordinary plain text editing regime provided out of the box by most text editors, concept maps stay as "write only" constructions. However, we feel that good design should be both "read and write".
+`concept.el` provides a wealth of tools for both rapidly entering new ideas and rapidly editing existing ones. We believe that for concept maps to become the best learning tools they can, we must be able to write programs against their data. To be able to write programs, concept maps must be both internally consistent and comprehensive. Internal consistency minimizes the need to deal with special cases. Comprehensive concept maps hold the information we want to query in the first place. If we just stuck to the ordinary plain text editing regime provided out of the box by most text editors, concept maps stay as "write only" constructions. However, we feel that good design should be both "read and write".
 
-When developing concepts, whether starting from a blank slate or from an already sprawling base with thousands of existing concepts, it helps to have a small tailored suite of powerful frameworks at your fingertips. These frameworks are ideally conceptualized as distinct actions you can take. In `concept.el` that means the editing commands are grouped into a small number of keybindings that you make over and over, and those keybindings help you fall into a pit of success. We are still working on good names, but they are right now:
+In a regular text buffer, the keybinding in vanilla Emacs `C-o` opens up a new line above the current one. `M-o` is undefined, but it made sense to me that it should open something up below the current line. However, it also made sense to me that it should do something with the previous data. This part is confusing it retrospect.
 
-* insert
-* kill
-* split
-* fork
-* isolate
-* slurp
-* barf
-
-Lispers familiar with `paredit` mode will atleast recognize slurp and barf from that major mode, but don't get the wrong idea if you are and you hated it. `concept.el` is a lot more forgiving that `paredit` is. You can always ignore all of it's features and edit concept maps using most regular text editor motions. Just don't expect all standard Emacs key bindings to behave exactly how you expect them. In particular, the key bindings `M-o`, `C-o`, `C-M-o`, `M-i`, `C-;`, `M-;`, and `C-M-;`, `M-.`, and `C-.` are by far the most common keybindings you will be pressing if you are open to opt-in to the data editing philosophy of `concept.el`.
+You need a way to insert text both within blocks and between blocks. For relationship blocks insertions between blocks are more useful than insertions within the blocks, while within resource blocks it's the opposite. We've found that in resource blocks, the different attribute groups take a far more prominent role, atleast when getting your ideas down initially. This tension challenges the desirable goal of following the principle of least surprise.  To minimize that tension, you sometimes need to press `C-u` first in relationship blocks to get similar behavior as you would see in resource blocks.
 
 Open the `example.map` concept map included in the git repository. Navigate to the beginning of the buffer with `M-<`. Then press `C-o`. This makes a new idea block by creating a new subject line. Type out `stuff`. Then, press `M-i`. This inserts an `:include` relationship and creates an object concept line. Press `M-i` again and it will enter `stuff` again automatically. `M-.` will do the same, while `C-M-.` will add the following subject instead.
 
@@ -251,6 +240,16 @@ Now type `M-o` again to make a new subject line automatically filled out with `v
 Now press `C-s many` followed by `M-DEL` to kill the word `many`. Replace it with few. Now press `M-i` again. Toggle it into a subject concept by cycling the first character with `M-r` until it is a `~`. Now press `M-.` to insert the previous subject. When you are new to concept maps, all these different keybindings may be confusing and a bit hard to remember. So, `concept.el` provides a simpler alternative. Navigate to the beginning of the line with `C-M-b` and kill the rest of the line with `C-k`. Now press `TAB` and filter down to the last concept just by typing under the completing-read selection is the concept you want.
 
 Note that just like with resources, you could also auto-complete against all *relationship blocks*. Just press `C-c y c` on a new line between existing ideas.
+
+When developing concepts, whether starting from a blank slate or from an already sprawling base with thousands of existing concepts, it helps to have a small tailored suite of powerful frameworks at your fingertips. These frameworks are ideally conceptualized as distinct actions you can take. In `concept.el` that means the editing commands are grouped into a small number of keybindings that you make over and over, and those keybindings help you fall into a pit of success. We are still working on good names, but they are right now:
+
+* insert conceptual elements
+* kill conceptual elements
+* split up blocks
+* isolate regions in blocks
+* combine regions in blocks
+
+Our first attempt tried to mirror slurp and barf from the `paredit` package. Those commands are still availble, but their practical use turned out to be neglible. Compared to `paredit`, `concept.el` is a lot more forgiving of unexpected behavior. You can ignore all of it's features without turning it off and edit concept maps the old fashioned way if you forget something. These are by far the most common keybindings you will be pressing if you are open to opt-in to the data editing philosophy of `concept.el`.
 
 ## Making abstract ideas concrete with resource blocks
 
