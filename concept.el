@@ -2086,11 +2086,15 @@ relationship has a colon at the beginning of the statement."
         (replace-regexp-in-region ":" "" beg end)
         (replace-regexp-in-region "[|] *" "| :" beg end))))))
 
+(defun concept-looks-like-concept ()
+  (or (concept-on-focus-line)
+      (concept-on-data-concept-line)
+      (concept-on-resource-line)
+      (string-match-p concept-subject-or-object-line-regexp (concept-current-line))))
+
 (defun concept-toggle-focus-data ()
   "Toggle between concept focus and data in a concept map file."
-  (when (or
-         (= 1 (line-number-at-pos (point)))
-         (concept-in-relationship-block))
+  (when (concept-looks-like-concept)
     (save-excursion
       (beginning-of-line)
       (if (concept-current-line-blank-p)
@@ -2675,8 +2679,12 @@ Choose the new concept from initially ordered list of all resources."
                (end-of-line))
              (when (not is-blank)
                (next-line)
-               (concept-toggle-focus-data)
-               (end-of-line)))
+               (kill-ring-save (line-beginning-position) (line-end-position))
+               (when (equal 1 (concept-relationship-count))
+                 (concept-toggle-focus-data)
+                 (when (save-excursion (forward-line) (concept-on-relationship-line))
+                   (forward-line)
+                   (kill-whole-line)))))
             ((save-excursion
                (next-line)
                (concept-on-data-line))
@@ -2693,7 +2701,8 @@ Choose the new concept from initially ordered list of all resources."
         (on-focus-line (concept-on-focus-line))
         (on-blank-line (concept-on-blank-line))
         (line-move-visual nil))
-    (when on-focus-line
+    (when (and on-focus-line
+               (equal 0 (concept-relationship-count)))
       (concept-toggle-focus-data)
       (end-of-line))
     (when (and on-data-line (not on-blank-line))
