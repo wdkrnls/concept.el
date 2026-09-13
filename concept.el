@@ -1841,6 +1841,8 @@ the current data."
 
 (defun concept-insert-keyword-block-after* (keyword)
   (unless (concept-on-blank-exposition-line)
+    (concept-goto-next-attribute-boundary)
+    (backward-char)
     (concept-insert-keyword-block keyword)))
 
 (defun concept-insert-relationship-group-at-end* (relationship)
