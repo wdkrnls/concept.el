@@ -1738,6 +1738,90 @@ is blank, insert it. Otherwise, make a new line and insert it."
       (insert "~")
       (end-of-line))))
 
+
+(defun concept-relationship-block-has-blank-lines ()
+  "Test whether the current relationship block has any blank lines."
+  (when (concept-in-relationship-block)
+    (save-excursion
+      (concept-goto-current-focus)
+      (forward-line)
+      (catch 'found
+        (while (concept-on-data-line)
+          (when (concept-on-blank-line)
+            (throw 'found t))
+          (forward-line))))))
+
+(defun concept-goto-next-blank-line ()
+  "Navigate to the next (data) blank line."
+  (while (not (concept-on-blank-line))
+    (forward-line))
+  (end-of-line))
+
+(defun concept-on-blank-exposition-line ()
+  (and (concept-on-exposition-line)
+       (string-match-p "^[[:space:]]*$" (concept-current-exposition))))
+
+(defun concept-goto-next-blank-attribute-data ()
+  "Navigate to the next blank attribute data line."
+  (while (not (concept-on-blank-exposition-line))
+    (forward-line))
+  (beginning-of-line)
+  (re-search-forward "[| ]+" (line-end-position) t)
+  (forward-char))
+
+(defun concept-goto-first-blank-line-in-block ()
+  (if (concept-in-relationship-block)
+      (concept-goto-current-focus)
+    (concept-goto-current-resource))
+  (concept-goto-next-blank-line))
+
+(defun concept-insert-relationship-group-after* (relationship)
+  (if (concept-on-blank-line)
+      (end-of-line)
+    (concept-insert-relationship-group relationship)))
+
+(defun concept-insert-keyword-block-after* (keyword)
+  (unless (concept-on-blank-exposition-line)
+    (concept-insert-keyword-block keyword)))
+
+(defun concept-insert-relationship-group-at-end* (relationship)
+  "Insert a new relationship group at the end of the relationship block.
+Do this unless there is a blank data line. If there is, then go to the
+first one of those instead of adding a new relationship."
+  (when (concept-in-relationship-block)
+    (if (concept-relationship-block-has-blank-lines)
+        (concept-goto-first-blank-line-in-block)
+      (concept-goto-last-line-in-relationship-block)
+      (concept-insert-relationship-group relationship))))
+
+(defun concept-resource-block-has-blank-data ()
+  (when (concept-in-resource-block)
+    (save-excursion
+      (concept-goto-current-resource)
+      (forward-line)
+      (catch 'found
+        (while (concept-on-data-line)
+          (when (concept-on-blank-exposition-line)
+            (throw 'found t))
+          (forward-line))))))
+
+(defun concept-goto-first-blank-data-in-resource-block ()
+  "Navigate to the first blank data line in the resource block."
+  (when (concept-in-resource-block)
+    (concept-goto-current-resource)
+    (forward-line)
+    (concept-goto-next-blank-attribute-data)))
+
+(defun concept-insert-keyword-block-at-end* (keyword)
+  "Insert a new relationship group at the end of the relationship block.
+Do this unless there is a blank data line. If there is, then go to the
+first one of those instead of adding a new relationship."
+  (when (concept-in-resource-block)
+    (if (concept-resource-block-has-blank-data)
+        (concept-goto-first-blank-data-in-resource-block)
+      (outline-end-of-subtree)
+      (concept-insert-keyword-block keyword))))
+
 (defun concept-repeat-dwim ()
   "Repeat what I mean to repeat.
 This largely operates below the current line."
