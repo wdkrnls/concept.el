@@ -7265,7 +7265,7 @@ A -> B -> C -> A"
   nil)
 
 (define-key concept-mode-map (kbd "C-x C-u")     #'concept-do-nothing)
-(define-key concept-mode-map (kbd "C-M-o")       #'concept-add-new-data)
+(define-key concept-mode-map (kbd "C-M-o")       #'concept-fork-dwim)
 (define-key concept-mode-map (kbd "M-j")         #'concept-add-new-data)
 (define-key concept-mode-map (kbd "M-k")         #'concept-add-data)
 (define-key concept-mode-map (kbd "C-o")         #'concept-add-dwim)
@@ -7287,6 +7287,7 @@ A -> B -> C -> A"
 (define-key concept-mode-map (kbd "C-<up>")      #'concept-go-one-group-up)
 (define-key concept-mode-map (kbd "M-<down>")    #'concept-exchange-down-dwim)
 (define-key concept-mode-map (kbd "M-<up>")      #'concept-exchange-up-dwim)
+(define-key concept-mode-map (kbd "C-c k")       #'concept-kill-dwim)
 (define-key concept-mode-map (kbd "C-c f")       #'concept-follow-dwim)
 (define-key concept-mode-map (kbd "C-c ~")       #'concept-next-double-heading)
 (define-key concept-mode-map (kbd "C-c y r")     #'concept-consult-yank-from-resources)
