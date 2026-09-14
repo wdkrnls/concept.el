@@ -765,8 +765,24 @@ It provides bindings for quickly navigating concepts and examples.")
     (define-key map [mode-line mouse-1] #'concept-map-update-network)
     map))
 
-(easy-menu-define concept-mode-menu concept-mode-map
-  "Menu for `concept-mode'."
+(easy-menu-define concept-mode-editing-menu concept-mode-map
+  "Search menu for `concept-mode'."
+  '("Search"
+    ["Relationship Search" concept-consult-search-concept-blocks
+     :help "Perform an interactive search across conceptually related ideas."]
+    ["Resource Search" concept-consult-search-resource-blocks
+     :help "Perform an interactive search across related resources."]))
+
+(easy-menu-define concept-mode-editing-menu concept-mode-map
+  "Batch editing menu for `concept-mode'."
+  '("Map Cleanup"
+    ["Text Clean-up" concept-map-cleanup
+     :help "Perform some relatively safe automatic text cleanups for concept maps."]
+    ["Check Syntax" concept-map-check-parse
+     :help "Parse the buffer and move the cursor to the first syntax error if there is one."]))
+
+(easy-menu-define concept-mode-network-menu concept-mode-map
+  "Network menu for `concept-mode'."
   '("Network"
     ["Dependency Cycles" concept-map-find-network-cycle
      :help "Check for dependency cycles in the concept map network."]
@@ -807,26 +823,6 @@ It provides bindings for quickly navigating concepts and examples.")
      'mouse-face 'mode-line-highlight
      'help-echo "Left-click to update; right-click for Concept commands"
      'keymap concept-mode-line-map)))
-
-(defun concept-mode-context-menu (menu click)
-  "Populate MENU with concept map editing commands at CLICK."
-  (when (thing-at-mouse click 'word)
-    (define-key-after menu [select-region mark-word]
-      `(menu-item ""
-                  ,(lambda (e) (interactive "e") (mark-thing-at-mouse e 'word))
-                  :help "Mark the word at click for a subsequent cut/copy")
-      'mark-whole-buffer))
-  (define-key-after menu [select-region mark-sentence]
-    `(menu-item "Sentence"
-                ,(lambda (e) (interactive "e") (mark-thing-at-mouse e 'sentence))
-                :help "Mark the sentence at click for a subsequent cut/copy")
-    'mark-whole-buffer)
-  (define-key-after menu [select-region mark-paragraph]
-    `(menu-item "Paragraph"
-                ,(lambda (e) (interactive "e") (mark-thing-at-mouse e 'paragraph))
-                :help "Mark the paragraph at click for a subsequent cut/copy")
-    'mark-whole-buffer)
-  menu)
 
 (define-derived-mode concept-mode text-mode "CONCEPT"
   "Major mode for CONCEPT buffers."
