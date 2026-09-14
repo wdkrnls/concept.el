@@ -280,10 +280,10 @@ You can use `M-i` to make new attribute group keywords. However, by default thes
 
 Reorganizing existing attribute groups, or expository data lines can be done with `M-<up>` (up arrow key) and `M-<down>` (down arrow key). The same commands also work for (conceptual) *relationship blocks*. This is the more manual way of reorganizing the elements of a concept map. There is also extensive support for reorganizing concept maps in a more automated way. Of these, there are four main arcs planned:
 
-* alphabetical sorting (`C-c
-* custom canonical sorting
-* reverse ordering
-* random shuffling
+* alphabetical sorting (`C-c C-a`)
+* custom canonical sorting (`C-c C-o`)
+* reverse ordering (`C-c C-r`)
+* random shuffling (`C-c M-r`)
 
 The point of all this functionality is to implement a canonical ordering of the whole concept map. With such an ordering, its feasible to get a clear diff of two concept maps without a lot of syntactic changes which mask the vastly more important semantically meaningful ones. Remember, the whole point of investing in concept mapping is to engage in meaningful learning! Why then is there a random shuffling feature? One use case is to test that the canonical sorting works as intended no matter what. There are a lot of situations to test, and in the beginning it will be hard to know which situations are most important to test. Thus, it's pretty useful to simulate a lot of situations randomly to see if there are edge cases which haven't been covered yet.
 
