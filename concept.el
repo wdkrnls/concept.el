@@ -7334,7 +7334,7 @@ If it doesn't parse, move the point to where the first failure is."
   "Return non-nil if any changed block is a relationship block."
   (if (get-buffer concept-map-buffer-snapshot-name)
       (let ((changed-lines
-             (concept-map--buffer-changed-line-numbers concept-map-buffer-snapshot-name)))
+             (concept-map--buffer-changed-line-numbers)))
         (save-excursion
           (catch 'found
             (dolist (line changed-lines)
