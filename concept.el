@@ -111,6 +111,7 @@
 (require 'ansi-color)
 (require 'url-parse)
 (require 'url-util)
+(require 'diff)
 
 ;;; Reference for internal resources
 
