@@ -2760,7 +2760,7 @@ Choose the new concept from initially ordered list of all resources."
              (when (not is-blank)
                (next-line)
                (kill-ring-save (line-beginning-position) (line-end-position))
-               (when (equal 1 (concept-relationship-count))
+               (when (<= (concept-relationship-count) 1)
                  (concept-toggle-focus-data)
                  (when (save-excursion (forward-line) (concept-on-relationship-line))
                    (forward-line)
@@ -4146,7 +4146,10 @@ Place each relationship into its own block."
         (insert "~ " focus)))))
   
 (defun concept-data-split-dwim ()
-  "Split the relationship block up into two ideas."
+  "Split the relationship block up into two or more ideas with data
+concepts as focus.  This differs from split-dwim in that this command
+creates new ideas based on former data concepts as the new focus. You
+can think of this as analogous to how C-. and M-. work."
   ;; TODO: clearly distinguish data-split-dwim from split-dwim
   (interactive)
   (cond ((and (concept-on-data-concept-line)
@@ -4220,16 +4223,10 @@ Place each relationship into its own block."
   "Isolate the current thing into it's own block."
   (interactive)
   (cond
-   ((and (concept-on-first-data-concept-line-in-block)
-         (save-excursion
-           (forward-line)
-           (concept-on-focus-line)))
-    (concept-swap-data-with-focus))
    ((concept-on-relationship-line)
     (concept-isolate-each-concept-in-relationship-group))
-   ((and (concept-on-focus-line)
-         (eq 1 (concept-relationship-count)))
-    (concept-swap-focus-with-first-data))
+   ((concept-on-focus-line)
+    (concept-repeat-current-block))
    ((and (concept-on-data-concept-line)
                 (or (save-excursion
                       (forward-line)
@@ -4253,26 +4250,28 @@ Place each relationship into its own block."
                (insert relationship)
                (newline)
                (insert "| " concept))))
-        ((and (concept-on-exposition-line)
-              (or (save-excursion
-                    (forward-line)
-                    (concept-on-exposition-line))
-                  (save-excursion
-                    (previous-line)
-                    (concept-on-exposition-line))))
-         (let ((resource (concept-current-resource-name))
-               (keyword  (concept-current-attribute))
-               (data     (concept-current-line)))
-           (kill-whole-line)
-           (concept-goto-current-resource)
-           (previous-line)
-           (end-of-line)
-           (newline)
-           (insert "@ " resource)
-           (newline)
-           (insert "| " keyword ":")
-           (newline)
-           (insert data)))))
+   ((concept-on-data-concept-line)
+    (concept-repeat-concept-as-focus))
+   ((and (concept-on-exposition-line)
+         (or (save-excursion
+               (forward-line)
+               (concept-on-exposition-line))
+             (save-excursion
+               (previous-line)
+               (concept-on-exposition-line))))
+    (let ((resource (concept-current-resource-name))
+          (keyword  (concept-current-attribute))
+          (data     (concept-current-line)))
+      (kill-whole-line)
+      (concept-goto-current-resource)
+      (previous-line)
+      (end-of-line)
+      (newline)
+      (insert "@ " resource)
+      (newline)
+      (insert "| " keyword ":")
+      (newline)
+      (insert data)))))
 
 (defun concept-insert-include-dwim (&optional prompt)
   "Do thing action which makes the most sense in the given concept editing situation.
@@ -7036,6 +7035,12 @@ This table is fairly convenient to work with from `igraph'."
                 (t (error "This should never get triggered!"))))
         (pop-to-buffer nbuf)))))
 
+(defun concept-map-export-to-gexf ()
+  (when (derived-mode-p 'concept-mode)
+    (concept-map-export-to-table)
+    (let ((buf (get-buffer "*concept-map-export*")))
+      (concept-table-export-to-gexf))))
+
 (defun concept-table-get--helper (field)
   (when (and (string= (buffer-name) "*concept-map-export*")
              (< 1 (line-number-at-pos (point))))
@@ -7085,8 +7090,8 @@ This table is fairly convenient to work with from `igraph'."
 "
   "Gephi GEXF template")
 
-(defun concept-table-export-to-gexp ()
-  "Export the relationship block data in the exported TSV table to GEXP."
+(defun concept-table-export-to-gexf ()
+  "Export the relationship block data in the exported TSV table to GEXF."
   (interactive)
   (when (string= (buffer-name) "*concept-map-export*")
     (goto-char (point-min))
@@ -7203,7 +7208,8 @@ If it doesn't parse, move the point to where the first failure is."
                (and "‘" unicode-contents "’"))
               (unicode-contents
                (substring (* (not (or "‘" "’" "\n")) (any)))))
-             (message "Successful Parse!")))
+             (message "Successful Parse!")
+             t))
     (peg-search-failed
      (goto-char (nth 1 error-signal))
      (user-error "Parse failed at point!"))))
@@ -7528,8 +7534,8 @@ A -> B -> C -> A"
 (define-key concept-mode-map (kbd "C-c e")       #'concept-edit-dwim)
 (define-key concept-mode-map (kbd "M-;")         #'concept-split-dwim)
 (define-key concept-mode-map (kbd "C-c M-;")     #'concept-swap-data-with-focus)
-(define-key concept-mode-map (kbd "C-M-;")       #'concept-data-split-dwim)
-(define-key concept-mode-map (kbd "C-;")         #'concept-isolate-dwim)
+(define-key concept-mode-map (kbd "C-;")         #'concept-data-split-dwim)
+(define-key concept-mode-map (kbd "C-M-;")       #'concept-isolate-dwim)
 (define-key concept-mode-map (kbd "C-c C-a")     #'concept-alphabetic-sort-dwim)
 (define-key concept-mode-map (kbd "C-c C-r")     #'concept-reverse-order-dwim)
 (define-key concept-mode-map (kbd "C-c M-r")     #'concept-randomize-dwim)
