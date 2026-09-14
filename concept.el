@@ -7262,21 +7262,85 @@ If it doesn't parse, move the point to where the first failure is."
   (when concept-map-network-is-stale
       'concept-mode-line-error-face))
 
-(defun concept-map-after-change (beg end _old-length)
-  "Mark the network stale when a relevant line changes."
-  (save-excursion
-    (goto-char beg)
-    (beginning-of-line)
-    (let ((finish (copy-marker end))
-          relevant)
-      (while (<= (point) finish)
-        (when (concept-in-relationship-block)
-          (setq relevant t))
-        (forward-line 1))
-      (set-marker finish nil)
-      (when relevant
-        (setq concept-map-network-is-stale t)
-        (force-mode-line-update t)))))
+(defun concept-map--buffer-changed-line-numbers ()
+  "Return exact current-buffer line numbers changed since SNAPSHOT."
+  (when (derived-mode-p 'concept-mode)
+    (let ((snapshot concept-map-buffer-snapshot-name))
+      (when (or (bufferp snapshot) (get-buffer snapshot))
+        (let* ((current (current-buffer))
+               (old-file (make-temp-file "concept-map-old-"))
+               (new-file (make-temp-file "concept-map-new-"))
+               diff-buffer
+               diff
+               line-numbers
+               (new-line 0))
+          (unwind-protect
+              (progn
+                ;; Write the snapshot buffer to a temporary file.
+                (with-current-buffer snapshot
+                  (write-region (point-min) (point-max)
+                                old-file nil 'silent))
+                ;; Write the current buffer to a temporary file.
+                (with-current-buffer current
+                  (write-region (point-min) (point-max)
+                                new-file nil 'silent))
+                ;; diff-no-select expects file names.
+                (setq diff-buffer
+                      (diff-no-select old-file new-file "-u" t))
+                (when diff-buffer
+                  (setq diff
+                        (with-current-buffer diff-buffer
+                          (buffer-string)))
+                  (kill-buffer diff-buffer))
+                (when diff
+                  (with-temp-buffer
+                    (insert diff)
+                    (goto-char (point-min))
+                    (while (not (eobp))
+                      (let ((diff-line
+                             (buffer-substring-no-properties
+                              (line-beginning-position)
+                              (line-end-position))))
+                        (cond
+                         ;; Hunk header: @@ -old,+new @@
+                         ((string-match
+                           "^@@ -[0-9]+\\(?:,[0-9]+\\)? \\+\\([0-9]+\\)"
+                           diff-line)
+                          (setq new-line
+                                (string-to-number
+                                 (match-string 1 diff-line))))
+                         ;; Added line.
+                         ((and (> (length diff-line) 0)
+                               (eq (aref diff-line 0) ?+)
+                               (not (string-prefix-p "+++" diff-line)))
+                          (push new-line line-numbers)
+                          (setq new-line (1+ new-line)))
+                         ;; Deleted line.
+                         ((and (> (length diff-line) 0)
+                               (eq (aref diff-line 0) ?-)
+                               (not (string-prefix-p "---" diff-line)))
+                          (push new-line line-numbers))
+                         ;; Unchanged context line.
+                         ((and (> (length diff-line) 0)
+                               (eq (aref diff-line 0) ?\s))
+                          (setq new-line (1+ new-line))))
+                        (forward-line 1)))))
+                (sort (delete-dups line-numbers) #'<))
+            ;; Always remove the temporary files.
+            (delete-file old-file)
+            (delete-file new-file)))))))
+
+(defun concept-map--relationship-block-changed-p ()
+  "Return non-nil if any changed block is a relationship block."
+  (let ((changed-lines
+         (concept-map--buffer-changed-line-numbers concept-map-buffer-snapshot-name)))
+    (save-excursion
+      (catch 'found
+        (dolist (line changed-lines)
+          (goto-char (point-min))
+          (forward-line (abs line))
+          (when (concept-in-relationship-block)
+            (throw 'found t)))))))
 
 (defvar-local concept-map--network-update-timer nil
   "Update the concept map network after buffer modifications and a bit of inactivity.")
@@ -7286,6 +7350,12 @@ If it doesn't parse, move the point to where the first failure is."
   "Seconds to wait during idle time before trying to update the concept map
 network graph hash table.")
 
+(defun concept-map--after-change (&rest _args)
+  "Mark the network stale when a relationship block has changed."
+  (when (concept-map--relationship-block-changed-p)
+    (setq concept-map-network-is-stale t)
+    (concept-map--schedule-network-update)))
+  
 (defun concept-map--schedule-network-update (&rest _args)
   "Schedule a network update after a period of user inactivity."
   (when (timerp concept-map--network-update-timer)
@@ -7324,7 +7394,7 @@ This variable is stored in `concept-map-network-graph'."
 (defun concept-mode-setup-network-updating ()
   "Enable automatic network updates for the current buffer."
   (add-hook 'after-change-functions
-            #'concept-map--schedule-network-update
+            #'concept-map--after-change
             nil
             t)
   (add-hook 'kill-buffer-hook
@@ -7343,6 +7413,21 @@ This variable is stored in `concept-map-network-graph'."
 (add-hook 'concept-mode-hook
           #'concept-mode-setup-network-updating)
 
+(defvar concept-map-buffer-snapshot-name
+  "*concept-map-snapshot*"
+  "Set the name of the snapshot buffer.")
+  
+(defun concept-map--take-buffer-snapshot (name)
+  "Take a snapshot of the current buffer."
+  (when (derived-mode-p 'concept-mode)
+    (let ((snap-buf (get-buffer-create name))
+          (map-buf  (current-buffer)))
+      (with-current-buffer snap-buf
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (insert-buffer-substring-no-properties map-buf))
+        (setq buffer-read-only t)))))
+  
 (defvar-local concept-map-network-relationship-regexp
     ".+"
   "Buffer local setting for picking the relationships added to the network
@@ -7381,6 +7466,7 @@ concepts and the values are list of concepts that are children of the key:
         (concept-goto-next-relationship))
       (setq-local concept-map-network-graph graph)
       (setq concept-map-network-is-stale nil)
+      (concept-map--take-buffer-snapshot concept-map-buffer-snapshot-name)
       (force-mode-line-update t)
       graph)))
 
