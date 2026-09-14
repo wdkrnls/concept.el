@@ -2053,7 +2053,7 @@ This largely operates below the current line."
                        (member "emacs-package" keys))
                   (concept-insert-keyword-block-after* "file-name"))
                  ((and (string= "emacs-package" key)
-                       (not (member "file-name")))
+                       (not (member "file-name" keys)))
                   (concept-insert-keyword-block-after* "file-name"))
                  ((and (string= "shell-command" key)
                        (not (member "prompt" keys)))
