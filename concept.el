@@ -3490,7 +3490,17 @@ block."
          (concept-goto-last-attribute))))
 
 (defun concept-current-delimiter ()
-  (when (concept-on-exposition-line)
+  "Detect the current delimiter.
+There are two cases to consider:
+
+1. well-formed exposition lines
+2. malformed exposition lines
+
+In both cases this procedure can detect the delimiter in useful situations."
+  (when (or (concept-on-exposition-line)
+            (and (concept-in-resource-block)
+                 (not (concept-on-attribute-line))
+                 (not (concept-on-resource-line))))
     (save-excursion
       (beginning-of-line)
       (re-search-forward "[^| ]")
@@ -4451,31 +4461,59 @@ simple."
 (defun concept-delete-leading-whitespace (beg end)
   "Remove whitespace before the usual starting tokens in a concept map."
   (interactive "r")
-  (replace-regexp-in-region "^[[:blank:]]+" "" beg end))
+  (when (derived-mode-p 'concept-mode)
+    (save-excursion
+      (replace-regexp-in-region "^[[:blank:]]+" "" beg end))))
 
 (defun concept-delete-leading-text (beg end)
   "Remove all text before the usual starting tokens in a concept map."
   (interactive "r")
-  (replace-regexp-in-region "^[^@~|]+" "" beg end))
+  (when (derived-mode-p 'concept-mode)
+    (save-excursion
+      (replace-regexp-in-region "^[^@~|]+" "" beg end))))
 
 (defun concept-squish-leading-whitespace ()
   "Squish away leading whitespace before the interesting content.
 There should only be one space there, not several."
-  (replace-regexp "^\\([|~@]\\) +" "\\1 "))
+  (when (derived-mode-p 'concept-mode)
+    (save-excursion
+      (beginning-of-buffer)
+      (replace-regexp "^\\([|~@]\\) +" "\\1 "))))
 
 (defun concept-insert-missing-leading-whitespace ()
   "Insert missing whitespace between the opening sigil and the interesting content."
-  (replace-regexp "^\\([|~@]\\)\\([^[:space:]]+\\)" "\\1 \\2"))
+  (when (derived-mode-p 'concept-mode)
+    (save-excursion
+      (beginning-of-buffer)
+      (replace-regexp "^\\([|~@]\\)\\([^[:space:]]+\\)" "\\1 \\2"))))
+
+(defun concept-on-malformed-exposition-line ()
+  (and (concept-in-resource-block)
+       (not (concept-on-resource-line))
+       (not (concept-on-attribute-line))
+       (concept-current-delimiter)))
+
+(defun concept-delete-trailing-text ()
+  "Remove trailing text from concept maps when feasible.
+This only affects resource blocks."
+  (when (derived-mode-p 'concept-mode)
+    (save-excursion
+      (beginning-of-buffer)
+      (replace-regexp "^| +\\([^][{}‘’:~ ]+:\\).+$" "| \\1")
+      (replace-regexp "}[^]’[:cntrl:]]+$" "}")
+      (replace-regexp "][^}’[:cntrl:]]+$" "]")
+      (replace-regexp "’[^]}[:cntrl:]]+$" "’"))))
 
 (defun concept-cleanup-map ()
   "Remove whitespace, blank lines, and fix common mistakes with resource blocks."
   (interactive)
+  (delete-blank-lines)  
   (delete-trailing-whitespace)
-  (delete-blank-lines)
   (concept-delete-leading-text (point-min) (point-max))
   (concept-squish-leading-whitespace)
   (concept-insert-missing-leading-whitespace)
-  (concept-fix-resource-blocks))
+  (concept-fix-resource-blocks)
+  (concept-delete-trailing-text))
 
 (defun concept--delq-nth (n list)
   "Destructively remove the nth item of a list
