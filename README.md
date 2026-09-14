@@ -249,7 +249,7 @@ When developing concepts, whether starting from a blank slate or from an already
 * isolate regions in blocks
 * combine regions in blocks
 
-Our first attempt tried to mirror slurp and barf from the `paredit` package. Those commands are still availble, but their practical use turned out to be neglible. Compared to `paredit`, `concept.el` is a lot more forgiving of unexpected behavior. You can ignore all of it's features without turning it off and edit concept maps the old fashioned way if you forget something. These are by far the most common keybindings you will be pressing if you are open to opt-in to the data editing philosophy of `concept.el`.
+The primary keybindings for editing concept maps are clustered on the right side of the keyboard on `o`, `;`, `.`,`[`, and `]`, with combinations of `C-`, `M-`, and `C-M-` performing different variations of the core editing tasks.
 
 ## Making abstract ideas concrete with resource blocks
 
