@@ -7024,8 +7024,7 @@ resource line."
          (concept-edit-resource))
         ((concept-on-attribute-line)
          (forward-line)
-         (beginning-of-line)
-         (re-search-forward "[^| ]" (line-end-position) t))))
+         (concept-edit-exposition))))
 
 (defun concept-edit-dwim (arg)
   "Edit the thing I want to edit relevant to the current point."
