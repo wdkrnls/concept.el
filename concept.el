@@ -107,6 +107,7 @@
 (require 'mailcap)
 (require 'xml)
 (require 'eww)
+(require 'easymenu)
 (require 'ansi-color)
 (require 'url-parse)
 (require 'url-util)
@@ -758,6 +759,75 @@ list, and the empty string if no nonempty substring is shared."
   "Keymap for `concept-mode'.
 It provides bindings for quickly navigating concepts and examples.")
 
+(defvar concept-mode-line-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mode-line mouse-3] #'concept-mode-popup-menu)
+    (define-key map [mode-line mouse-1] #'concept-map-update-network)
+    map))
+
+(easy-menu-define concept-mode-menu concept-mode-map
+  "Menu for `concept-mode'."
+  '("Network"
+    ["Dependency Cycles" concept-map-find-network-cycle
+     :help "Check for dependency cycles in the concept map network."]
+    ["Find Path" concept-map-find-network-path
+     :help "Find path (if it exists) between START and GOAL."]
+    ["Parse Map" concept-map-check-parse
+     :help "Check for syntax mistakes in map."]
+    ["Update Network" concept-map-update-network
+     :help "Force the current state of the buffer to sync with the graph representation."]
+    "---"
+    ["Export To Table" concept-map-export-to-table
+     :help "Export the whole concept map to a TSV buffer."]
+    ["Export To GEXF" concept-map-export-to-gexf
+     :help "Export the concept map to GEXF format."]))
+
+(defvar concept-mode-popup-menu
+  (let ((map (make-sparse-keymap "Concept Pop-up Mode")))
+    (define-key map [find-cycle]
+                '(menu-item "Detect Cycles" concept-map-find-network-cycle))
+    (define-key map [find-path]
+      '(menu-item "Path Lookup" concept-map-find-network-path))
+    (define-key map [separator-1]
+      '(menu-item "--"))
+    (define-key map [check-parse]
+      '(menu-item "Parse Buffer" concept-map-check-parse))
+    map))
+
+(defun concept-mode-popup-menu (event)
+  "Display the concept mode menu."
+  (interactive "e")
+  (popup-menu concept-mode-popup-menu event))
+
+(defvar concept-mode-line-entry
+  '(:eval
+    (propertize
+     "CONCEPT"
+     'face (concept-mode-line-face)
+     'mouse-face 'mode-line-highlight
+     'help-echo "Left-click to update; right-click for Concept commands"
+     'keymap concept-mode-line-map)))
+
+(defun concept-mode-context-menu (menu click)
+  "Populate MENU with concept map editing commands at CLICK."
+  (when (thing-at-mouse click 'word)
+    (define-key-after menu [select-region mark-word]
+      `(menu-item ""
+                  ,(lambda (e) (interactive "e") (mark-thing-at-mouse e 'word))
+                  :help "Mark the word at click for a subsequent cut/copy")
+      'mark-whole-buffer))
+  (define-key-after menu [select-region mark-sentence]
+    `(menu-item "Sentence"
+                ,(lambda (e) (interactive "e") (mark-thing-at-mouse e 'sentence))
+                :help "Mark the sentence at click for a subsequent cut/copy")
+    'mark-whole-buffer)
+  (define-key-after menu [select-region mark-paragraph]
+    `(menu-item "Paragraph"
+                ,(lambda (e) (interactive "e") (mark-thing-at-mouse e 'paragraph))
+                :help "Mark the paragraph at click for a subsequent cut/copy")
+    'mark-whole-buffer)
+  menu)
+
 (define-derived-mode concept-mode text-mode "CONCEPT"
   "Major mode for CONCEPT buffers."
   :keymap concept-mode-map
@@ -777,6 +847,16 @@ It provides bindings for quickly navigating concepts and examples.")
         '((imenu (display-sort-function . nil))
           (styles . basic)))
   (run-mode-hooks 'concept-mode-hook)
+  ;; Add directly to the complete mode line.
+  (setq-local minor-mode-alist
+            (copy-tree minor-mode-alist))
+  (dolist (mode '(org-table-mode auto-revert-tail-mode hide-ifdef-mode auto-fill-mode))
+    (setq minor-mode-alist
+          (assq-delete-all mode minor-mode-alist)))
+  (setq-local mode-name concept-mode-line-entry)
+  ;; (setq-local mode-line-format
+  ;;             (append mode-line-format
+  ;;                     (list concept-mode-line-entry)))
   (setq-local font-lock-defaults '(concept-mode-font-lock-keywords)))
 
 (add-to-list 'auto-mode-alist '("\\.map\\'" . concept-mode))
@@ -7128,6 +7208,37 @@ If it doesn't parse, move the point to where the first failure is."
      (goto-char (nth 1 error-signal))
      (user-error "Parse failed at point!"))))
 
+(defvar-local concept-map-network-is-stale
+    nil
+  "Declare the network to be stale once there have been saved changes in the buffer.")
+
+(defface concept-mode-line-error-face
+  '((t (:inherit (mode-line error)
+        :inverse-video t
+        :weight bold)))
+  "Face for a stale Concept network.")
+
+(defun concept-mode-line-face ()
+  "Change the face of the mode line depending on whether the network is up-to-date."
+  (when concept-map-network-is-stale
+      'concept-mode-line-error-face))
+
+(defun concept-map-after-change (beg end _old-length)
+  "Mark the network stale when a relevant line changes."
+  (save-excursion
+    (goto-char beg)
+    (beginning-of-line)
+    (let ((finish (copy-marker end))
+          relevant)
+      (while (<= (point) finish)
+        (when (concept-in-relationship-block)
+          (setq relevant t))
+        (forward-line 1))
+      (set-marker finish nil)
+      (when relevant
+        (setq concept-map-network-is-stale t)
+        (force-mode-line-update t)))))
+
 (defvar-local concept-map--network-update-timer nil
   "Update the concept map network after buffer modifications and a bit of inactivity.")
 
@@ -7213,6 +7324,7 @@ concepts and the values are list of concepts that are children of the key:
    (bar . (baz))
    (baz . ()))
 "
+  (interactive)
   (unless (derived-mode-p 'concept-mode)
     (user-error "This only works inside of a concept-mode buffer holding a valid concept map!"))
   (when (null relationship-regexp)
@@ -7229,6 +7341,8 @@ concepts and the values are list of concepts that are children of the key:
               (puthash parent (delete-dups (append (gethash parent graph) children)) graph))))
         (concept-goto-next-relationship))
       (setq-local concept-map-network-graph graph)
+      (setq concept-map-network-is-stale nil)
+      (force-mode-line-update t)
       graph)))
 
 (defun concept-map-network-reachable-p (start goal)
