@@ -7332,6 +7332,8 @@ If it doesn't parse, move the point to where the first failure is."
 
 (defun concept-map--relationship-block-changed-p ()
   "Return non-nil if any changed block is a relationship block."
+  (unless (get-buffer concept-map-buffer-snapshot-name)
+    (concept-map-update-network))
   (let ((changed-lines
          (concept-map--buffer-changed-line-numbers concept-map-buffer-snapshot-name)))
     (save-excursion
