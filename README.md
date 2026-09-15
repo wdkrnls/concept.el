@@ -154,7 +154,8 @@ These editing tools include:
 * a search interface and query language provided through `consult`
 * a minibuffer-based editing interface which provides data validation
 * data "following" tools which help the user ensure the map is meaningful by grounding it in concrete resources
-* an automatically updated network graph representation of the concept map holding all the conceptual relationships stored in the relationship block portions of the buffer
+* an automatically synchronized network graph representation of the concept map holding all the conceptual relationships stored in the relationship block portions of the buffer
+* a suite of local network analysis tools useful for refining concept maps to make them more comprehensive
 
 Together they make it feasible to productively develop and explore concept maps with hundreds of thousands of concepts and even more relationships within them.
 
@@ -473,42 +474,17 @@ Execute `C-c C-v` to check whether your concept map conforms to the expected con
 Once the concept map parses successfully, searching should be guaranteed to work as intended and you should be able to run M-x `concept-map-export-to-table` or press `C-c C-t` to construct a tab-separated table which you can save to disk and then load into another tool like the `conceptuel` package in R. You can also take the generated preliminary exported table buffer `*concept-map-export*` and run M-x `concept-table-export-to-gexp` which will produce a `*relationship-export-gexf*` buffer which can be saved as a GEXF (XML) file and then loaded into the Gephi interactive network analysis program. However, note that currently only the concept map part of the network survives in this step. None of the resource block data is saved in the GEXF file as of yet. Further note that creating the GEXF export can be rather time consuming for large concept maps. Expect it to take a minute or two.
 
 ## Future Plans and Related Projects
+### Tools for interactively sorting and resorting concept maps
 
-I am still working towards finishing the bubble sort implementation of the full alphabetic sort. It seems like it's getting stuck in the last idea of the concept map. I need to explore debugging that.
+There are two sorting systems in more or less parallel development for use in probing concept maps: the slow O(n²) partial sorting system and the efficient O[n⋅log(n)] heap-based sorting system. The partial sorting system was developed first since it could be implemented with only the ability to swap two adjacent elements. That functionality was available for ideas via tools provided by the built-in outline minor mode. However, as you can imagine it is quite slow for larger maps. From the tests that we have done so far, tens of millions of swaps can be needed for moderately sized concept maps. At that point, our infrastructure for analyzing concept maps was much less mature than what we have now. 
 
-I have also created a first implementation of a heapsort algorithm for sorting ideas. I have made one successful sort of a fairly large concept map greater than 14,000 lines. I will investigate this path forward further to see if I can get any easy speedups.
+However, after we implemented randomization tools, it became possible to make arbitrary exchanges of elements throughout the buffer. This allowed us to create an implementation of a heapsort algorithm for sorting ideas. We have so far made one successful sort of a fairly large concept map greater than 14,000 lines in under 20 minutes, although we haven't done in-depth timing studies yet.  We will investigate this path forward further to see if I can get any easy speedups.
 
-It would be really nice if the *follow* interface made such information clickable with the mouse and underlined to distinguish it from other pieces of attribute data which cannot be. This would provide a handy visual cue which would help new users better grasp the possibilities of the follow system. I've worked with clickable links in the past and have noticed they can really slow things down when applied to whole buffer. The trick then seems to be to restrict the clickable links to the visible region and recompute as that region changes. It should be something like:
+To be honest, we have not pushed hard enough on the built-in sorting functionality like `sort-lines` and it's underlying `sort-subr` interface. We only just discovered the latter. It may be the fastest way of sorting everything we need. It will be interesting to compare it's performance with our heap-sort implementation for sorting ideas in large concept maps. We hope to find an approach which takes under a minute or ideally only a few seconds.
 
-```
-  (add-text-properties
-     beg end
-     `(keymap ,map
-       mouse-face highlight
-       help-echo "Click or press `C-c f'"
-       action concept-follow-dwim
-       follow-link t))))
-```
+We are still working towards finalizing the partial (bubble) sort implementation of the full alphabetic sort system. It seems like it's getting stuck in the last idea of the concept map. We need to take some time to debug that.
 
-I have some notes on this problem and hope to get to it eventually after I have managed to fix the main system.
-
-We're working towards having a reliable and scalable background process which keeps an up-to-date graph representation of the concept map in memory and available for performing basic network analysis operations on command. These operations include utilities for detecting network dependency cycles and finding paths connecting two concepts. These are quite helpful features for performing red face tests against complex concept maps.
-
-Of course, Emacs cannot do everything here and exploring more advanced possibilities for analyzing concept maps via network analysis is where we aim to focus our time with the conceptuel R package. However, that doesn't rule out implementing an Emacs subsystem for exposing network analysis tools for concept maps developed in R particularly convenient for Emacs users.
-
-Our Emacs-based network analysis interface is currently buggy, incomplete, and not very scalable. It's buggy because we started building a hook-based timer system to keep the graph up-to-date with changes in the buffer. As far as we can tell, this system is completely non-functional. If it did work, it is not at all scalable and we fear even trying it on our larger concept maps. We expect that what is really needed is for a buffer overlay system which partitions the concept map into different compartments each holding it's own sub-graph hash table. We heard that the `after-change-functions` provides buffer region information about changes similar to what the undo system provides. If an overlay compartment overlaps with the buffer change, then that overlap compartment should be recomputed. Then, the overall network should be regenerated from all of the separate overlay hash tables. This way will hopefully avoid expensive network regeneration operations for large concept maps. Of course, we will first try to get the basic naive system working and run some tests on it with our larger concept maps.
-
-For what is functional, the few network analysis tools we have do seem to work. However, they are incomplete in that it really should be convenient for the user to recompute the graph of the concept map on command when the user decides that a new set of relationships and concepts should be excluded. Ideally, there will be two buffer-local variables which pick custom functions, exclusion lists, or regular expressions for readily filtering what data makes it into the constructed graph. The timer system (or something else) should be smart enough to detect a change in these variables and immediately recompute the entire graph. Another global variable might be useful for giving the user the option of propagating these filters to the data table export functionality as well.
-
-There are still some bugs to clear up with the query language. In particular, it would be nice to allow general regular expression searches. However, at the moment this is impossible since regular expressions are already used to implement the existing search tools. Regular expressions that match regular expressions are a bit too tricky for the current implementation to handle. However, note that `^` and `$` anchors are allowed. A more sophisticated method would be required. Whatever the implementation and feature set of the search functionality, It would be nice to have an exhaustive test suite implemented which checks that basic searches work as intended.
-
-A companion package very useful for editing concept maps in `concept.el` is the `tempel` snippet template editor. However, it's emphasis on determining the available templates based on only the major-mode is too cumbersome for the needs of writing concept maps. A concept map about math benefits from templates around a specific math textbook, but a concept map about architectural design techniques does not! In the future, I want to propose a patch to that tool which enables it to automatically recognize project-specific templates.
-
-In the future it would be nice to have the facilities for users to add their own following interfaces without having to fork the package. At the very least, the existing procedures should become more modular instead of the sprawling nested cond-forms that currently exist. We foresee the possibility of having an add-on-package just as snippets packages like `yasnippet` and `tempel` do.
-
-In the future it would be nice if this dependency on `consult.el` could be made optional. The problem is that I just don't see how to effectively explore a large concept map without it's interactive preview features. The next level nature of editing capability consult provides over the core Emacs features is very impressive! The closest thing I've found to it is the "Auto Occurrence Display" feature in M-x `occur`. However, to be equivalent occur would need an interface which swaps out the search interface.
-
-One way a programmer might think of a concept map (as imagined in `concept.el`) is as a language grammar. Or. The package could use some tools which probe the implicit conceptual relationships and help make them into explicit conceptual relationships. However, such a feature might be better served by `conceptuel`, an R package which takes as input the tabular output generated by `concept-map-export-to-table`. That R package will also focus on providing tools for extracting conceptual data from paragraphs of text. Emacs just doesn't have the text analysis tools for that use case.
+### Tools for setting up canonical sorting schemes for concept maps
 
 Concept maps should be meaningful to many people, not just their creators. To make that a reality, `concept.el` should gain features which make it easier to merge two concept maps together. One possible way this could be done is through achieving a canonical ordering of ideas based on their subjects and possibly their length. Some code to this effect has already been included, but it is not completely functional. However, it's shaping up to look like there will be interactive commands for sorting, reversing, and randomizing the order of all meaningful elements inside of concept maps. When it comes to sorting, currently we are aiming for alphabetic sorting to start. However, it seems like a good idea to aim for a fully custom canonical sorting system with the possibility to enable the user to provide one or more custom sorting methods as well so that what is canonical can be chosen by what makes sense for the research application. For example, alphabetic sorting doesn't make much sense for attribute group keywords. I have noticed that I frequently create FAQ style resource blocks and I am not particularly interested in reading ones like:
 
@@ -530,6 +506,74 @@ Another interesting pair of orderings looks at the length of the elements themse
 ;; Longest to shortest with alphabetical tie breaker
 (sort (list "z" "az") (lambda (a b) (let ((A (length a)) (B (length b))) (or (< B A) (if (eq A B) (string< b a))))))
 ```
+
+### Followable information
+
+It would be really nice if the *follow* interface made such information clickable with the mouse and underlined to distinguish it from other pieces of attribute data which cannot be. This would provide a handy visual cue which would help new users better grasp the possibilities of the follow system. I've worked with clickable links in the past and have noticed they can really slow things down when applied to whole buffer. The trick then seems to be to restrict the clickable links to the visible region and recompute as that region changes. It should be something like:
+
+```
+  (add-text-properties
+     beg end
+     `(keymap ,map
+       mouse-face highlight
+       help-echo "Click or press `C-c f'"
+       action concept-follow-dwim
+       follow-link t))))
+```
+
+We have some notes on this problem and hope to get to it eventually after we have managed to bring up the main system. We also discovered that there is a built-in minor mode for making URLs clickable. We might build on top of that minor mode to make it recognize file paths as well.
+
+We are also working on integrating the Emacs calendar and diary features into the following system. However, there is a trick to getting fancy views of custom diaries we haven't found yet.
+
+In the future we would like to add similar integration for the R/ESS system that we have for Emacs Lisp including session support if possible.
+
+### Network analysis
+
+We're working towards having a reliable and scalable background process which keeps an up-to-date graph representation (implemented as a hash table) of the concept map in memory and available for performing basic network analysis operations on command. These operations include utilities for detecting network dependency cycles and finding paths linking two concepts. We have also implemented procedures for finding hypernyms and hyponyms. 
+
+Hypernyms are the most general subsuming concepts, while hyponyms are the most specific subsumed ones. We plan to extend these tools with variants which see all root hypernyms and all leaf hyponyms (or those at the top k) inside of tabulated-list buffers sorted by their depths relative to a starting concept, and resortable given the tools provided by tabulated-list mode. 
+
+Being able to see all immediately subsuming or subsumed concepts at a glance from a particular starting concept is already feasible via the consult-based search interface, but it may also be interesting to find them automatically from the network and place them into a similar tabulated list buffer. We can imagine there are many such opportunities for leveraging a tabulated-list mode buffer. Thus we expect to make frequent use of them.
+
+Finding the most novel concepts in a concept map can suggest areas to focus on if possibly only to move those concepts to a different map. We might gauge the relative novelty of a concept according to the depth of its deepest hypernym. More novel concepts will have shallower depths, while more derivative concepts will have deeper ones. 
+
+We can scan the network to find the top k concepts with the smallest hypernym depths. Similarly, we might scan the network to find the top k concepts with the largest hypernym depths in order to find the more established concepts in the concept map. Another gauge of isolation is the total number of hypernyms. The fewer hypernyms a concept has, the more isolated it is. Remeber, in Ausibel's theory, learning is the process of connecting what you don't know to what you do. So, counting hypernyms seems a pretty intuitive measure of learning from that perspective.
+
+Similarly, the more hyponyms a concept has and the deeper those hyponyms are, the more fundamental that concept is to the concept map. So, it can be quite interesting to see at a glance the top k concepts which have the largest number of hyponyms or the greatest depths to their most distant hyponyms. We imagine that most concept maps will have something akin to a power law when it comes to their metrics with a relatively few number of very fundamental concepts and large number of concepts with almost no hyponyms whatsoever.
+
+In addition to studying a concept map in terms of hypernyms and hyponyms, it's interesting to pick two concepts and find their latest common subsumer (LCS): a metric analogous to the least common multiple in discrete arithmetic. Concepts might be judged more closely related to each other the lower the depth of their shared LCS is.
+
+Finding a concept's widest branching subsumer(s) is another interesting procedure from concept map analysis. It is interest to see both the widest, and the top k widest branching subsumers. Thus, this tool will also deserve an associated tabulated-list buffer. Studying these subsumers can give a learner a sense of how the current concept relates to the overall concept map.
+
+These network analysis tools discussed above should be quite helpful to learners who seek to take their concept maps to the next level of comprehensiveness and refinement. Of course, Emacs cannot do everything here and exploring more advanced possibilities for analyzing concept maps via more advanced network analysis algorithms is where we aim to focus our time with the conceptuel R package. However, that doesn't rule out implementing an Emacs subsystem for exposing network analysis tools for concept maps developed in R particularly convenient for Emacs users.
+
+Our Emacs-based network analysis interface is currently pretty fresh, largely incomplete, and not as scalable as it probably needs to be in practice. We expect that what is really needed for scalability is a comprensive network updating system which minimizes the amount of computation which must be done to keep the hash table in-sync for small changes to the buffer, while always correctly recognizing when changes to the buffer are so extensive that a full recomputation is warrented. We imagine that this will look something like what we have now, but with a smarter snapshot diff system. This system probably can distinguish line deletions (-) from additions (+) or modifications (*) and can tell whether the change concerned a data concept, a relationship, or a focus concept. The final scalable system should keep track of not only child data concepts and their counts relative to a parent concept, but also to the number of instances of the parent concepts as well and based on what the diff can incrementally modify the master hash table. This should only be attempted will the changes are small. With larger changes spanning multiple lines at once should trigger a full re-parse of the concept map buffer.
+
+For what is functional, the few network analysis tools we have do seem to work. However, they are incomplete in that we really need to develop and integrate the planned tabulated-list mode query views. Another core piece of functionality missing from the network analysis tools is the ability to recompute the network only the fly after optionally excluding relationships where user-supplied predicates are triggered based on either their relationships or their containing concepts. Ideally, there will be two buffer-local variables which pick either custom functions, custom inclusion/exclusion lists, or regular expressions for readily filtering what data makes it into the constructed network graph. Maybe we need a third variable to decide whether those variables should be treated as inclusive or exclusive? 
+
+The network updating (or something else) should be smart enough to detect a change in these global variables as well and immediately recompute the entire network when they change. Another global variable might be useful for giving the user the option of propagating these filters to the data table export functionality as well. One concept map might really contain several smaller but still self-contained concept maps mixed together, and these submaps might be interesting to study by themselves.
+
+### Searching for ideas and resources
+
+There are still some bugs to clear up with the query language. In particular, it would be nice to allow general regular expression searches. However, at the moment this is impossible since regular expressions are already used to implement the existing search tools. Regular expressions that match regular expressions are a bit too tricky for the current implementation to handle. However, note that `^` and `$` anchors are allowed. A more sophisticated method would be required. Whatever the implementation and feature set of the search functionality, It would be nice to have an exhaustive test suite implemented which checks that basic searches work as intended.
+
+In the future it would be nice if this dependency on `consult.el` could be made optional. The problem is that I just don't see how to effectively explore a large concept map without it's interactive preview features. The next level nature of editing capability consult provides over the core Emacs features is very impressive! The closest thing I've found to it is the "Auto Occurrence Display" feature in M-x `occur`. However, to be equivalent occur would need an interface which swaps out the search interface.
+
+### Efficiently entering and reusing resources
+
+Our working philosophy for working with resources is to be as verbose as needed to make the `follow` interface work. This has involved reusing the same kinds of resource blocks over and over. We have tools for that already, but they are mainly useful for copying existing resource blocks.
+
+A companion package to `concept.el` which is very useful for editing concept maps is the `tempel` package for making "snippet" templates. However, it's default emphasis on determining the available templates in a buffer based on only the major-mode is too cumbersome for our needs when writing concept maps. A concept map about math benefits from templates around a specific math textbook, but a concept map about architectural design techniques does not! In the future, we want to provide tools for setting up a directory-local templates file which will automatically load those in the relevant directories, just as it currently works for the main global templates files. Perhaps this work will result in a pull request to the tempel package that gives easily setup for automatically recognized project-specific templates to everyone.
+
+### User-specific customizations
+
+We have developed concept maps based on our own preferences. As a result some functions like `repeat-dwim` contain sprawling nested conditional blocks. In the future it would be nice to factor out these facilities so that users could easily mix and match their own custom cond blocks with the tools provided out of the box. It would be cool to grow an concept-map-editing-collections package with a variety of styles so that users don't have to fork the `concept.el` package to get the behavior they want for quickly editing their own concept maps. We foresee the possibility of having an add-on-package just as snippets packages like `yasnippet` and `tempel` do. At the very least, the existing procedures should become more modular instead of the sprawling nested cond-forms and verb to verb dependencies that currently exist.
+
+### Automatically ingesting ideas from learning materials
+
+One way a programmer might think of a concept map (as imagined in `concept.el`) is as a language grammar. Or. The package could use some tools which probe the implicit conceptual relationships and help make them into explicit ones. However, such a feature might be better served by `conceptuel`, an R package which takes as input the tabular output generated by `concept-map-export-to-table`. That R package will also focus on providing tools for extracting conceptual data from paragraphs of text. Emacs just doesn't have the text analysis tools for that use case.
+
+### Tools for working with concepts themselves
 
 Thinking about names in a standard way would really help with merging two different concept maps as well. So, in the future we hope to provide tools for parsing concepts in terms of the `{classification|core|definition}` framework discussed earlier. One challenge we have frequently seen is that concept names start getting longer and longer the more we work with concept maps. Tasteful categorization can help, but, e.g., when dealing with documenting useful elisp functions, it become useful to make some shorthand summarizations for brevity. These can challenge the power of these tools, but there may be useful conventions which can overcome these issues.
 
