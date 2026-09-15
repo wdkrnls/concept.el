@@ -4233,10 +4233,12 @@ can think of this as analogous to how C-. and M-. work."
     (kill-line)
     (insert focus)))
 
-(defun concept-isolate-dwim ()
+(defun concept-isolate-dwim (arg)
   "Isolate the current thing into it's own block."
-  (interactive)
+  (interactive "p")
   (cond
+   ((eq arg 4)
+    (concept-repeat-current-block))
    ((concept-on-relationship-line)
     (concept-isolate-each-concept-in-relationship-group))
    ((or (concept-on-focus-line)
