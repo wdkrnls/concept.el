@@ -2354,6 +2354,7 @@ A resource line starts with an `@' symbol."
   (or
    (concept-on-focus-line)
    (save-excursion
+     (end-of-line)
      (re-search-backward "^[~@]")
      (concept-on-focus-line))))
 
