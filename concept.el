@@ -7161,7 +7161,6 @@ This table is fairly convenient to work with from `igraph'."
     (keep-lines "	relationship	" (line-beginning-position) (point-max))
     (let* ((n 0)
            (e 0)
-           (tbuf  (buffer-name))
            (gbuf (get-buffer-create "*relationship-export-gexf*"))
            (nodes (make-hash-table :test #'equal))
            (make-node
