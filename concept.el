@@ -7698,6 +7698,21 @@ This variable is stored in `concept-map-network-graph'."
   "Variable that holds a reference to the snapshot buffer associated with
 each concept map.")
 
+(defvar concept-map-snapshot-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "q") #'quit-window)
+    map)
+  "Keymap for concept map snapshot buffers.")
+
+(define-derived-mode concept-map-snapshot-mode special-mode
+  "SNAPSHOT"
+  "Mode for viewing a concept map snapshot buffer.")
+
+(defun concept-map-snapshot-buffer ()
+  "Open the corresponding snapshot buffer."
+  (interactive)
+  (switch-to-buffer concept-map-snapshot-buffer))
+
 (defun concept-map--take-buffer-snapshot ()
   "Take a snapshot of the current buffer."
   (when (derived-mode-p 'concept-mode)
@@ -7707,12 +7722,13 @@ each concept map.")
               (generate-new-buffer
                (format
                 (concat "*" concept-map-buffer-snapshot-name ":%s*")
-                (buffer-name map-buf)))))
+                (buffer-name map-buf))))
+        (with-current-buffer concept-map-snapshot-buffer
+          (concept-map-snapshot-mode)))
       (with-current-buffer concept-map-snapshot-buffer
         (let ((inhibit-read-only t))
           (erase-buffer)
-          (insert-buffer-substring-no-properties map-buf))
-        (setq buffer-read-only t)))))
+          (insert-buffer-substring-no-properties map-buf))))))
   
 (defvar-local concept-map-network-relationship-regexp
     ".+"
