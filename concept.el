@@ -7690,15 +7690,25 @@ This variable is stored in `concept-map-network-graph'."
           #'concept-mode-setup-network-updating)
 
 (defvar concept-map-buffer-snapshot-name
-  "*concept-map-snapshot*"
+  "concept-map-snapshot"
   "Set the name of the snapshot buffer.")
-  
-(defun concept-map--take-buffer-snapshot (name)
+
+(defvar-local concept-map-snapshot-buffer
+  nil
+  "Variable that holds a reference to the snapshot buffer associated with
+each concept map.")
+
+(defun concept-map--take-buffer-snapshot ()
   "Take a snapshot of the current buffer."
   (when (derived-mode-p 'concept-mode)
-    (let ((snap-buf (get-buffer-create name))
-          (map-buf  (current-buffer)))
-      (with-current-buffer snap-buf
+    (let ((map-buf (current-buffer)))
+      (unless (buffer-live-p concept-map-snapshot-buffer)
+        (setq concept-map-snapshot-buffer
+              (generate-new-buffer
+               (format
+                (concat "*" concept-map-buffer-snapshot-name ":%s*")
+                (buffer-name map-buf)))))
+      (with-current-buffer concept-map-snapshot-buffer
         (let ((inhibit-read-only t))
           (erase-buffer)
           (insert-buffer-substring-no-properties map-buf))
@@ -7742,7 +7752,7 @@ concepts and the values are list of concepts that are children of the key:
         (concept-goto-next-relationship))
       (setq-local concept-map-network-graph graph)
       (setq concept-map-network-is-stale nil)
-      (concept-map--take-buffer-snapshot concept-map-buffer-snapshot-name)
+      (concept-map--take-buffer-snapshot)
       (force-mode-line-update t)
       graph)))
 
