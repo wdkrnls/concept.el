@@ -7277,7 +7277,27 @@ If it doesn't parse, move the point to where the first failure is."
 
 (defvar-local concept-map-network-is-stale
     nil
-  "Declare the network to be stale once there have been saved changes in the buffer.")
+  "Declare the network to be stale.
+The default intended behavior is that once there have been changes to
+the buffer, check whether those changes concern relationship blocks. If
+they do, then update the network hash table.
+
+If there have been complex changes to the buffer, then remake the whole
+network hash table from scratch. A complex change could be as simple as
+making an addition and a deletion or it could involve making additions
+to more than one relationship block. It will depend on how reliably we
+can detect the relationship blocks. Deleting a single line or even a set
+of contiguously ordered lines might not be a complex change as long as
+those lines share a single relationship block.
+
+If only a few additions were made on data lines inside of relationship
+blocks, then add those concepts to the existing hash table incrementing
+their child counts for each relevant parent. If a single deletion or a
+set of contiguous deletions all within a shared relationship block and
+all concerning data concepts was made, then peruse the child concept
+count associated with the parent concept key of that relationship block
+and decrement them. If a child concept count was originally 1, then
+remove that child concept from the value list and set it to `nil' or 0.")
 
 (defvar-local concept-map-should-update-stale-network
     t
