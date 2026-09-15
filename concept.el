@@ -7279,6 +7279,11 @@ If it doesn't parse, move the point to where the first failure is."
     nil
   "Declare the network to be stale once there have been saved changes in the buffer.")
 
+(defvar-local concept-map-should-update-stale-network
+    t
+  "Declare that stale networks should be updated.
+Setting this variable to `nil' can be useful for debugging.")
+
 (defface concept-mode-line-error-face
   '((t (:inherit (mode-line error)
         :inverse-video t
@@ -7371,7 +7376,8 @@ If it doesn't parse, move the point to where the first failure is."
               (when (concept-in-relationship-block)
                 (throw 'found t))))))
     (setq concept-map-network-is-stale t)
-    (concept-map-update-network)
+    (when concept-map-should-update-stale-network
+      (concept-map-update-network))
     nil))
 
 (defvar-local concept-map--network-update-timer nil
@@ -7386,7 +7392,8 @@ network graph hash table.")
   "Mark the network stale when a relationship block has changed."
   (when (concept-map--relationship-block-changed-p)
     (setq concept-map-network-is-stale t)
-    (concept-map--schedule-network-update)))
+    (when concept-map-should-update-stale-network
+      (concept-map--schedule-network-update))))
   
 (defun concept-map--schedule-network-update (&rest _args)
   "Schedule a network update after a period of user inactivity."
@@ -7411,7 +7418,8 @@ This variable is stored in `concept-map-network-graph'."
       (concept-map--debug "Skipped update: buffer no longer exists")
     (with-current-buffer buffer
       (setq concept-map--network-update-timer nil)
-      (when (derived-mode-p 'concept-mode)
+      (when (and (derived-mode-p 'concept-mode)
+                 concept-map-should-update-stale-network)
          (concept-map--debug
           "Running concept-map-update-network in %s"
           (buffer-name))
@@ -7425,7 +7433,8 @@ This variable is stored in `concept-map-network-graph'."
 
 (defun concept-mode-setup-network-updating ()
   "Enable automatic network updates for the current buffer."
-  (concept-map-update-network)
+  (when concept-map-should-update-stale-network
+    (concept-map-update-network))
   (add-hook 'after-change-functions
             #'concept-map--after-change
             nil
