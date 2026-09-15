@@ -529,7 +529,7 @@ In the future we would like to add similar integration for the R/ESS system that
 
 ### Network analysis
 
-We're working towards having a reliable and scalable background process which keeps an up-to-date graph representation (implemented as a hash table) of the concept map in memory and available for performing basic network analysis operations on command. These operations include utilities for detecting network dependency cycles and finding paths linking two concepts. We have also implemented procedures for finding hypernyms and hyponyms. 
+We're working towards having a reliable and scalable background process which keeps an up-to-date graph representation (implemented as a hash table) of the concept map in memory and available for performing basic network analysis operations on command. These operations include facilities for detecting network dependency cycles and finding paths linking two concepts. We have also implemented procedures for finding hypernyms and hyponyms. 
 
 Hypernyms are the most general subsuming concepts, while hyponyms are the most specific subsumed ones. We plan to extend these tools with variants which see all root hypernyms and all leaf hyponyms (or those at the top k) inside of tabulated-list buffers sorted by their depths relative to a starting concept, and resortable given the tools provided by tabulated-list mode. 
 
