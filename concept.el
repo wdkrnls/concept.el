@@ -7402,6 +7402,7 @@ This variable is stored in `concept-map-network-graph'."
 
 (defun concept-mode-setup-network-updating ()
   "Enable automatic network updates for the current buffer."
+  (concept-map-update-network)
   (add-hook 'after-change-functions
             #'concept-map--after-change
             nil
