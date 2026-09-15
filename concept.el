@@ -787,6 +787,10 @@ It provides bindings for quickly navigating concepts and examples.")
   '("Network"
     ["Dependency Cycles" concept-map-find-network-cycle
      :help "Check for dependency cycles in the concept map network."]
+    ["Find Hypernym" concept-map-find-network-hypernym
+     :help "Find the most general ancestor concept of starting CONCEPT."]
+    ["Find Hyponym" concept-map-find-network-hyponym
+     :help "Find the most specific descendant concept of starting CONCEPT."]
     ["Find Path" concept-map-find-network-path
      :help "Find path (if it exists) between START and GOAL."]
     ["Parse Map" concept-map-check-parse
@@ -2651,10 +2655,9 @@ Sort these names in order of usage frequency."
 
 (defun concept-current-focus ()
   "Get the current focus concept as a string."
-  (when (concept-in-relationship-block)
-    (save-excursion
-      (concept-goto-current-focus)
-      (concept-current-concept))))
+  (save-excursion
+    (concept-goto-current-focus)
+    (concept-current-concept)))
 
 (defun concept-current-relationship ()
   "Get the current relationship and return it as a string."
@@ -7605,6 +7608,128 @@ A -> B -> C -> A"
           nil)
       cycle)))
 
+(defun concept-map--find-root (node parents-of memo visiting)
+  "Return (DISTANCE . ROOT) for string NODE."
+  (let ((cached (gethash node memo)))
+    (if cached
+        cached
+      (if (gethash node visiting)
+          (error "Graph contains a cycle involving %S" node)
+        (puthash node t visiting)
+        (let ((parents (gethash node parents-of))
+              best)
+          (if (null parents)
+              ;; NODE has no parents, so it is a root.
+              (setq best (cons 0 node))
+
+            ;; Find the deepest root among NODE's parents.
+            (dolist (parent parents)
+              (let* ((candidate
+                      (concept-map--find-root parent
+                                        parents-of
+                                        memo
+                                        visiting))
+                     (distance (1+ (car candidate))))
+                (when (or (null best)
+                          (> distance (car best)))
+                  (setq best
+                        (cons distance (cdr candidate)))))))
+          (remhash node visiting)
+          (puthash node best memo)
+          best)))))
+
+(defun concept-map-find-network-hypernym (concept)
+  "Return the deepest root concept for concept CONCEPT.
+A root concept has no parent concepts. This procedure returns the root
+concept along with how much deeper it is than the starting CONCEPT."
+  (interactive
+   (let* ((concepts (concept-find-all-concepts))
+          (concept
+           (completing-read
+            "Concept: "
+            concepts nil t)))
+     (list concept)))
+  (let ((graph concept-map-network-graph)
+        (parents-of (make-hash-table :test 'equal))
+        (memo (make-hash-table :test 'equal))
+        (visiting (make-hash-table :test 'equal)))
+    ;; Build the reverse mapping: child -> parents.
+    (maphash
+     (lambda (parent children)
+       ;; Ensure PARENT is represented, including leaf nodes.
+       (unless (gethash parent parents-of)
+         (puthash parent nil parents-of))
+       (dolist (child children)
+         (puthash child
+                  (cons parent (gethash child parents-of))
+                  parents-of)))
+     graph)
+    ;; The helper returns (DISTANCE . ROOT).
+    (let ((result
+           (concept-map--find-root
+            concept
+            parents-of
+            memo
+            visiting)))
+      (when (called-interactively-p 'interactive)
+        (message "The root concept is `%s' which is %d levels deeper." (cdr result) (car result)))
+      (cdr result))))
+
+(defun concept-map--help-find-hyponym (node graph memo visiting)
+  "Return (DISTANCE . DESCENDANT) for NODE.
+GRAPH maps each node to a list of its children.
+MEMO caches results, and VISITING detects dependency cycles."
+  (let ((cached (gethash node memo)))
+    (if cached
+        cached
+      (if (gethash node visiting)
+          (error "Graph contains a cycle involving %S" node)
+        (puthash node t visiting)
+        (let ((children (gethash node graph))
+              best)
+          (if (null children)
+              ;; NODE is a leaf.
+              (setq best (cons 0 node))
+            ;; Find the child with the greatest descendant distance.
+            (dolist (child children)
+              (let* ((candidate
+                      (concept-map--help-find-hyponym
+                       child graph memo visiting))
+                     (distance (1+ (car candidate))))
+                (when (or (null best)
+                          (> distance (car best)))
+                  (setq best
+                        (cons distance (cdr candidate)))))))
+          (remhash node visiting)
+          (puthash node best memo)
+          best)))))
+
+(defun concept-map-find-network-hyponym (concept)
+  "Return the farthest descendant of concept CONCEPT in the concept map."
+  (interactive
+   (let* ((concepts (concept-find-all-concepts))
+          (concept
+           (completing-read
+            "Concept: "
+            concepts nil t
+            (if (concept-on-data-concept-line)
+                (concept-current-concept)
+              (concept-current-focus)))))
+     (list concept)))
+  (let ((graph concept-map-network-graph)
+        (memo (make-hash-table :test 'equal))
+        (visiting (make-hash-table :test 'equal)))
+    ;; The helper returns (DISTANCE . DESCENDANT).
+    (let ((result
+           (concept-map--help-find-hyponym
+            concept graph memo visiting)))
+      (when (called-interactively-p 'interactive)
+        (if (equal 0 (car result))
+            (message "The hyponym of `%s' is itself. It has no descendants." concept)
+          (message "The hyponym of `%s' is `%s' which is %d levels shallower."
+                   concept (cdr result) (car result))))
+      (cdr result))))
+
 (defun concept-do-nothing ()
   (interactive)
   (message "Nothing was do because upcasing all the text in a concept map is a bad idea.")
@@ -7667,6 +7792,8 @@ A -> B -> C -> A"
 (define-key concept-mode-map (kbd "C-c C-o")     #'concept-canonical-sort-dwim)
 (define-key concept-mode-map (kbd "C-c C-d")     #'concept-map-find-network-cycle)
 (define-key concept-mode-map (kbd "C-c C-f")     #'concept-map-find-network-path)
+(define-key concept-mode-map (kbd "C-c M-h")     #'concept-map-find-network-hypernym)
+(define-key concept-mode-map (kbd "C-c C-h")     #'concept-map-find-network-hyponym)
 
 (provide 'concept)
 ;;; concept.el ends here
