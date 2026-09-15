@@ -7296,7 +7296,9 @@ Setting this variable to `nil' can be useful for debugging.")
       'concept-mode-line-error-face))
 
 (defun concept-map--buffer-changed-line-numbers ()
-  "Return exact current-buffer line numbers changed since SNAPSHOT."
+  "Return exact current-buffer line numbers changed since the last snapshot.
+Please see the global variable `concept-map-buffer-snapshot-name' if you
+want to switch to that buffer manually."
   (when (derived-mode-p 'concept-mode)
     (let ((snapshot concept-map-buffer-snapshot-name))
       (when (or (bufferp snapshot) (get-buffer snapshot))
