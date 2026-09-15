@@ -7647,7 +7647,10 @@ concept along with how much deeper it is than the starting CONCEPT."
           (concept
            (completing-read
             "Concept: "
-            concepts nil t)))
+            concepts nil t
+            (if (concept-on-data-concept-line)
+                (concept-current-concept)
+              (concept-current-focus)))))
      (list concept)))
   (let ((graph concept-map-network-graph)
         (parents-of (make-hash-table :test 'equal))
