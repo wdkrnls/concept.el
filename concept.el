@@ -854,7 +854,7 @@ It provides bindings for quickly navigating concepts and examples.")
   (dolist (mode '(org-table-mode auto-revert-tail-mode hide-ifdef-mode auto-fill-mode))
     (setq minor-mode-alist
           (assq-delete-all mode minor-mode-alist)))
-  (setq-local mode-name concept-mode-line-entry)
+  (setq mode-name concept-mode-line-entry)
   ;; (setq-local mode-line-format
   ;;             (append mode-line-format
   ;;                     (list concept-mode-line-entry)))
