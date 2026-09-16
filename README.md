@@ -258,7 +258,7 @@ You can enter *resource blocks* by typing @ on a new line (e.g. created with `C-
 
 If you are on an attribute keyword, you can press `C-<down>` and it will move you inside of the delimiters of the next piece of attribute data. If you want to edit that piece of data, press `C-c e`. If instead you want to edit it's group, press `C-u C-c e`. Really, this sort of editing seems pretty intuitive for concept maps, so we have made it work everywhere. Navigate to any line in the concept map and you can edit it with the same `C-c e` and `C-u C-c e` keybinding and it will work as you expect. The main downside of the minibuffer editing interface is that it doesn't have access to the rich completion sources available in the buffer via `TAB` and `M-/`. They could be added, but instead you get a dedicated history.
 
-It can be very convenient to use (e.g. tempel or tempo) templates to insert *resource blocks*. In my `init.el` configuration file I have bound the following tempel configuration for concept maps.
+It can be very convenient to use (e.g. tempel or tempo) templates to insert *resource blocks*. In my `init.el` configuration file I have bound the following tempel configurations. These work well for concept maps. Note that for me every templates file is a tempel templates file which I want included in my concept map automatically.
 
 ```
 (defun tempel-setup-capf ()
@@ -275,6 +275,11 @@ It can be very convenient to use (e.g. tempel or tempo) templates to insert *res
   (define-key concept-mode-map (kbd "C-c p") #'tempel-previous))
 
 (require 'tempel)
+
+(setopt tempel-path
+        (list "templates"
+              (expand-file-name (locate-user-emacs-file "templates"))))
+
 ```
 
 You can use `M-i` to make new attribute group keywords. However, by default these show up as `note:`. You'll have to edit these using either standard text editing commands or via `C-u C-c e` which calls a minibuffer editing interface. The standard way involves typing `C-r note:`. Press `ENTER`. Now press `C-M-k` to delete the whole name for sure. However, in this case `M-d` would work just as well. The minibuffer editing interface provides the advantage of validating the input for you and rejecting your change if it doesn't match. However, it has the disadvantage that you cannot just hit `TAB` or equivalently `C-M-i` and get ubiquitous text completion.
@@ -560,12 +565,6 @@ The network updating (or something else) should be smart enough to detect a chan
 There are still some bugs to clear up with the query language. In particular, it would be nice to allow general regular expression searches. However, at the moment this is impossible since regular expressions are already used to implement the existing search tools. Regular expressions that match regular expressions are a bit too tricky for the current implementation to handle. However, note that `^` and `$` anchors are allowed. A more sophisticated method would be required. Whatever the implementation and feature set of the search functionality, It would be nice to have an exhaustive test suite implemented which checks that basic searches work as intended.
 
 In the future it would be nice if this dependency on `consult.el` could be made optional. The problem is that I just don't see how to effectively explore a large concept map without it's interactive preview features. The next level nature of editing capability consult provides over the core Emacs features is very impressive! The closest thing I've found to it is the "Auto Occurrence Display" feature in M-x `occur`. However, to be equivalent occur would need an interface which swaps out the search interface.
-
-### Efficiently entering and reusing resources
-
-Our working philosophy for working with resources is to be as verbose as needed to make the `follow` interface work. This has involved reusing the same kinds of resource blocks over and over. We have tools for that already, but they are mainly useful for copying existing resource blocks.
-
-A companion package to `concept.el` which is very useful for editing concept maps is the `tempel` package for making "snippet" templates. However, it's default emphasis on determining the available templates in a buffer based on only the major-mode is too cumbersome for our needs when writing concept maps. A concept map about math benefits from templates around a specific math textbook, but a concept map about architectural design techniques does not! In the future, we want to provide tools for setting up a directory-local templates file which will automatically load those in the relevant directories, just as it currently works for the main global templates files. Perhaps this work will result in a pull request to the tempel package that gives easily setup for automatically recognized project-specific templates to everyone.
 
 ### User-specific customizations
 
