@@ -6599,6 +6599,9 @@ modifying `mailcap-user-mime-data'."
                       (when (buffer-live-p wbuf)
                         (with-current-buffer wbuf
                           (occur value))))))
+                 ((and (equal "website" (concept-current-resource-name))
+                       (not (member "url" keys)))
+                  (eww (concept-current-exposition)))
                  ((and (member "emacs-package" keys)
                        (member "file-name" keys))
                   (concept-goto-key-in-resource-block "file-name")
