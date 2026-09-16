@@ -7751,6 +7751,16 @@ each concept map.")
   (interactive)
   (switch-to-buffer concept-map-snapshot-buffer))
 
+(defvar-local concept-map-concept-buffer
+    nil
+  "Reverse lookup from the snapshot buffer to its concept map buffer.")
+
+(defun concept-map-concept-buffer ()
+  "Open the corresponding concept map buffer."
+  (interactive)
+  (when (derived-mode-p 'concept-map-snapshot-mode)
+    (switch-to-buffer concept-map-concept-buffer)))
+
 (defun concept-map--take-buffer-snapshot ()
   "Take a snapshot of the current buffer."
   (when (derived-mode-p 'concept-mode)
@@ -7762,6 +7772,7 @@ each concept map.")
                 (concat "*" concept-map-buffer-snapshot-name ":%s*")
                 (buffer-name map-buf))))
         (with-current-buffer concept-map-snapshot-buffer
+          (setq concept-map-concept-buffer map-buf)
           (concept-map-snapshot-mode)))
       (with-current-buffer concept-map-snapshot-buffer
         (let ((inhibit-read-only t))
