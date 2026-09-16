@@ -7339,152 +7339,6 @@ Setting this variable to `nil' can be useful for debugging.")
       'concept-mode-line-error-face))
 
 (defun concept-map--buffer-changed-line-numbers ()
-  "Return exact current-buffer line numbers changed since the last snapshot.
-Please see the global variable `concept-map-buffer-snapshot-name' if you
-want to switch to that buffer manually."
-  ;; TODO: the diff code is buggy. It doesn't reliably return all the line
-  ;; numbers which change in the case of deletions.
-  (when (derived-mode-p 'concept-mode)
-    (let ((snapshot concept-map-snapshot-buffer))
-      (when (or (bufferp snapshot) (get-buffer snapshot))
-        (let* ((current (current-buffer))
-               (old-file (make-temp-file "concept-map-old-"))
-               (new-file (make-temp-file "concept-map-new-"))
-               diff-buffer
-               diff
-               line-numbers
-               (new-line 0))
-          (unwind-protect
-              (progn
-                ;; Write the snapshot buffer to a temporary file.
-                (with-current-buffer snapshot
-                  (write-region (point-min) (point-max)
-                                old-file nil 'silent))
-                ;; Write the current buffer to a temporary file.
-                (with-current-buffer current
-                  (write-region (point-min) (point-max)
-                                new-file nil 'silent))
-                ;; diff-no-select expects file names.
-                (setq diff-buffer
-                      (diff-no-select old-file new-file "-u" t))
-                (when diff-buffer
-                  (setq diff
-                        (with-current-buffer diff-buffer
-                          (buffer-string)))
-                  (kill-buffer diff-buffer))
-                (when diff
-                  (with-temp-buffer
-                    (insert diff)
-                    (goto-char (point-min))
-                    (while (not (eobp))
-                      (let ((diff-line
-                             (buffer-substring-no-properties
-                              (line-beginning-position)
-                              (line-end-position))))
-                        (cond
-                         ;; Hunk header: @@ -old,+new @@
-                         ((string-match
-                           "^@@ -[0-9]+\\(?:,[0-9]+\\)? \\+\\([0-9]+\\)"
-                           diff-line)
-                          (setq new-line
-                                (string-to-number
-                                 (match-string 1 diff-line))))
-                         ;; Added line.
-                         ((and (> (length diff-line) 0)
-                               (eq (aref diff-line 0) ?+)
-                               (not (string-prefix-p "+++" diff-line)))
-                          (push new-line line-numbers)
-                          (setq new-line (1+ new-line)))
-                         ;; Deleted line.
-                         ((and (> (length diff-line) 0)
-                               (eq (aref diff-line 0) ?-)
-                               (not (string-prefix-p "---" diff-line)))
-                          (push new-line line-numbers))
-                         ;; Unchanged context line.
-                         ((and (> (length diff-line) 0)
-                               (eq (aref diff-line 0) ?\s))
-                          (setq new-line (1+ new-line))))
-                        (forward-line 1)))))
-                (sort (delete-dups line-numbers) #'<))
-            ;; Always remove the temporary files.
-            (delete-file old-file)
-            (delete-file new-file)))))))
-
-(defun concept-map--buffer-changed-line-numbers-2 ()
-  "Return exact current-buffer line numbers changed since the last snapshot.
-Please see the global variable `concept-map-buffer-snapshot-name' if you
-want to switch to that buffer manually. This version makes deletions
-negative and modifications and insertions positive. However, it cannot
-pick up on multiple contiguous deletions since the numbers returned are
-always for the latest version of the concept map."
-  (when (derived-mode-p 'concept-mode)
-    (let ((snapshot concept-map-snapshot-buffer))
-      (when (or (bufferp snapshot) (get-buffer snapshot))
-        (let* ((current (current-buffer))
-               (old-file (make-temp-file "concept-map-old-"))
-               (new-file (make-temp-file "concept-map-new-"))
-               diff-buffer
-               diff
-               line-numbers
-               (new-line 0))
-          (unwind-protect
-              (progn
-                ;; Write the snapshot buffer to a temporary file.
-                (with-current-buffer snapshot
-                  (write-region (point-min) (point-max)
-                                old-file nil 'silent))
-                ;; Write the current buffer to a temporary file.
-                (with-current-buffer current
-                  (write-region (point-min) (point-max)
-                                new-file nil 'silent))
-                ;; diff-no-select expects file names.
-                (setq diff-buffer
-                      (diff-no-select old-file new-file "-u" t))
-                (when diff-buffer
-                  (setq diff
-                        (with-current-buffer diff-buffer
-                          (buffer-string)))
-                  (kill-buffer diff-buffer))
-                (when diff
-                  (with-temp-buffer
-                    (insert diff)
-                    (goto-char (point-min))
-                    (while (not (eobp))
-                      (let ((diff-line
-                             (buffer-substring-no-properties
-                              (line-beginning-position)
-                              (line-end-position))))
-                        (cond
-                         ;; Hunk header: @@ -old,+new @@
-                         ((string-match
-                           "^@@ -[0-9]+\\(?:,[0-9]+\\)? \\+\\([0-9]+\\)"
-                           diff-line)
-                          (setq new-line
-                                (string-to-number
-                                 (match-string 1 diff-line))))
-                         ;; Added line.
-                         ((and (> (length diff-line) 0)
-                               (eq (aref diff-line 0) ?+)
-                               (not (string-prefix-p "+++" diff-line)))
-                          (push new-line line-numbers)
-                          (setq new-line (1+ new-line)))
-                         ;; Deleted line.
-                         ((and (> (length diff-line) 0)
-                               (eq (aref diff-line 0) ?-)
-                               (not (string-prefix-p "---" diff-line)))
-                          (unless (member new-line line-numbers)
-                            (push (- 0 new-line) line-numbers)))
-                         ;; Unchanged context line.
-                         ((and (> (length diff-line) 0)
-                               (eq (aref diff-line 0) ?\s))
-                          (setq new-line (1+ new-line))))
-                        (forward-line 1)))))
-                (sort (delete-dups line-numbers) (lambda (a b) (< (abs a) (abs b)))))
-            ;; Always remove the temporary files.
-            (delete-file old-file)
-            (delete-file new-file)))))))
-
-(defun concept-map--buffer-changed-line-numbers-3 ()
   "Return lines changed since the last snapshot.
 Positive numbers identify lines added to the current buffer.
 Negative numbers identify lines deleted from the snapshot buffer.
@@ -7603,7 +7457,7 @@ concept maps."
   "Return non-nil if any changed block is a relationship block."
   (if (bufferp concept-map-snapshot-buffer)
       (let ((changed-lines
-             (concept-map--buffer-changed-line-numbers-3)))
+             (concept-map--buffer-changed-line-numbers)))
         (catch 'found
           (dolist (line changed-lines)
             (cond ((< line 0)
@@ -7630,7 +7484,7 @@ concept maps."
 (defun concept-map--relationship-block-changes ()
   "Return non-nil if any changed block is a relationship block."
   (if (bufferp concept-map-snapshot-buffer)
-      (let ((changed-lines (concept-map--buffer-changed-line-numbers-3)))
+      (let ((changed-lines (concept-map--buffer-changed-line-numbers)))
         (save-excursion
           (mapcar
            (lambda (line)
