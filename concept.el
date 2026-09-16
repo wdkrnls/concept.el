@@ -829,6 +829,23 @@ It provides bindings for quickly navigating concepts and examples.")
      'help-echo "Left-click to update; right-click for Concept commands"
      'keymap concept-mode-line-map)))
 
+(defun concept-find-relationship-block-extent (&optional positions)
+  "Compute the extent of the relationship block in the buffer.
+If LINES is supplied, give the line numbers corresponding"
+  (let ((result
+         (save-excursion
+           (concept-goto-current-focus)
+           (beginning-of-line)
+           (let ((beg (point)))
+             (outline-next-heading)
+             (backward-char)
+             (let ((end (point)))
+               (cons beg end))))))
+    (if positions
+        result
+      (cons (line-number-at-pos (car result))
+            (line-number-at-pos (cdr result))))))
+
 (define-derived-mode concept-mode text-mode "CONCEPT"
   "Major mode for CONCEPT buffers."
   :keymap concept-mode-map
