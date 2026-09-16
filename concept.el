@@ -846,6 +846,23 @@ If LINES is supplied, give the line numbers corresponding"
       (cons (line-number-at-pos (car result))
             (line-number-at-pos (cdr result))))))
 
+(defun concept-find-overlapping-relationship-blocks (line-numbers)
+  "Process a list of LINE-NUMBERS and return a (hopefully much) smaller
+number of new line numbers corresponding to focus lines in the snapshot
+and editing buffer which would presumably need recounting if this were
+used to accomplish an incremental update of the concept map relationship
+network."
+  (delete-dups
+   (mapcar (lambda (n)
+             (if (< n 0)
+                 (with-current-buffer concept-map-snapshot-buffer
+                   (goto-line (abs n))
+                   (- (car (concept-find-relationship-block-extend))))
+               (with-current-buffer concept-map-concept-buffer
+                 (goto-line n)
+                 (car (concept-find-relationship-block-extend)))))
+           line-numbers)))
+  
 (define-derived-mode concept-mode text-mode "CONCEPT"
   "Major mode for CONCEPT buffers."
   :keymap concept-mode-map
@@ -7698,6 +7715,11 @@ representation of the concept map.")
         (remhash key counts)
       (puthash key new-count counts))))
 
+(defun sign (x)
+  "Compute the sign of a signed integer."
+  (cond ((< x 0) -1)
+        ((= x 0)  0)
+        (t        1)))
 (defun concept-map-make-network-from-edge-counts ()
   "Rebuild the adjacency graph from `concept-map-network-edge-counts'."
   (when concept-map-network-edge-counts
