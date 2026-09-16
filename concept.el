@@ -4214,6 +4214,11 @@ can think of this as analogous to how C-. and M-. work."
          (concept-isolate-each-concept-in-relationship-group))
         ((concept-on-focus-line)
          (concept-repeat-focus-concept))
+        ((and (concept-on-exposition-line)
+              (save-excursion
+                (forward-line)
+                (concept-on-exposition-line)))
+         (concept-insert-keyword-line (concept-current-attribute)))
         ((and (concept-on-data-concept-line)
               (save-excursion
                 (forward-line)
