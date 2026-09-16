@@ -579,6 +579,54 @@ One way a programmer might think of a concept map (as imagined in `concept.el`) 
 
 Thinking about names in a standard way would really help with merging two different concept maps as well. So, in the future we hope to provide tools for parsing concepts in terms of the `{classification|core|definition}` framework discussed earlier. One challenge we have frequently seen is that concept names start getting longer and longer the more we work with concept maps. Tasteful categorization can help, but, e.g., when dealing with documenting useful elisp functions, it become useful to make some shorthand summarizations for brevity. These can challenge the power of these tools, but there may be useful conventions which can support the development of tools to overcome these issues.
 
+One frequent situation where being able to work better with concept names programmatically would really help is in filling out combinatorial relationships. Consider the following fragment from a concept map:
+
+```
+~ networks
+| :include
+| cyclic-networks
+| acyclic-networks
+~ networks
+| :include
+| directed-networks
+| undirected-networks
+~ directed-networks
+| :include
+| directed-acyclic-networks
+| directed-cyclic-networks
+~ undirected-networks
+| :include
+| undirected-acyclic-networks
+| undirected-cyclic-networks
+~ acyclic-networks
+| :include
+| directed-acyclic-networks
+| undirected-acyclic-networks
+```
+
+It would be convenient if `concept.el` provided a tool where you started with the first two ideas, and then generate the combinatorial ideas.
+
+```
+~ networks
+| :include
+| cyclic-networks
+| acyclic-networks
+~ networks
+| :include
+| directed-networks
+| undirected-networks
+```
+
+This would work by running the currently fictional command M-x `concept-complete-combinatorial-ideas`. That prompted you for two (or more) ideas with the same focus concept where that idea has only a single `:include` relationship and one or more derivative concepts. Then the user is prompted for the order in which the concepts are labeled A and B with an overlay in the buffer showing these letters.
+
+> AB
+
+Then pressing `ENTER` it would complete them in the desired order.
+
+Maybe to make that more reliable, it would also prompt to confirm the different parts of the concept. If there is only one word, that word is the core concept. If there are two words, then the first is treated as the category and the second is treated as the core concept.
+
+Note that we have basic handling for some combinatorial ideas already via M-x `concept-expand-combinatorial-relationship-block`. This would be the basis for a more powerful interactive version of that heuristic procedure.
+
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
 <!-- End: -->
