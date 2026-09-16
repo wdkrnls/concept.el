@@ -7664,12 +7664,77 @@ representation of the concept map.")
     nil
   "Buffer local representation of the concept map as a network.")
 
-(defun concept-map-update-network (&optional relationship-regexp)
-  "Extract the concept map network into the SEXP.
-Store the resulting data structure in `concept-map-network-graph'.
+(defvar-local concept-map-network-edge-counts
+    nil
+  "Count the multiplicity of parent child relationships in a network.")
+
+(defun concept-map-network-edge-counts-key (parent child)
+  (cons parent child))
+
+(defun concept-map-network-adjust-edge-count (parent child change)
+  "Adjust the count for the relationship edge PARENT -> CHILD by CHANGE."
+  (let* ((key (concept-map-network-edge-counts-key parent child))
+         (counts concept-map-network-edge-counts)
+         (old-count (gethash key counts 0))
+         (new-count (+ old-count change)))
+    (if (<= new-count 0)
+        (remhash key counts)
+      (puthash key new-count counts))))
+
+(defun concept-map-make-network-from-edge-counts ()
+  "Rebuild the adjacency graph from `concept-map-network-edge-counts'."
+  (when concept-map-network-edge-counts
+    (let ((graph (make-hash-table :test #'equal)))
+      (maphash
+       (lambda (edge _count)
+         (let ((parent (car edge))
+               (child (cdr edge)))
+           (puthash parent
+                    (cons child (gethash parent graph))
+                    graph)))
+       concept-map-network-edge-counts)
+      (setq concept-map-network-graph graph))))
+
+(defun concept-map-can-do-partial-network-update-p ()
+  (unless (derived-mode-p 'concept-mode)
+    (user-error "This only works inside of a concept-mode buffer with a valid concept map!"))
+  (let ((changes (concept-map--buffer-changed-line-numbers)))
+    (seq-every-p (lambda (change) (< 0 change)) changes)))
+
+(defun concept-map-make-partial-network-update (&optional relationship-regexp)
+  "Attempt to perform a partial network update.
+When only new data is added to the buffer, it's relatively trivial to
+make a partial network update, so we have done that."
+  (unless (derived-mode-p 'concept-mode)
+    (user-error "This only works inside of a concept-mode buffer with a valid concept map!"))
+  (when (null relationship-regexp)
+    (setq relationship-regexp ".+"))
+  (when (and concept-map-network-graph
+             ;; We only know how to update with additions only right now!
+             (concept-map-can-do-partial-network-update-p))
+    (let ((changes (concept-map--buffer-changed-line-numbers))
+          (map-buf (current-buffer))
+          (snap-buf concept-map-snapshot-buffer)
+          (graph concept-map-network-graph))
+      (save-excursion
+        (dolist (change changes)
+          (goto-line change)
+          (when (concept-on-data-concept-line)
+            (let ((relationship (concept-get-relationship)))
+              (when (string-match-p relationship-regexp relationship)
+                (let ((parent (concept-current-focus))
+                      (children (concept-get-child-concepts)))
+                  (puthash parent (delete-dups (append (gethash parent graph) children)) graph)))))))
+      (setq concept-map-network-graph graph))))
+  
+(defun concept-map-make-full-network-update (&optional relationship-regexp)
+  "Extract the relationship network from the concept map.
+This network is restricted to operating on relationship blocks. Store
+the resulting data structure in `concept-map-network-graph'.
 
 The form of this data structure is a hash table where the keys are
-concepts and the values are list of concepts that are children of the key:
+concepts and the values are list of concepts that are children of the
+key:
 
  '((foo . (bar))
    (bar . (baz))
@@ -7697,10 +7762,16 @@ concepts and the values are list of concepts that are children of the key:
       (force-mode-line-update t)
       graph)))
 
+(defun concept-map-update-network (&optional relationship-regexp)
+  "Perform an update of the concept map network graph."
+  (interactive)
+  (or (concept-map-make-partial-network-update)
+      (concept-map-make-full-network-update)))
+
 (defun concept-map-network-reachable-p (start goal)
   "Return non-nil if GOAL is reachable from START."
   (let ((graph (or concept-map-network-graph
-                   (concept-map-update-network)))
+                   (concept-map-make-full-network-update)))
         (visited (make-hash-table :test #'equal))
         (pending (list start)))
     (catch 'found
@@ -7718,7 +7789,7 @@ concepts and the values are list of concepts that are children of the key:
 (defun concept-map--network-path (start goal)
   "Return a path from START to GOAL, or nil if GOAL is unreachable."
   (let ((graph (or concept-map-network-graph
-                   (concept-map-update-network)))
+                   (concept-map-make-full-network-update)))
         (visited (make-hash-table :test #'equal))
         (pending (list (cons start (list start)))))
     (catch 'path-found
