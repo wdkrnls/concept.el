@@ -1722,7 +1722,11 @@ That is up to the user at the moment!"
   "Append text to an existing concept at point.
 Choose the new concept from initially ordered list of all concept."
   (interactive)
-  (when (concept-on-concept-line)
+  (when (not (or (concept-on-resource-line)
+                 (concept-on-relationship-line)
+                 (concept-on-attribute-line)
+                 (and (concept-on-exposition-line)
+                      (not (concept-inside-delimeters-p)))))
     (let* ((choices (concept-find-all-concepts))
            (vertico-sort-function nil)
            (pick (completing-read
