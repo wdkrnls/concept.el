@@ -7699,11 +7699,10 @@ concepts and the values are list of concepts that are children of the key:
                   (children (concept-get-child-concepts)))
               (puthash parent (delete-dups (append (gethash parent graph) children)) graph))))
         (concept-goto-next-relationship))
-      (setq-local concept-map-network-graph graph)
       (setq concept-map-network-is-stale nil)
       (concept-map--take-buffer-snapshot)
       (force-mode-line-update t)
-      graph)))
+      (setq concept-map-network-graph graph))))
 
 (defun concept-map-network-reachable-p (start goal)
   "Return non-nil if GOAL is reachable from START."
