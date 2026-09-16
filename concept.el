@@ -1318,6 +1318,13 @@ reordering resource blocks alphabetically."
       (concept-goto-last-relationship))
     (forward-line)))
 
+(defun concept-goto-last-data-concept-in-relationship-group ()
+  "Navigate to the last data concept in the group."
+  (when (and (concept-in-relationship-block)
+             (concept-on-data-line))
+    (concept-goto-next-relationship-boundary)
+    (backward-char)))
+
 (defun concept-data-concept-partial-sort (&optional max-iter)
   "Interactive tool for automatically reordering concepts.
 The commands `concept-exchange-concept-up' and
@@ -2140,7 +2147,12 @@ supplied, in which case it goes below."
            (open-line 1)
            (insert "~ "))
           ((concept-on-resource-line)
-           (concept-insert-keyword-block-at-beginning* "note"))
+           (if (eq 1 arg)
+               (progn
+                 (beginning-of-line)
+                 (open-line 1)
+                 (insert "@ "))
+             (concept-insert-keyword-block-at-beginning* "note")))
           ((and (concept-on-focus-line)
                 (eq 1 arg))
            (concept-add-concept))
@@ -7817,7 +7829,6 @@ A -> B -> C -> A"
           (if (null parents)
               ;; NODE has no parents, so it is a root.
               (setq best (cons 0 node))
-
             ;; Find the deepest root among NODE's parents.
             (dolist (parent parents)
               (let* ((candidate
@@ -7942,6 +7953,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "M-o")         #'concept-repeat-dwim)
 (define-key concept-mode-map (kbd "M-RET")       #'concept-add-new-data)
 (define-key concept-mode-map (kbd "<tab>")       #'concept-change-dwim)
+(define-key concept-mode-map (kbd "C-M-i")       #'concept-change-dwim)
 (define-key concept-mode-map (kbd "C-<tab>")     #'concept-add-concept-as-new)
 (define-key concept-mode-map (kbd "M-<tab>")     #'concept-change-dwim)
 (define-key concept-mode-map (kbd "M-r")         #'concept-cycle-context)
