@@ -5916,14 +5916,24 @@ The query `old\;@new' matches all query blocks with old but not new terms.
 (defvar concept-consult--preview-overlay nil
   "This variable helps highlight the line during the consult search")
 
+(defface concept-consult-preview-line
+  '((t (:inherit highlight :extend t)))
+  "Face for the currently previewed line in consult previews.")
+
 (defun concept--show-preview-line (pos)
   (when (overlayp concept-consult--preview-overlay)
     (delete-overlay concept-consult--preview-overlay))
   (save-excursion
     (goto-char pos)
-    (setq concept-consult--preview-overlay
-          (make-overlay (line-beginning-position) (line-end-position)))
-    (overlay-put concept-consult--preview-overlay 'face 'highlight)))
+    (recenter)
+    (let ((beg (line-beginning-position))
+          (end (min (point-max)
+                    (1+ (line-end-position)))))
+      (setq concept-consult--preview-overlay
+            (make-overlay beg end))
+      (overlay-put concept-consult--preview-overlay
+                   'face 'concept-consult-preview-line)
+      (overlay-put concept-consult--preview-overlay 'priority 999))))
 
 (defun concept-consult-search-resource-blocks (arg)
   "Browse matching resource blocks with buffer preview."
