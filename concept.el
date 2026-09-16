@@ -1718,6 +1718,21 @@ That is up to the user at the moment!"
           (string-join (take (abs n) parts) "-")
         (string-join (reverse (take n (reverse parts))) "-")))))
 
+(defun concept-add-concept-as-new ()
+  "Append text to an existing concept at point.
+Choose the new concept from initially ordered list of all concept."
+  (interactive)
+  (when (concept-on-concept-line)
+    (let* ((choices (concept-find-all-concepts))
+           (vertico-sort-function nil)
+           (pick (completing-read
+                  "Concept: "
+                  choices
+                  nil t nil)))
+      (when (< 0 (length pick))
+        (insert pick)
+        (delete-horizontal-space)))))
+
 (defun concept-insert-last-concept-as-new (arg)
   "Repeat the last related data concept again as the starting text
 for a new concept.
@@ -8053,8 +8068,9 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "C-o")         #'concept-add-dwim)
 (define-key concept-mode-map (kbd "M-o")         #'concept-repeat-dwim)
 (define-key concept-mode-map (kbd "M-RET")       #'concept-add-new-data)
-(define-key concept-mode-map (kbd "TAB")         #'concept-change-dwim)
-(define-key concept-mode-map (kbd "M-TAB")       #'concept-change-dwim)
+(define-key concept-mode-map (kbd "<tab>")       #'concept-change-dwim)
+(define-key concept-mode-map (kbd "C-<tab>")     #'concept-add-concept-as-new)
+(define-key concept-mode-map (kbd "M-<tab>")     #'concept-change-dwim)
 (define-key concept-mode-map (kbd "M-r")         #'concept-cycle-context)
 (define-key concept-mode-map (kbd "C-M-y")       #'concept-repeat-current-block)
 (define-key concept-mode-map (kbd "M-.")         #'concept-insert-focus-as-new)
