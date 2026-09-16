@@ -7578,36 +7578,45 @@ concept maps."
 
 (defun concept-map--relationship-block-changed-p ()
   "Return non-nil if any changed block is a relationship block."
-  (if (get-buffer concept-map-buffer-snapshot-name)
+  (if (bufferp concept-map-snapshot-buffer)
       (let ((changed-lines
-             (concept-map--buffer-changed-line-numbers-2)))
-        (save-excursion
-          (catch 'found
-            (dolist (line changed-lines)
-              (if (< line 0)
-                  (goto-line (1- (abs line)))
-                (goto-line line))
-              (when (concept-in-relationship-block)
-                (throw 'found t))))))
+             (concept-map--buffer-changed-line-numbers-3)))
+        (catch 'found
+          (dolist (line changed-lines)
+            (cond ((< line 0)
+                   (with-current-buffer concept-map-snapshot-buffer
+                     (goto-line (abs line))
+                     (when (concept-in-relationship-block)
+                       (throw 'found t))))
+                  (t
+                   (save-excursion
+                     (goto-line line)
+                     (when (concept-in-relationship-block)
+                       (throw 'found t))))))))
     (setq concept-map-network-is-stale t)
     (when concept-map-should-update-stale-network
       (concept-map-update-network))
     nil))
 
+(defun concept-map--give-rb-symbol ()
+  (when (concept-in-relationship-block)
+    (cond ((concept-on-focus-line)        'focus)
+          ((concept-on-data-concept-line) 'data-concept)
+          ((concept-on-relationship-line) 'relationship))))
+  
 (defun concept-map--relationship-block-changes ()
   "Return non-nil if any changed block is a relationship block."
-  (if (get-buffer concept-map-buffer-snapshot-name)
-      (let ((changed-lines (concept-map--buffer-changed-line-numbers-2)))
+  (if (bufferp concept-map-snapshot-buffer)
+      (let ((changed-lines (concept-map--buffer-changed-line-numbers-3)))
         (save-excursion
           (mapcar
            (lambda (line)
              (if (< line 0)
-                 (goto-line (1- (abs line)))
-               (goto-line line))
-             (when (concept-in-relationship-block)
-               (cond ((concept-on-focus-line)        'focus)
-                     ((concept-on-data-concept-line) 'data-concept)
-                     ((concept-on-relationship-line) 'relationship))))
+                 (with-current-buffer concept-map-snapshot-buffer
+                   (goto-line (1- (abs line)))
+                   (concept-map--give-rb-symbol))
+               (goto-line line)
+               (concept-map--give-rb-symbol)))
            changed-lines)))
     (setq concept-map-network-is-stale t)
     (when concept-map-should-update-stale-network
@@ -7704,9 +7713,15 @@ each concept map.")
     map)
   "Keymap for concept map snapshot buffers.")
 
-(define-derived-mode concept-map-snapshot-mode special-mode
+(define-derived-mode concept-map-snapshot-mode text-mode
   "SNAPSHOT"
-  "Mode for viewing a concept map snapshot buffer.")
+  "Mode for viewing a concept map snapshot buffer."
+  (setq-local outline-regexp "^[~@]"
+	      outline-heading-alist concept-heading-alist)
+  (outline-minor-mode)
+  (setq outline-minor-mode-cycle t)
+  (font-lock-mode -1)
+  (read-only-mode 1))
 
 (defun concept-map-snapshot-buffer ()
   "Open the corresponding snapshot buffer."
