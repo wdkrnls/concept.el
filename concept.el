@@ -324,7 +324,7 @@ These are subject concepts. They were called focus concepts.")
 
 (defun concept-current-line ()
   "Get the current line of text from the buffer."
-  (string-trim-right (thing-at-point 'line t)))
+  (string-trim (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
 
 (defun concept--concept-word-count (name)
   (with-temp-buffer
