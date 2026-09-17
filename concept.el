@@ -7753,6 +7753,130 @@ representation of the concept map.")
          (line-number-at-pos (point)) 1)
         (concept-goto-next-focus)))))
 
+(defun concept--propertize-pair-as-subjects (x)
+  (cons (propertize (car x) 'face 'concept-subject)
+        (propertize (cdr x) 'face 'concept-subject)))
+
+(defun concept-map-inspect-edge-counts-hash-table ()
+  "Display the hash table keys and values in a temporary tabulated-list buffer."
+  (interactive)
+  (let ((buffer (get-buffer-create "*Edge Counts*"))
+        (table concept-map-network-edge-counts)
+        (inhibit-read-only t))
+    (with-current-buffer buffer
+      (erase-buffer)
+      (tabulated-list-mode)
+      ;; Define the columns: title and width.
+      (setq tabulated-list-format
+            (vector
+             (list "Count" 10 t)
+             (list "Relationship Edge" 100 #'concept--sort-by-number)))
+      ;; Build one entry per hash-table key/value pair.
+      (setq tabulated-list-entries
+            (let (entries)
+              (maphash
+               (lambda (key value)
+                 (setq key (concept--propertize-pair-as-subjects key))
+                 (push (list (format "%s -> %s" (car key) (cdr key))
+                             (vector (format "%d" value)
+                                     (format "%s -> %s" (car key) (cdr key))))
+                       entries))
+               table)
+              entries))
+      (tabulated-list-init-header)
+      (tabulated-list-print))
+    (pop-to-buffer buffer)))
+
+(defun concept-format-list (items)
+  "Format ITEMS as an english list."
+  (cond
+   ((null items)
+    "")
+   ((null (cdr items))
+    (car items))
+   ((null (cddr items))
+    (format
+     "%s and %s"
+     (car items)
+     (cadr items)))
+   (t
+    (format
+     "%s, and %s"
+     (mapconcat #'identity
+                (butlast items)
+                ", ")
+     (car (last items))))))
+
+(defun concept-format-colored-list (items)
+  "Format ITEMS as a colored English list."
+  (let ((colored-items
+         (mapcar
+          (lambda (item)
+            (propertize item 'face 'concept-subject))
+          items)))
+    (cond
+     ((null colored-items)
+      "")
+     ((null (cdr colored-items))
+      (car colored-items))
+     ((null (cddr colored-items))
+      (format "%s and %s"
+              (car colored-items)
+              (cadr colored-items)))
+     (t
+      (format
+       "%s, and %s"
+       (mapconcat
+        #'identity
+        (butlast colored-items)
+        ", ")
+       (car (last colored-items)))))))
+
+(defun concept--sort-by-number (entry-1 entry-2)
+  "Sort network graph entries by their child count."
+  (< (string-to-number
+      (aref (cadr entry-1) 1))
+     (string-to-number
+      (aref (cadr entry-2) 1))))
+
+(defun concept-map-inspect-network-graph-hash-table ()
+  "Display the network graph hash table in a temporary tabulated-list buffer."
+  (interactive)
+  (let* ((buffer (get-buffer-create "*Adjacency List*"))
+         (table concept-map-network-graph)
+         (max-width
+          (apply
+           #'max
+           (mapcar (lambda (key)
+                     (string-width
+                      (propertize key 'face 'concept-subject)))
+                   (hash-table-keys table))))
+         (inhibit-read-only t))
+    (with-current-buffer buffer
+      (erase-buffer)
+      (tabulated-list-mode)
+      ;; Define the columns: title and width.
+      (setq tabulated-list-format
+            (vector
+             (list "Parent"   (1+ max-width) t)
+             (list "Count"    10             #'concept--sort-by-number)
+             (list "Children" 150            t)))
+    ;; Build one entry per hash-table key/value pair.
+    (setq tabulated-list-entries
+          (let (entries)
+            (maphash
+             (lambda (key value)
+               (push (list (format "%s" key)
+                           (vector (format "%s" (propertize key 'face 'concept-subject))
+                                   (format "%d" (length value))
+                                   (concept-format-colored-list value)))
+                     entries))
+             table)
+            entries))
+    (tabulated-list-init-header)
+    (tabulated-list-print))
+  (pop-to-buffer buffer)))
+
 (defun concept-map-make-network-from-edge-counts ()
   "Rebuild the adjacency graph from `concept-map-network-edge-counts'."
   (when concept-map-network-edge-counts
