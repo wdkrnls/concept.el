@@ -7741,6 +7741,18 @@ representation of the concept map.")
          (concept-current-focus) (concept-current-concept) change)
         (concept-goto-next-concept))))
 
+(defun concept-map-count-relationship-network-edges (&optional overwrite)
+  "Take a count of every network edge in the buffer."
+  (when (derived-mode-p 'concept-mode)
+    (when (or (null concept-map-network-edge-counts) overwrite)
+      (setq concept-map-network-edge-counts (make-hash-table :test #'equal)))
+    (save-excursion
+      (concept--goto-first-heading)
+      (while (concept-on-focus-line)
+        (concept-map-adjust-edge-counts-for-relationship-block
+         (line-number-at-pos (point)) 1)
+        (concept-goto-next-focus)))))
+
 (defun concept-map-make-network-from-edge-counts ()
   "Rebuild the adjacency graph from `concept-map-network-edge-counts'."
   (when concept-map-network-edge-counts
