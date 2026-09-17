@@ -7360,6 +7360,10 @@ count associated with the parent concept key of that relationship block
 and decrement them. If a child concept count was originally 1, then
 remove that child concept from the value list and set it to `nil' or 0.")
 
+(defvar concept-map-debugging-buffer-name
+  "*concept-map-debug*"
+  "Name of the buffer for debugging the concept map")
+
 (defvar-local concept-map-should-update-stale-network
     t
   "Declare that stale networks should be updated.
@@ -7570,6 +7574,17 @@ network graph hash table.")
    (buffer-name)
    (buffer-modified-p)))
 
+(defun concept-map--others-remain-open-p ()
+  "Test if any other concept map buffers remain open."
+  (when (derived-mode-p 'concept-mode)
+    (let ((buf (current-buffer)))
+      (seq-some
+       (lambda (buffer)
+         (and (not (eq buffer buf))
+              (with-current-buffer buffer
+                (derived-mode-p 'concept-mode))))
+       ((buffer-list))))))
+
 (defun concept-map--run-scheduled-network-update (buffer)
   "Update BUFFER's concept map network.
 This variable is stored in `concept-map-network-graph'."
@@ -7595,6 +7610,16 @@ This variable is stored in `concept-map-network-graph'."
   (when (buffer-live-p concept-map-snapshot-buffer)
     (kill-buffer concept-map-snapshot-buffer)))
 
+(defvar concept-map-debugging-buffer
+    nil
+  "Buffer for debugging operations with the current concept map.")
+
+(defun concept-map--kill-debugging-buffer ()
+  "Kill the debugging buffer if you are killing the last open concept map."
+  (when (and (buffer-live-p concept-map-debugging-buffer)
+             (concept-map--others-remain-open-p))
+    (kill-buffer concept-map-debugging-buffer)))
+
 (defun concept-mode-setup-network-updating ()
   "Enable automatic network updates for the current buffer."
   (when concept-map-should-update-stale-network
@@ -7610,11 +7635,19 @@ This variable is stored in `concept-map-network-graph'."
   (add-hook 'kill-buffer-hook
             #'concept-map--kill-snapshot-buffer
             nil
+            t)
+  (add-hook 'kill-buffer-hook
+            #'concept-map--kill-debugging-buffer
+            nil
             t))
 
 (defun concept-map--debug (format-string &rest args)
   "Log concept-map update activity."
-  (with-current-buffer (get-buffer-create "*concept-map-debug*")
+  (unless (buffer-live-p concept-map-debugging-buffer)
+    (setq concept-map-debugging-buffer
+          (generate-new-buffer
+           concept-map-debugging-buffer-name)))
+  (with-current-buffer concept-map-debugging-buffer
     (goto-char (point-max))
     (insert (format-time-string "[%H:%M:%S] "))
     (insert (apply #'format format-string args))
