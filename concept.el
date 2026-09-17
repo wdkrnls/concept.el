@@ -6720,6 +6720,10 @@ modifying `mailcap-user-mime-data'."
            (re-search-forward "[^| ]" (line-end-position) t)
            (concept-describe-symbol-follow (thing-at-point 'sexp t))))
         ((and (concept-on-exposition-line)
+              (or (string= "emacs-keybindings" (concept-exposition-parent-key))
+                  (string= "where-is" (concept-exposition-parent-key))))
+         (where-is (intern (concept-current-exposition))))
+        ((and (concept-on-exposition-line)
               (or (string= "emacs-keybinding" (concept-exposition-parent-key))
                   (string= "kbd" (concept-exposition-parent-key))))
          (save-excursion
