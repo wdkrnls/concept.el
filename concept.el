@@ -7328,6 +7328,14 @@ If it doesn't parse, move the point to where the first failure is."
      (goto-char (nth 1 error-signal))
      (user-error "Parse failed at point!"))))
 
+(defun concept-map-grammar-parses-p ()
+  "Return t if the current concept map parses, otherwise return nil.
+On failure, leave point at the first parse error."
+  (condition-case nil
+      (concept-map-check-parse)
+    (user-error
+     nil)))
+
 (defvar-local concept-map-network-is-stale
     nil
   "Declare the network to be stale.
@@ -7542,7 +7550,8 @@ network graph hash table.")
   "Mark the network stale when a relationship block has changed."
   (when (concept-map--relationship-block-changed-p)
     (setq concept-map-network-is-stale t)
-    (when concept-map-should-update-stale-network
+    (when (and concept-map-should-update-stale-network
+               (concept-map-grammar-parses-p))
       (concept-map--schedule-network-update))))
   
 (defun concept-map--schedule-network-update (&rest _args)
@@ -7581,6 +7590,11 @@ This variable is stored in `concept-map-network-graph'."
     (cancel-timer concept-map--network-update-timer))
   (setq concept-map--network-update-timer nil))
 
+(defun concept-map--kill-snapshot-buffer ()
+  "Kill the snapshot buffer."
+  (when (buffer-live-p concept-map-snapshot-buffer)
+    (kill-buffer concept-map-snapshot-buffer)))
+
 (defun concept-mode-setup-network-updating ()
   "Enable automatic network updates for the current buffer."
   (when concept-map-should-update-stale-network
@@ -7591,6 +7605,10 @@ This variable is stored in `concept-map-network-graph'."
             t)
   (add-hook 'kill-buffer-hook
             #'concept-map--cancel-network-update-timer
+            nil
+            t)
+  (add-hook 'kill-buffer-hook
+            #'concept-map--kill-snapshot-buffer
             nil
             t))
 
@@ -7688,21 +7706,23 @@ concepts and the values are list of concepts that are children of the key:
     (user-error "This only works inside of a concept-mode buffer holding a valid concept map!"))
   (when (null relationship-regexp)
     (setq relationship-regexp ".+"))
-  (save-excursion
-    (let ((graph (make-hash-table :test #'equal)))
-      (concept--goto-first-heading)
-      (concept-goto-next-relationship)
-      (while (not (eobp))
-        (let ((relationship (concept-get-relationship)))
-          (when (string-match-p relationship-regexp relationship)
-            (let ((parent (concept-current-focus))
-                  (children (concept-get-child-concepts)))
-              (puthash parent (delete-dups (append (gethash parent graph) children)) graph))))
-        (concept-goto-next-relationship))
-      (setq concept-map-network-is-stale nil)
-      (concept-map--take-buffer-snapshot)
-      (force-mode-line-update t)
-      (setq concept-map-network-graph graph))))
+  (if (concept-map-grammar-parses-p)
+    (save-excursion
+      (let ((graph (make-hash-table :test #'equal)))
+        (concept--goto-first-heading)
+        (concept-goto-next-relationship)
+        (while (not (eobp))
+          (let ((relationship (concept-get-relationship)))
+            (when (string-match-p relationship-regexp relationship)
+              (let ((parent (concept-current-focus))
+                    (children (concept-get-child-concepts)))
+                (puthash parent (delete-dups (append (gethash parent graph) children)) graph))))
+          (concept-goto-next-relationship))
+        (setq concept-map-network-is-stale nil)
+        (concept-map--take-buffer-snapshot)
+        (force-mode-line-update t)
+        (setq concept-map-network-graph graph)))
+    (message "Concept map %s failed to parse. Please correct it first to update network!")))
 
 (defun concept-map-network-reachable-p (start goal)
   "Return non-nil if GOAL is reachable from START."
