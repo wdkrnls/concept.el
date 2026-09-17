@@ -7720,6 +7720,13 @@ representation of the concept map.")
   (cond ((< x 0) -1)
         ((= x 0)  0)
         (t        1)))
+
+(defun concept-map-adjust-edge-counts-for-relationship-block (line-number)
+  "Adjust the edge counts for the whole relationship block."
+  (if (< line-number 0)
+      (magically-remove-the-snapshot-buffer-edge-counts line-number)
+    (magically-add-the-editing-buffer-edge-counts)))
+
 (defun concept-map-make-network-from-edge-counts ()
   "Rebuild the adjacency graph from `concept-map-network-edge-counts'."
   (when concept-map-network-edge-counts
