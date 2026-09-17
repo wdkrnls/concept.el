@@ -7403,6 +7403,76 @@ Setting this variable to `nil' can be useful for debugging.")
   (when concept-map-network-is-stale
       'concept-mode-line-error-face))
 
+(defvar-local concept-map-snapshot-diff-buffer
+    nil
+  "This holds a reference to the diff buffer associated with the snapshot buffer")
+
+(defvar-local concept-map-snapshot-temp-file
+    nil
+  "Temporary file path for the snapshot file during the last diff.")
+
+(defvar-local concept-map-source-temp-file
+    nil
+  "Temporary file path for the concept map source file during the last diff.")
+
+(defun concept-map--refresh-snapshot-diff-buffer (&optional _ignore-auto _no-confirm)
+  "Refresh the snapshot diff buffer for this current concept map."
+  ;; XXX
+  nil)
+
+(defun concept-map-show-diff-with-snapshot-buffer ()
+  "Show the diff between the snapshot and the current concept map buffer."
+  (interactive)
+  (unless (derived-mode-p 'concept-mode)
+    (user-error "This command must be run in a concept buffer"))
+  (let ((buf (current-buffer))
+        (snapshot
+         (cond
+          ((bufferp concept-map-snapshot-buffer)
+           concept-map-snapshot-buffer)
+          ((stringp concept-map-snapshot-buffer)
+           (get-buffer concept-map-snapshot-buffer))))
+        (old-file (make-temp-file "concept-map-old-"))
+        (new-file (make-temp-file "concept-map-new-"))
+        diff-buffer)
+    (unless (buffer-live-p snapshot)
+      (user-error "Snapshot buffer does not exist"))
+    (unwind-protect
+        (progn
+          ;; Write the snapshot to a temporary file.
+          (with-current-buffer snapshot
+            (write-region (point-min)
+                          (point-max)
+                          old-file
+                          nil
+                          'silent))
+          ;; Write the current buffer to a temporary file.
+          (write-region (point-min)
+                        (point-max)
+                        new-file
+                        nil
+                        'silent)
+          ;; Generate the unified diff.
+          (setq diff-buffer
+                (diff-no-select old-file new-file "-u" t))
+          (if diff-buffer
+              (progn
+                (when (buffer-live-p concept-map-snapshot-diff-buffer)
+                  (kill-buffer concept-map-snapshot-diff-buffer))
+                (with-current-buffer diff-buffer
+                  (setq-local revert-buffer-function
+                              #'concept-map--refresh-snapshot-diff-buffer)
+                  (rename-buffer (format "*concept-map-diff: %s*"
+                                         (buffer-name buf))))
+                (setq concept-map-snapshot-diff-buffer diff-buffer)
+                (display-buffer concept-map-snapshot-diff-buffer))
+            (message "No differences found between the snapshot and the live buffer.")))
+      ;; Always remove the temporary files.
+      (when (file-exists-p old-file)
+        (delete-file old-file))
+      (when (file-exists-p new-file)
+        (delete-file new-file)))))
+
 (defun concept-map--buffer-changed-line-numbers ()
   "Return lines changed since the last snapshot.
 Positive numbers identify lines added to the current buffer.
@@ -7730,6 +7800,21 @@ representation of the concept map.")
         ((= x 0)  0)
         (t        1)))
 
+(defun concept-map-find-modified-relationship-blocks (line-numbers)
+  "Given LINE-NUMBERS, return the line numbers of all relevant focus lines in both buffers.
+These lines provide sign posts for processing relationship blocks in
+both buffers. In the snapshot buffer, the relationship edges in each
+relationship block need to be decremented. In the editing buffer, they
+need to be incremented.
+
+The logic involves looking at each change from the perspective of both
+buffers. This allows it to detect merges which result from atleast two
+line deletions in the snapshot buffer but which create one big
+relationship block where two were in the snapshot buffer.
+"
+  ;; XXX
+  nil)
+  
 (defun concept-map-adjust-edge-counts-for-relationship-block (line-number change)
   "Adjust the edge counts for the whole relationship block."
     (goto-line line-number)
