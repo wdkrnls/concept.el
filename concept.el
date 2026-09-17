@@ -1918,9 +1918,13 @@ the current data."
            (outline-end-of-subtree)
            (insert "\n@ " resource)))
         ((concept-on-data-concept-line)
-         (let ((next-concept (concept-next-focus)))
-           (concept-goto-next-relationship-boundary)
-           (insert "~ " next-concept "\n")
+         (let ((next-concept (concept-next-focus))
+               (concept      (concept-current-concept)))
+           (concept-goto-next-focus)
+           (beginning-of-line)
+           (if next-concept
+               (insert "~ " next-concept "\n")
+             (insert "~ " concept "\n"))
            (backward-char)))
         (t (message "Not sure what to do yet!"))))
 
