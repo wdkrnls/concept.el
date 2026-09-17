@@ -6400,7 +6400,7 @@ instead of `browse-url-new-window-flag'."
                               (buffer-substring-no-properties
                                (point-min)
                                (point-max)))
-                            "```\n")))
+                            "\n```\n")))
               (setq messages
                     (seq-filter (lambda (x) (not (string-empty-p x))) messages))
               (when (< 0 (length messages))
