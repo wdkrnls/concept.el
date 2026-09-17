@@ -2631,7 +2631,8 @@ Sort these names in order of usage frequency."
     (save-excursion
       (concept--goto-first-heading)
       (while (re-search-forward pattern nil t)
-        (unless (concept-on-blank-line)
+        (unless (or (concept-on-blank-line)
+                    (concept-current-line-blank-p))
           (let* ((line (concept-current-line))
                  (start 2)
                  (entry (string-trim-left (substring line start))))
@@ -2737,7 +2738,6 @@ Sort these names in order of usage frequency."
 
 (defun concept-change-concept ()
   "Replace the current concept with another one.
-
 Choose the new concept from initially ordered list of all resources."
   (interactive)
   (when (concept-on-concept-line)
