@@ -6339,6 +6339,15 @@ instead of `browse-url-new-window-flag'."
               (kill-buffer buf))))
         (buffer-list)))
 
+(defun concept-kill-all-snapshot-buffers ()
+  "Kill all open snapshot buffers."
+  (interactive)
+  (mapc (lambda (buf)
+          (let ((name (buffer-name buf)))
+            (when (string-match-p concept-map-buffer-snapshot-name name)
+              (kill-buffer buf))))
+        (buffer-list)))
+
 (defun concept-eval-elisp (string &optional side-effects)
   "Evaluate an Emacs Lisp STRING in a new dedicated buffer."
   (let* ((origin (current-buffer))
