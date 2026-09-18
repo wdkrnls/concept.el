@@ -265,95 +265,328 @@ These are subject concepts. They were called focus concepts.")
         "emacs-value" "emacs-option"
         "emacs-keybindings" "where-is"
         "emacs-keybinding" "kbd"
-        "emacs-lisp" "lisp" "side-effect"
-        "shell-command" "shell" "prompt"
+        "emacs-lisp" "lisp"
+        "shell-command" "shell"
         "search-phrase" "line" "point" "page" "pdf-page"
         "man" "info"
         "map" "place"
         "dictionary" "definition" "synonym"
         "wiki" "wikipedia" "gemipedia"
-        "diary" "date"))
+        "date")
+  "These keywords are followable.")
 
+(defvar concept--special-modifier-keywords
+  (list "prompt" "diary" "side-effect")
+  "These keywords are not followable, but change the effect of followable keywords.")
+
+(defvar concept-map-eldoc-help-flavor
+  'basic
+  "Choose the flavor of the help text.
+Available help flavors include:
+
+* `'basic' is the safest and simplest
+* `'stat-map' gives buffer-wide information
+* `'random-idea' gives pedagogical details for understanding ideas
+")
+
+(defun concept--capitalize-first-word (phrase)
+  (concat (upcase (substring phrase 0 1))
+          (substring phrase 1)))
+
+(defun concept--replace-hyphens-with-spaces (text indexes)
+  (let ((hyphen-index 0))
+    (apply #'concat
+           (mapcar
+            (lambda (char)
+              (if (eq char ?-)
+                  (prog1
+                      (if (memq hyphen-index indexes) " " "-")
+                    (setq hyphen-index (1+ hyphen-index)))
+                (char-to-string char)))
+            text))))
+
+(defun concept--count-hyphens (text)
+  (with-temp-buffer
+    (insert text)
+    (goto-char (point-min))
+    (how-many "-")))
+
+(defun concept--keep-except (index drop)
+  (seq-remove
+   (lambda (i)
+     (memq i drop))
+   index))
+
+(defun concept--sans-hyphens (string &rest keep-hyphen)
+  "Convenience function for constructing sentences with a paucity of hyphens."
+  (let* ((n   (concept--count-hyphens string))
+         (idx (number-sequence 0 (1- n)))
+         (keep-hyphen
+          (sort
+           (delete-dups
+            (mapcar
+             (lambda (x)
+               (if (< x 0)
+                   (+ n x)
+                 x))
+             keep-hyphen))))
+         (keep (concept--keep-except idx keep-hyphen)))
+    (concept--replace-hyphens-with-spaces string keep)))
+
+(defun concept--starts-with-vowel-p (string)
+  (and string
+       (string-match-p "\\`[AEIOUaeiou]" string)))
+
+(defun concept--ordinal (number)
+  "Return NUMBER as an ordinal string, such as \"1st\" or \"22nd\"."
+  (let ((suffix
+         (cond
+          ((memq (mod number 100) '(11 12 13)) "th")
+          ((= (mod number 10) 1) "st")
+          ((= (mod number 10) 2) "nd")
+          ((= (mod number 10) 3) "rd")
+          (t "th"))))
+    (format "%d%s" number suffix)))
+
+(defvar-local concept-map-special-words
+    nil
+  "Hash table of special words which indicate that concepts which contain
+these words should not be stripped of hyphens.")
+
+(defun concept--buffer-position-fraction ()
+  (/ (- (point) (point-min))
+     (float (- (point-max) (point-min)))))
+
+(defun concept-map-populate-special-words ()
+  (unless concept-map-special-words
+    (setq concept-map-special-words (make-hash-table :test #'equal)))
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "^@ metadata" nil t)
+      (when (member "special" (concept-get-resource-block-attributes))
+        (re-search-forward "^| +special:" nil nil)
+        (dolist (word (concept-get-attribute-data))
+          (puthash word (1+ (gethash word concept-map-special-words)) concept-map-special-words))))))
+
+(defun concept--contains-special-words (string)
+  (let ((special-words concept-map-special-words))
+    (when (not (null special-words))
+      (seq-some
+       (lambda (word)
+         (member word special-words))
+       (split-string string "-")))))
 
 (defun concept-map--eldoc (callback)
   "Provide a documentation source for the eldoc system."
-  (cond ((concept-on-focus-line)
-         (funcall
-          callback
-          (nth (random 4)
-               (let ((focus (concept-current-focus))
-                     (count (concept-relationship-count))
-                     (concept (concept-next-data-concept)))
-               (list (format "A focus concept like `%s' is the subject of one or more related thoughts." focus)
-                     (format "`%s' is the focus concept of an idea. Think of an idea like a paragraph. This idea has %d %s."
-                             focus count (if (= count 1) "thought" "thoughts"))
-                     (format "There %s %d %s tying the subject `%s' to %s."
-                             (if (= count 1) "is" "are")
-                             count
-                             (if (= count 1) "relationship" "relationships")
-                             focus
-                             (if (= count 1) (format "`%s'" concept) (format "objects like `%s'" concept)))
-                     (format "A well-written idea shares a single subject. This idea is about %s." focus))))))
-        ((concept-on-relationship-line)
-         (funcall
-          callback
-          (nth (random 3)
-               (let ((relationship (concept-current-relationship))
-                     (focus (concept-current-focus))
-                     (concept (concept-next-data-concept))
-                     (count (concept-relationship-group-count))
-                     (size  (concept-relationship-group-concept-count)))
-                 (list (format "There %s %d %s of (conceptual) %s %s `%s' connecting the subject `%s' to %s `%s'."
-                               (if (= count 1) "is" "are")
-                               count
-                               (if (= count 1) "kind" "kinds")
-                               (if (= count 1) "relationship" "relationships")
-                               (if (= count 1) "called" "such as")
-                               relationship focus (if (= count 1) "the object" "objects like") concept)
-                       (format "Read this as: %s %s %s. A conceptual thought is very simple, but might sound a bit awkward."
-                               focus
-                               relationship
-                               (if (equal focus "related-things")
-                                   (concept--oxford-join (concept-get-child-concepts))
-                                 concept))
-                       (format "This `%s' relationship applies to %d %s in this idea about `%s'."
-                               relationship size (if (= size 1) "thought" "thoughts") focus))))))
-        ((concept-on-data-concept-line)
-         (funcall
-          callback
-          (nth (random 2)
-               (let ((focus (concept-current-focus))
-                     (concept (concept-current-concept)))
-                 (list "Concepts are abstract things and thus are typically represented by plural words like `things'."
-                       (format "`%s' is a data concept. It is the object of a (conceptual) thought whose subject is `%s'."
-                               concept focus))))))
-        ((concept-on-resource-line)
-         (funcall
-          callback
-          (nth (random 2)
-               (list "`%s' names a resource block. Resources ground abstract conceptual ideas in concrete facts, references, and examples."
-                     (format "`%s' begins a resource block. Ideas hold zero or more resource blocks."
-                             (concept-current-resource))))))
-        ((concept-on-attribute-line)
-         (let* ((attribute (concept-current-attribute))
-                (count     (concept-attribute-group-data-count))
-                (followable-p (member attribute concept--special-keywords)))
-           (funcall
-            callback
-            (nth (random 2)
-                 (list (format "The `%s' keyword is %s. %s."
-                                attribute
-                                (if followable-p "followable" "not followable")
-                                (if followable-p
-                                    "Pressing `C-c f' on exposition lines under this attribute will do something special"
-                                  "Data on exposition lines under this attribute are given as is."))
-                       (format "`%s' is an attribute group. This attribute group holds %d %s of expository data. There must be one or more."
-                               attribute count (if (= count 1) "piece" "pieces")))))))
-        ((concept-on-exposition-line)
-         (funcall
-          callback
-          "This is a line of expository data. It helps the idea make sense by holding references, commands, or facts."))))
+  (pcase concept-map-eldoc-help-flavor
+    ('basic
+     (cond ((concept-on-focus-line)
+            (format "This idea focuses on %s." (concept-current-focus)))
+           ((concept-on-relationship-line)
+            (let ((relationship (concept-current-relationship))
+                  (group-size   (length (concept-get-child-concepts))))
+              (format "Conceptual group #%d is %s %s relationship. It has %d associated data %s."
+                      (concept-relationship-group-number)
+                      (if (concept--starts-with-vowel-p relationship)
+                          "an" "a")
+                      relationship
+                      group-size
+                      (if (= group-size 1) "concept" "concepts"))))
+           ((concept-on-data-concept-line)
+            (let ((focus        (concept-current-focus))
+                  (relationship (concept-current-relationship))
+                  (concept      (concept-current-concept)))
+              (format "%s %s %s." focus relationship concept)))
+           ((concept-on-resource-line)
+            (let ((block-number (concept-resource-block-number))
+                  (block-length (concept-resource-block-length)))
+              (format "This %s resource is named: %s. It hold %d attribute groups with %d data %s in total."
+                      (concept--ordinal block-number)
+                      (concept-current-resource)
+                      (concept-resource-keyword-count)
+                      block-length
+                      (if (= block-length 1) "line" "lines"))))
+           ((concept-on-attribute-line)
+            (let ((keyword-number (concept-resource-keyword-number))
+                  (keyword-count  (concept-resource-keyword-count)))
+              (format "Attribute group #%d starts with the %s keyword. This resource block holds %d %s in total."
+                      keyword-number
+                      (concept-current-attribute)
+                      keyword-count
+                      (if (= keyword-count 1) "group" "groups"))))
+           ((concept-on-exposition-line)
+            (let ((data-length (concept-exposition-length))
+                  (keyword     (concept-current-attribute)))
+              (format "This expository data line is %d %s long. It is supposed to be %s %s."
+                      data-length
+                      (if (= data-length 1) "character" "characters")
+                      (if (concept--starts-with-vowel-p keyword) "an" "a")
+                      keyword)))))
+    ('stat-map
+     (cond ((concept-on-focus-line)
+            (let* ((focus         (concept-current-focus))
+                   (focus-count   (concept-map-focus-count focus))
+                   (data-count    (concept-map-data-concept-count focus))
+                   (concept-count (+ focus-count data-count))
+                   (idea-number   (concept-map-idea-number)))
+              (format "The %s idea in this map focuses on `%s' which is referenced %d %s, %d %s as a focus."
+                      (concept--ordinal idea-number)
+                      focus
+                      concept-count
+                      (if (= concept-count 1) "time" "times")
+                      focus-count
+                      (if (= focus-count 1) "time" "times"))))
+            ((concept-on-relationship-line)
+             (let* ((relationship (concept-current-relationship))
+                    (rel-count (concept-map-relationship-group-count relationship)))
+               (format "The %s relationship was used %d %s in this concept map."
+                       relationship
+                       rel-count
+                       (if (= rel-count 1) "time" "times"))))
+            ((concept-on-data-concept-line)
+             (let ((concept-number (concept-data-concept-number))
+                   (concept-count  (concept-map-data-concept-count))
+                   (focus          (concept-current-focus))
+                   (relationship   (concept-current-relationship))
+                   (concept        (concept-current-concept)))
+             (format "Thought %d of %d total thoughts in this concept map states that %s %s %s."
+                     concept-number
+                     concept-count
+                     focus
+                     relationship
+                     concept)))
+            ((concept-on-resource-line)
+             (let ((block-count  (concept-map-resource-block-count))
+                   (block-number (concept-map-resource-block-number))
+                   (resource (concept-current-resource)))
+               (format "Resource %d is called %s and is referenced %d %s in total."
+                       block-number
+                       resource
+                       block-count
+                       (if (= block-count 1) "time" "times"))))
+            ((concept-on-attribute-line)
+             (let* ((keyword        (concept-current-attribute))
+                    (keyword-number (concept-map-attribute-group-number))
+                    (keyword-count  (concept-attribute-name-count keyword)))
+               (format "This is the %s attribute group in the concept map. It has the keyword `%s' which has been used %d %s in this map."
+                       (concept--ordinal keyword-number)
+                       keyword
+                       keyword-count
+                       (if (= keyword-count 1) "time" "times"))))
+            ((concept-on-exposition-line)
+             (let ((line-count (concept-resource-block-length))
+                   (keyword (concept-current-attribute)))
+               (format "This expository data line is one of %d such %s in this resource block. It should be %s %s."
+                       line-count
+                       (if (= line-count 1) "line" "lines")
+                       (if (concept--starts-with-vowel-p keyword) "an" "a")
+                       keyword)))))
+    ('random-idea
+     (cond ((concept-on-focus-line)
+            (funcall
+             callback
+             (nth (random 4)
+                  (let ((focus   (concept-current-focus))
+                        (count   (concept-relationship-count))
+                        (concept (concept-next-data-concept)))
+                    (list (format "A focus concept like %s is the subject of one or more related thoughts." focus)
+                          (format "%s is the focus concept of an idea. Think of an idea like a paragraph. This idea has %d %s."
+                                  focus count (if (= count 1) "thought" "thoughts"))
+                          (format "There %s %d %s tying the subject %s to %s."
+                                  (if (= count 1) "is" "are")
+                                  count
+                                  (if (= count 1) "relationship" "relationships")
+                                  focus
+                                  (if (= count 1) (format "%s" concept) (format "objects like %s" concept)))
+                          (format "A well-written idea shares a single subject. This idea is about %s." focus))))))
+           ((concept-on-relationship-line)
+            (funcall
+             callback
+             (nth (random 3)
+                  (let ((relationship (concept-current-relationship))
+                        (focus (concept-current-focus))
+                        (concept (concept-next-data-concept))
+                        (count (concept-relationship-group-count))
+                        (size  (concept-relationship-group-concept-count)))
+                    (list (format "There %s %d %s of (conceptual) %s %s %s connecting the subject %s to %s %s."
+                                  (if (= count 1) "is" "are")
+                                  count
+                                  (if (= count 1) "kind" "kinds")
+                                  (if (= count 1) "relationship" "relationships")
+                                  (if (= count 1) "called" "such as")
+                                  relationship focus (if (= count 1) "the object" "objects like") concept)
+                          (format "Read this as: %s %s %s. A conceptual thought is very simple, but might sound a bit awkward."
+                                  focus
+                                  relationship
+                                  (if (equal focus "related-things")
+                                      (concept--oxford-join (concept-get-child-concepts))
+                                    concept))
+                          (format "This %s relationship applies to %d %s in this idea about %s."
+                                  relationship size (if (= size 1) "thought" "thoughts") focus))))))
+           ((concept-on-data-concept-line)
+            (funcall
+             callback
+             (nth (random 2)
+                  (let ((focus (concept-current-focus))
+                        (concept (concept-current-concept)))
+                    (list "Concepts are abstract things and thus are typically represented by plural words like `things'."
+                          (format "%s is a data concept. It is the object of a (conceptual) thought whose subject is %s."
+                                  concept focus))))))
+           ((concept-on-resource-line)
+            (funcall
+             callback
+             (nth (random 2)
+                  (list "%s names a resource block. Resources ground abstract conceptual ideas in concrete facts, references, and examples."
+                        (format "%s begins a resource block. Ideas hold zero or more resource blocks."
+                                (concept-current-resource))))))
+           ((concept-on-attribute-line)
+            (let* ((attribute (concept-current-attribute))
+                   (count     (concept-attribute-group-data-count))
+                   (followable-p (member attribute concept--special-keywords)))
+              (funcall
+               callback
+               (nth (random 2)
+                    (list (format "The %s keyword is %s. %s."
+                                  attribute
+                                  (if followable-p "followable" "not followable")
+                                  (if followable-p
+                                      (format
+                                       "Pressing %s on exposition lines under this attribute will do something special"
+                                       (mapconcat #'key-description (where-is-internal #'concept-follow-dwim) ", "))
+                                    "Data on exposition lines under this attribute are given as is"))
+                          (format "%s is an attribute group. This attribute group holds %d %s of expository data. There must be one or more."
+                                  attribute count (if (= count 1) "piece" "pieces")))))))
+           ((concept-on-exposition-line)
+            (funcall
+             callback
+             (let* ((keyword (concept-current-attribute))
+                    (followable-p (member keyword concept--special-keywords)))
+               (nth (random 3)
+                    (list "This is a line of expository data. It helps the idea make sense by holding references, commands, or facts."
+                          (if followable-p
+                              (format "This line is followable because %s is a special keyword. Press %s to see what it does."
+                                      keyword
+                                      (mapconcat #'key-description (where-is-internal #'concept-follow-dwim) ", "))
+                            "This line is not followable, but you can may still glean insight from reading it.")
+                          (format "This line should be %s %s."
+                                  (if (concept--starts-with-vowel-p keyword) "an" "a")
+                                  keyword))))))))))
 
+(defun concept-map-attribute-data-line-count ()
+  "Count the total number of data lines in the buffer."
+  (let ((inhibit-message t))
+    (save-excursion
+      (goto-char (point-min))
+      (concept-goto-next-data-concept-or-exposition-line)
+      (let ((n 0))
+        (while (and (or (concept-on-data-concept-line)
+                        (concept-on-exposition-line))
+                    (not (concept-on-last-line-p)))
+          (when (concept-on-exposition-line)
+            (setq n (1+ n)))
+          (concept-goto-next-data-concept-or-exposition-line))
+        n))))
+    
 (defun concept-read-string-with-completion (prompt candidates &optional initial-input history default-value inherit-input-method)
   (let ((complete
          (lambda ()
@@ -971,13 +1204,19 @@ It provides bindings for quickly navigating concepts and examples.")
 
 (defun concept--goto-first-heading ()
   "Go back to the first heading in the region."
-  (beginning-of-buffer)
+  (goto-char (point-min))
   (condition-case err
       (when (not (concept-on-focus-line))
         (concept-goto-next-concept-block-or-stay))
     (error
      (re-search-forward "^~")
      (beginning-of-line))))
+
+(defun concept--goto-last-data-line ()
+  "Go forward to the last data line in the buffer."
+  (end-of-buffer)
+  (re-search-backward "^|")
+  (beginning-of-line))
 
 (defun concept--current-heading-text ()
   "Text for the currently selected line.
@@ -1029,8 +1268,64 @@ selected line then this will return nil.
 (defun concept-map-idea-count ()
   "Count the number of ideas in a concept map."
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (how-many "^~")))
+
+(defun concept-map-attribute-group-count ()
+  "Count the number of attribute groups in a concept map."
+  (save-excursion
+    (goto-char (point-min))
+    (how-many concept-attribute-group-keyword-regexp)))
+
+(defun concept-map-focus-count (&optional concept)
+  "Count the number of ideas in a concept map."
+  (save-excursion
+    (goto-char (point-min))
+    (how-many
+     (if (null concept)
+         "^~"
+       (format "^~ +%s" concept)))))
+
+(defun concept-map-relationship-group-count (&optional relationship)
+  "Count the number of relationships in a concept map."
+  (save-excursion
+    (goto-char (point-min))
+    (how-many
+     (if (null relationship)
+         "^| +:"
+       (format "^| +:%s" relationship)))))
+
+(defun concept-map-resource-block-count (&optional resource)
+  "Count the number of resource  blocks in a concept map."
+  (save-excursion
+    (goto-char (point-min))
+    (how-many
+     (if (null resource)
+         "^@"
+       (format "^@ +%s" resource)))))
+
+(defun concept-map-data-concept-count (&optional concept)
+  "Count the number of ideas in a concept map."
+  (let ((inhibit-message t))
+    (save-excursion
+      (goto-char (point-min))
+      (how-many
+       (if (null concept)
+           concept-object-line-regexp
+         (format "^| +%s" concept))))))
+
+(defun concept-map-idea-number ()
+  "Give the index of the current idea in a concept map."
+  (when (concept-on-focus-line)
+    (let ((finish-line (line-number-at-pos (point))))
+      (save-excursion
+        (concept--goto-first-heading)
+        (let ((n 0))
+          (while (and (concept-on-focus-line)
+                      (<= (line-number-at-pos (point)) finish-line))
+            (setq n (1+ n))
+            (concept-goto-next-focus))
+          n)))))
 
 (defun concept-reverse-ideas ()
   "Reverse the order of all the ideas in the buffer."
@@ -3087,12 +3382,31 @@ This is a wrapper function useful for interactive usage."
   (interactive)
   (let ((pattern "^|")
         (line-move-visual nil))
-    (next-line)
-    (beginning-of-line)
-    (while (not (and (concept-on-concept-line)
-                     (concept-on-data-line)))
-      (re-search-forward pattern nil t))
-    (end-of-line)))
+    (when (not (concept-on-last-line-p))
+      (next-line)
+      (beginning-of-line)
+      (while (not (or (and (concept-on-concept-line)
+                           (concept-on-data-line))
+                      (eobp)))
+        (or (re-search-forward pattern nil t)
+            (progn (end-of-buffer) t)))
+      (end-of-line))))
+
+(defun concept-goto-previous-data-concept ()
+  "Navigate backward until the previous data concept."
+  (interactive)
+  (let ((pattern "^|")
+        (line-move-visual nil))
+    (when (not (concept-on-first-line-p))
+      (previous-line)
+      (beginning-of-line)
+      (while (not (or (and (concept-on-concept-line)
+                           (concept-on-data-line))
+                      (bobp)))
+        (or (re-search-backward pattern nil t)
+            (progn (goto-char (point-min)) t)))
+      (when (not (bobp))
+        (end-of-line)))))
 
 (defun concept-goto-last-concept ()
   "Navigate backwards until the last concept"
@@ -3717,8 +4031,7 @@ In both cases this procedure can detect the delimiter in useful situations."
 
 (defun concept-relationship-count ()
   "Count the number of relationships inside of a relationship block.
-This starts at the focus line and increments every time a data line is found.
-"
+This starts at the focus line and increments every time a data line is found."
   (interactive)
   (let ((line-move-visual nil))
     (save-excursion
@@ -3733,21 +4046,95 @@ This starts at the focus line and increments every time a data line is found.
           (next-line))
         n))))
 
+(defun concept-relationship-name-count (relationship)
+  "Count the number of times this relationship is named in the concept map."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (how-many (format "^| +:%s" relationship))))
+
+(defun concept-attribute-name-count (keyword)
+  "Count the number of times this relationship is named in the concept map."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (how-many (format "^| +%s:" keyword))))
+
+(defun concept-relationship-group-number ()
+  "Return the index for the current relationship group in the block.
+See also the `concept-relationship-group-count' which returns the total
+number of groups."
+  (interactive)
+  (when (concept-on-relationship-line)
+    (let ((line-move-visual nil)
+          (line (line-number-at-pos (point))))
+      (save-excursion
+        (concept-goto-current-focus)
+        (next-line)
+        (let ((n 0))
+          (while (and (concept-in-relationship-block)
+                      (<= (line-number-at-pos (point)) line)
+                      (not (concept-on-focus-line)))
+            (when (concept-on-relationship-line)
+              (setq n (1+ n)))
+            (next-line))
+          n)))))
+
+(defun concept--goto-buffer-middle ()
+  (goto-char (/ (+ (point-min) (point-max)) 2)))
+
+(defun concept--goto-buffer-fraction (p)
+  (unless (and (<= 0 p) (<= p 1))
+    (user-error "The supplied fraction must be between 0-1."))
+  (goto-char
+   (round  (+ (point-min)
+              (* p (- (point-max) (point-min)))))))
+
+(defun concept-data-concept-number ()
+  "Return the concept map wide index for the current data concept."
+  (interactive)
+  (when (concept-on-data-concept-line)
+    (let ((line-move-visual nil)
+          (inhibit-message t)
+          (line     (line-number-at-pos (point)))
+          (fraction (concept--buffer-position-fraction)))
+      (if (<= fraction 0.8) ; how-many costs something!
+          (save-excursion
+            (concept--goto-first-heading)
+            (concept-goto-next-data-concept)
+            (let ((n 0))
+              (while (and (concept-on-data-concept-line)
+                          (<= (line-number-at-pos (point)) line))
+                (setq n (1+ n))
+                (concept-goto-next-data-concept))
+              n))
+        (save-excursion
+          (concept--goto-last-data-line)
+          (when (not (concept-on-data-concept-line))
+            (concept-goto-previous-data-concept))
+          (let ((n (concept-map-data-concept-count)))
+            (while (and (concept-on-data-concept-line)
+                        (<= line (line-number-at-pos (point))))
+              (setq n (1- n))
+              (concept-goto-previous-data-concept))
+            n))))))
+
 (defun concept-relationship-group-count ()
   "Count the number of relationship groups inside of a relationship block.
 This starts at the focus line and increments every time a new
 relationship line is found."
-  (let ((line-move-visual nil))
-    (save-excursion
-      (concept-goto-current-focus)
-      (next-line)
-      (let ((n 0))
-        (while (and (concept-in-relationship-block)
-                    (not (concept-on-focus-line)))
-          (when (concept-on-relationship-line)
-            (setq n (1+ n)))
-          (next-line))
-        n))))
+  (when (concept-in-relationship-block)
+    (let ((line-move-visual nil))
+      (save-excursion
+        (concept-goto-current-focus)
+        (next-line)
+        (let ((n 0))
+          (while (and (concept-in-relationship-block)
+                      (not (concept-on-focus-line)))
+            (when (concept-on-relationship-line)
+              (setq n (1+ n)))
+            (next-line))
+          n)))))
 
 (defun concept-relationship-group-concept-count ()
   "Count the number of data concepts."
@@ -4100,6 +4487,55 @@ resource line is found."
             (setq n (1+ n)))
           (next-line))
         n))))
+
+(defun concept-resource-block-number ()
+  "The number of the current resource block inside of an idea.
+This starts at the focus line and increments every time a new
+resource line is found until it gets to the current one."
+  (interactive)
+  (when (concept-on-resource-line)
+    (let ((line-move-visual nil)
+          (finish-line (line-number-at-pos (point))))
+      (save-excursion
+        (concept-goto-current-focus)
+        (next-line)
+        (let ((n 0))
+          (while (and (not (concept-on-focus-line))
+                      (not (eobp))
+                      (<= (line-number-at-pos (point)) finish-line))
+            (when (concept-on-resource-line)
+              (setq n (1+ n)))
+            (next-line))
+          n)))))
+
+(defun concept-map-resource-block-number ()
+  "The number of the resource block in the concept map."
+  (interactive)
+  (when (concept-on-resource-line)
+    (let ((line-move-visual nil)
+          (finish-line (line-number-at-pos (point)))
+          (fraction (concept--buffer-position-fraction)))
+      (if (<= fraction 0.8)
+          (save-excursion
+            (concept--goto-first-heading)
+            (concept-goto-next-resource)
+            (let ((n 0))
+              (while (and (concept-on-resource-line)
+                          (<= (line-number-at-pos (point)) finish-line)
+                          (not (eobp)))
+                (setq n (1+ n))
+                (concept-goto-next-resource))
+              n))
+        (save-excursion
+          (concept--goto-last-data-line)
+          (concept-goto-previous-resource)
+          (let ((n (1+ (concept-map-resource-block-count))))
+            (while (and (concept-on-resource-line)
+                        (<= finish-line (line-number-at-pos (point)))
+                        (not (bobp)))
+              (setq n (1- n))
+              (concept-goto-previous-resource))
+            n))))))
 
 (defun concept-idea-has-resources ()
   "Test whether the current idea has atleast one resource."
@@ -4659,14 +5095,14 @@ simple."
 There should only be one space there, not several."
   (when (derived-mode-p 'concept-mode)
     (save-excursion
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (replace-regexp "^\\([|~@]\\) +" "\\1 "))))
 
 (defun concept-insert-missing-leading-whitespace ()
   "Insert missing whitespace between the opening sigil and the interesting content."
   (when (derived-mode-p 'concept-mode)
     (save-excursion
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (replace-regexp "^\\([|~@]\\)\\([^[:space:]]+\\)" "\\1 \\2"))))
 
 (defun concept-on-malformed-exposition-line ()
@@ -4680,7 +5116,7 @@ There should only be one space there, not several."
 This only affects resource blocks."
   (when (derived-mode-p 'concept-mode)
     (save-excursion
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (replace-regexp "^| +\\([^][{}‘’:~ ]+:\\).+$" "| \\1")
       (replace-regexp "}[^]’[:cntrl:]]+$" "}")
       (replace-regexp "][^}’[:cntrl:]]+$" "]")
@@ -5042,6 +5478,49 @@ This modifies the global variable `concept-last-size-comparison-behavior'."
           (when (concept-on-attribute-line)
             (setq n (1+ n))))
         n))))
+
+(defun concept-resource-keyword-number ()
+  "Return the number inde of the current keyword associated with a resource."
+  (when (concept-on-attribute-line)
+    (let ((n 0)
+          (finish-line (line-number-at-pos (point))))
+      (save-excursion
+        (concept-goto-current-resource)
+        (while (and (concept-in-resource-block)
+                    (<= (line-number-at-pos (point)) finish-line))
+          (when (concept-on-attribute-line)
+            (setq n (1+ n)))
+          (concept-goto-next-attribute-boundary)
+          (end-of-line))
+        n))))
+
+(defun concept-map-resource-keyword-count ()
+  "Count the total number of keywords in the whole concept map.
+This matches the result of `concept-map-attribute-group-count'."
+  (save-excursion
+    (concept--goto-first-heading)
+    (concept-goto-next-resource)
+    (let ((n 0))
+      (while (and (concept-on-resource-line)
+                  (not (eobp)))
+        (setq n (+ n (concept-resource-keyword-count)))
+        (concept-goto-next-resource))
+      n)))
+
+(defun concept-map-attribute-group-number ()
+  "Find the current index of the current keyword in the whole concept map."
+  (when (concept-on-attribute-line)
+    (let ((finish-line (line-number-at-pos (point)))
+          (inhibit-message t))
+      (save-excursion
+        (concept--goto-first-heading)
+        (concept-goto-next-attribute)
+        (let ((n 1))
+          (while (and (concept-on-attribute-line)
+                      (< (line-number-at-pos (point)) finish-line))
+            (setq n (1+ n))
+            (concept-goto-next-attribute))
+          n)))))
 
 (defun concept-make-last-attribute-count ()
   "Dispatch to the right procedure for counting attributes.
@@ -6145,7 +6624,7 @@ The query `old\;@new' matches all query blocks with old but not new terms.
   "Copy all the resource blocks into the kill ring."
   (interactive)
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (while (concept-map-has-more-resources)
       (concept-goto-next-resource)
       (concept-copy-resource-at-point))))
@@ -6167,7 +6646,7 @@ The query `old\;@new' matches all query blocks with old but not new terms.
 (defun concept-copy-all-ideas ()
   (interactive)
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (while (concept-map-has-more-concept-blocks)
       (concept-goto-next-concept-block)
       (concept-copy-idea-at-point))))
@@ -6742,7 +7221,7 @@ modifying `mailcap-user-mime-data'."
                   (forward-line)
                   (concept-follow-dwim)
                   (with-current-buffer "*info*"
-                    (beginning-of-buffer)
+                    (goto-char (point-min))
                     (occur value))))))
         ((and (concept-on-exposition-line)
               (string= "point" (concept-exposition-parent-key)))
@@ -6776,7 +7255,7 @@ modifying `mailcap-user-mime-data'."
                   (forward-line)
                   (concept-follow-dwim)
                   (with-current-buffer "*info*"
-                    (beginning-of-buffer)
+                    (goto-char (point-min))
                     (goto-char (string-to-number value)))))))
         ((and (concept-on-exposition-line)
               (let ((key (concept-exposition-parent-key)))
