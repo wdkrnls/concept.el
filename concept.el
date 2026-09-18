@@ -7351,10 +7351,11 @@ If it doesn't parse, move the point to where the first failure is."
 (defun concept-map-grammar-parses-p ()
   "Return t if the current concept map parses, otherwise return nil.
 On failure, leave point at the first parse error."
-  (condition-case nil
-      (concept-map-check-parse)
-    (user-error
-     nil)))
+  (save-excursion
+    (condition-case nil
+        (concept-map-check-parse)
+      (user-error
+       nil))))
 
 (defvar-local concept-map-network-is-stale
     nil
