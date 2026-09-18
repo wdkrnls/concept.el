@@ -265,7 +265,7 @@ These are subject concepts. They were called focus concepts.")
         "emacs-value" "emacs-option"
         "emacs-keybindings" "where-is"
         "emacs-keybinding" "kbd"
-        "emacs-lisp" "lisp"
+        "elisp-call" "lisp"
         "shell-command" "shell"
         "search-phrase" "line" "point" "page" "pdf-page"
         "man" "info"
@@ -7359,8 +7359,8 @@ modifying `mailcap-user-mime-data'."
               (concept-get-expository-data)
               (member "prompt" (concept-resource-block-keys))))))
         ((and (concept-on-exposition-line)
-              (or (string= "emacs-lisp" (concept-exposition-parent-key))
-                  (string= "lisp" (concept-exposition-parent-key))))
+              (or (string= "elisp-call" (concept-exposition-parent-key))
+                  (string= "emacs-lisp-call" (concept-exposition-parent-key))))
          (save-excursion
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
