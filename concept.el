@@ -6787,7 +6787,10 @@ States: MM/DD/YYYY and YYYY-MM-DD."
 (defun concept-open-calendar (date &optional diary)
   (let ((date (concept-parse-date date)))
     (calendar)
-    (setq-local diary-file diary) ; TODO: I'm not convince this works in Emacs
+    (with-current-buffer (get-buffer "*Calendar*")
+      (setq-local diary-file diary))
+    (or (get-buffer diary-file)
+        (find-file-noselect diary-file))
     (calendar-goto-date date)))
 
 (defun concept-browse-url (url &optional new-window)
