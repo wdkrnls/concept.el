@@ -7576,8 +7576,7 @@ network graph hash table.")
   "Mark the network stale when a relationship block has changed."
   (when (concept-map--relationship-block-changed-p)
     (setq concept-map-network-is-stale t)
-    (when (and concept-map-should-update-stale-network
-               (concept-map-grammar-parses-p))
+    (when concept-map-should-update-stale-network
       (concept-map--schedule-network-update))))
   
 (defun concept-map--schedule-network-update (&rest _args)
