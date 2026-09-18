@@ -384,12 +384,15 @@ these words should not be stripped of hyphens.")
             (format "This idea focuses on %s." (concept-current-focus)))
            ((concept-on-relationship-line)
             (let ((relationship (concept-current-relationship))
-                  (group-size   (length (concept-get-child-concepts))))
-              (format "Conceptual group #%d is %s %s relationship. It has %d associated data %s."
-                      (concept-relationship-group-number)
+                  (group-size   (length (concept-get-child-concepts)))
+                  (rel-number   (concept-relationship-group-number))
+                  (focus        (concept-current-focus)))
+              (format "This %s relationship group assigns %s %s relationship connecting %s to %d data %s."
+                      (concept--ordinal rel-number)
                       (if (concept--starts-with-vowel-p relationship)
                           "an" "a")
                       relationship
+                      focus
                       group-size
                       (if (= group-size 1) "concept" "concepts"))))
            ((concept-on-data-concept-line)
@@ -399,21 +402,30 @@ these words should not be stripped of hyphens.")
               (format "%s %s %s." focus relationship concept)))
            ((concept-on-resource-line)
             (let ((block-number (concept-resource-block-number))
-                  (block-length (concept-resource-block-length)))
-              (format "This %s resource is named: %s. It hold %d attribute groups with %d data %s in total."
+                  (block-length (concept-resource-block-length))
+                  (key-count    (concept-resource-keyword-count)))
+              (format "This %s resource is named: %s. It holds %d attribute %s with %d data %s in total."
                       (concept--ordinal block-number)
                       (concept-current-resource)
-                      (concept-resource-keyword-count)
+                      key-count
+                      (if (= 1 key-count) "group" "groups")
                       block-length
                       (if (= block-length 1) "line" "lines"))))
            ((concept-on-attribute-line)
-            (let ((keyword-number (concept-resource-keyword-number))
-                  (keyword-count  (concept-resource-keyword-count)))
-              (format "Attribute group #%d starts with the %s keyword. This resource block holds %d %s in total."
-                      keyword-number
-                      (concept-current-attribute)
-                      keyword-count
-                      (if (= keyword-count 1) "group" "groups"))))
+            (let ((keyword        (concept-current-attribute))
+                  (keyword-number (concept-resource-keyword-number))
+                  (keyword-count  (concept-resource-keyword-count))
+                  (resource       (concept-current-resource)))
+              (format "This %s attribute group starts with the %s keyword. %s"
+                      (concept--ordinal keyword-number)
+                      keyword
+                      (if (and (equal keyword "special")
+                               (equal resource "metadata"))
+                          (concat "This keyword/resource combination signals that concepts "
+                                  "containing words or phrases listed should be parsed differently.")
+                        (format "This resource block holds %d attribute %s in total."
+                                keyword-count
+                                (if (= keyword-count 1) "group" "groups"))))))
            ((concept-on-exposition-line)
             (let ((data-length (concept-exposition-length))
                   (keyword     (concept-current-attribute)))
