@@ -7604,7 +7604,7 @@ network graph hash table.")
          (and (not (eq buffer buf))
               (with-current-buffer buffer
                 (derived-mode-p 'concept-mode))))
-       ((buffer-list))))))
+       (buffer-list)))))
 
 (defun concept-map--run-scheduled-network-update (buffer)
   "Update BUFFER's concept map network.
