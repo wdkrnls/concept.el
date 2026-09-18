@@ -406,7 +406,7 @@ these words should not be stripped of hyphens.")
                   (key-count    (concept-resource-keyword-count)))
               (format "This %s resource is named: %s. It holds %d attribute %s with %d data %s in total."
                       (concept--ordinal block-number)
-                      (concept-current-resource)
+                      (concept-current-resource-name)
                       key-count
                       (if (= 1 key-count) "group" "groups")
                       block-length
@@ -415,7 +415,7 @@ these words should not be stripped of hyphens.")
             (let ((keyword        (concept-current-attribute))
                   (keyword-number (concept-resource-keyword-number))
                   (keyword-count  (concept-resource-keyword-count))
-                  (resource       (concept-current-resource)))
+                  (resource       (concept-current-resource-name)))
               (format "This %s attribute group starts with the %s keyword. %s"
                       (concept--ordinal keyword-number)
                       keyword
@@ -470,7 +470,7 @@ these words should not be stripped of hyphens.")
             ((concept-on-resource-line)
              (let ((block-count  (concept-map-resource-block-count))
                    (block-number (concept-map-resource-block-number))
-                   (resource (concept-current-resource)))
+                   (resource (concept-current-resource-name)))
                (format "Resource %d is called %s and is referenced %d %s in total."
                        block-number
                        resource
@@ -550,7 +550,7 @@ these words should not be stripped of hyphens.")
              (nth (random 2)
                   (list "%s names a resource block. Resources ground abstract conceptual ideas in concrete facts, references, and examples."
                         (format "%s begins a resource block. Ideas hold zero or more resource blocks."
-                                (concept-current-resource))))))
+                                (concept-current-resource-name))))))
            ((concept-on-attribute-line)
             (let* ((attribute (concept-current-attribute))
                    (count     (concept-attribute-group-data-count))
@@ -3137,6 +3137,7 @@ Sort these names in order of usage frequency."
 
 (defun concept-current-resource ()
   "Get the current resource and return as a string."
+  ;; TODO: it's confusing that this moves the point and resource-name does not
   (when (concept-in-resource-block)
     (concept-goto-current-resource)
     (unless (concept-on-blank-line)
