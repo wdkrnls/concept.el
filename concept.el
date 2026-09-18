@@ -260,8 +260,20 @@ These are subject concepts. They were called focus concepts.")
                (car (last items))))))
 
 (defvar concept--special-keywords
-  (list "file" "file-name" "url" "emacs-symbol" "emacs-lisp" "emacs-command" "emacs-package"
-        "search-phrase" "line" "point" "kbd" "man" "info" "map" "place" "dictionary" "diary"))
+  (list "file" "file-name" "url" "file-path"
+        "emacs-symbol"  "emacs-command" "emacs-package"
+        "emacs-value" "emacs-option"
+        "emacs-keybindings" "where-is"
+        "emacs-keybinding" "kbd"
+        "emacs-lisp" "lisp" "side-effect"
+        "shell-command" "shell" "prompt"
+        "search-phrase" "line" "point" "page" "pdf-page"
+        "man" "info"
+        "map" "place"
+        "dictionary" "definition" "synonym"
+        "wiki" "wikipedia" "gemipedia"
+        "diary" "date"))
+
 
 (defun concept-map--eldoc (callback)
   "Provide a documentation source for the eldoc system."
