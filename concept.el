@@ -7771,7 +7771,7 @@ concepts and the values are list of concepts that are children of the key:
         (concept-map--take-buffer-snapshot)
         (force-mode-line-update t)
         (setq concept-map-network-graph graph)))
-    (message "Concept map %s failed to parse. Please correct it first to update network!")))
+    (message "Concept map %s failed to parse. Please correct it first to update network!" (buffer-name))))
 
 (defun concept-map-network-reachable-p (start goal)
   "Return non-nil if GOAL is reachable from START."
