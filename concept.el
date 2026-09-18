@@ -112,6 +112,7 @@
 (require 'url-parse)
 (require 'url-util)
 (require 'diff)
+(require 'eldoc)
 
 ;;; Reference for internal resources
 
@@ -248,6 +249,98 @@ These are subject concepts. They were called focus concepts.")
 (defvar concept-group-name-regexp
   (concat "^[^^: -,;]" concept-group-name-restriction-regexp "+[[:alnum:]]$")
   "Regular expression to match any kind .")
+
+(defun concept--oxford-join (items)
+  (pcase items
+    ('() "")
+    (`(,only) only)
+    (`(,first ,second) (format "%s and %s" first second))
+    (_ (format "%s, and %s"
+               (string-join (butlast items) ", ")
+               (car (last items))))))
+
+(defvar concept--special-keywords
+  (list "file" "file-name" "url" "emacs-symbol" "emacs-lisp" "emacs-command" "emacs-package"
+        "search-phrase" "line" "point" "kbd" "man" "info" "map" "place" "dictionary" "diary"))
+
+(defun concept-map--eldoc (callback)
+  "Provide a documentation source for the eldoc system."
+  (cond ((concept-on-focus-line)
+         (funcall
+          callback
+          (nth (random 4)
+               (let ((focus (concept-current-focus))
+                     (count (concept-relationship-count))
+                     (concept (concept-next-data-concept)))
+               (list (format "A focus concept like `%s' is the subject of one or more related thoughts." focus)
+                     (format "`%s' is the focus concept of an idea. Think of an idea like a paragraph. This idea has %d %s."
+                             focus count (if (= count 1) "thought" "thoughts"))
+                     (format "There %s %d %s tying the subject `%s' to %s."
+                             (if (= count 1) "is" "are")
+                             count
+                             (if (= count 1) "relationship" "relationships")
+                             focus
+                             (if (= count 1) (format "`%s'" concept) (format "objects like `%s'" concept)))
+                     (format "A well-written idea shares a single subject. This idea is about %s." focus))))))
+        ((concept-on-relationship-line)
+         (funcall
+          callback
+          (nth (random 3)
+               (let ((relationship (concept-current-relationship))
+                     (focus (concept-current-focus))
+                     (concept (concept-next-data-concept))
+                     (count (concept-relationship-group-count))
+                     (size  (concept-relationship-group-concept-count)))
+                 (list (format "There %s %d %s of (conceptual) %s %s `%s' connecting the subject `%s' to %s `%s'."
+                               (if (= count 1) "is" "are")
+                               count
+                               (if (= count 1) "kind" "kinds")
+                               (if (= count 1) "relationship" "relationships")
+                               (if (= count 1) "called" "such as")
+                               relationship focus (if (= count 1) "the object" "objects like") concept)
+                       (format "Read this as: %s %s %s. A conceptual thought is very simple, but might sound a bit awkward."
+                               focus
+                               relationship
+                               (if (equal focus "related-things")
+                                   (concept--oxford-join (concept-get-child-concepts))
+                                 concept))
+                       (format "This `%s' relationship applies to %d %s in this idea about `%s'."
+                               relationship size (if (= size 1) "thought" "thoughts") focus))))))
+        ((concept-on-data-concept-line)
+         (funcall
+          callback
+          (nth (random 2)
+               (let ((focus (concept-current-focus))
+                     (concept (concept-current-concept)))
+                 (list "Concepts are abstract things and thus are typically represented by plural words like `things'."
+                       (format "`%s' is a data concept. It is the object of a (conceptual) thought whose subject is `%s'."
+                               concept focus))))))
+        ((concept-on-resource-line)
+         (funcall
+          callback
+          (nth (random 2)
+               (list "`%s' names a resource block. Resources ground abstract conceptual ideas in concrete facts, references, and examples."
+                     (format "`%s' begins a resource block. Ideas hold zero or more resource blocks."
+                             (concept-current-resource))))))
+        ((concept-on-attribute-line)
+         (let* ((attribute (concept-current-attribute))
+                (count     (concept-attribute-group-data-count))
+                (followable-p (member attribute concept--special-keywords)))
+           (funcall
+            callback
+            (nth (random 2)
+                 (list (format "The `%s' keyword is %s. %s."
+                                attribute
+                                (if followable-p "followable" "not followable")
+                                (if followable-p
+                                    "Pressing `C-c f' on exposition lines under this attribute will do something special"
+                                  "Data on exposition lines under this attribute are given as is."))
+                       (format "`%s' is an attribute group. This attribute group holds %d %s of expository data. There must be one or more."
+                               attribute count (if (= count 1) "piece" "pieces")))))))
+        ((concept-on-exposition-line)
+         (funcall
+          callback
+          "This is a line of expository data. It helps the idea make sense by holding references, commands, or facts."))))
 
 (defun concept-read-string-with-completion (prompt candidates &optional initial-input history default-value inherit-input-method)
   (let ((complete
@@ -7667,6 +7760,16 @@ This variable is stored in `concept-map-network-graph'."
             #'concept-map--kill-debugging-buffer
             nil
             t))
+
+(defun concept-mode-setup-eldoc ()
+  "Enable eldoc documentation for the current buffer."
+  (add-hook 'eldoc-documentation-functions
+            #'concept-map--eldoc
+            nil
+            t)
+  (eldoc-mode 1))
+
+(add-hook 'concept-mode-hook #'concept-mode-setup-eldoc)
 
 (defun concept-map--debug (format-string &rest args)
   "Log concept-map update activity."
