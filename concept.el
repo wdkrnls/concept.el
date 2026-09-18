@@ -8648,6 +8648,32 @@ MEMO caches results, and VISITING detects dependency cycles."
                    concept (cdr result) (car result))))
       (cdr result))))
 
+(defun concept-toggle-eldoc-mode (arg)
+  "Toggle eldoc mode."
+  (interactive "p")
+  (if (eq arg 1)
+      (if eldoc-mode
+          (progn
+            (message "Minibuffer documentation disabled")
+            (eldoc-mode -1))
+        (progn
+          (message "Minibuffer documentation enabled")
+          (eldoc-mode 1)))
+    (let ((flavor
+           (concept-read-string-with-completion
+            "Documentation Flavor:"
+            (list "basic documentation" "map-wide statistics" "random facts")
+            (pcase concept-map-eldoc-help-flavor
+              ('basic       "basic documentation")
+              ('stat-map    "map-wide statistics")
+              ('random-idea "random facts")))))
+      (setq concept-map-eldoc-help-flavor
+            (pcase flavor
+              ("basic documentation" 'basic)
+              ("map-wide statistics" 'stat-map)
+              ("random facts" 'random-idea))))
+    (eldoc-mode 1)))
+
 (defun concept-do-nothing ()
   (interactive)
   (message "Nothing was do because upcasing all the text in a concept map is a bad idea.")
@@ -8715,6 +8741,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "C-c C-f")     #'concept-map-find-network-path)
 (define-key concept-mode-map (kbd "C-c M-h")     #'concept-map-find-network-hypernym)
 (define-key concept-mode-map (kbd "C-c C-h")     #'concept-map-find-network-hyponym)
+(define-key concept-mode-map (kbd "C-c d")       #'concept-toggle-eldoc-mode)
 
 (provide 'concept)
 ;;; concept.el ends here
