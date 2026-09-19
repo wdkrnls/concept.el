@@ -9,7 +9,7 @@ Conceptual knowledge is an often underappreciated third form knowledge which und
 * What is the case?
 * How is it done?
 
-The specifications for these more commonly studied forms of knowledge seem to come from nowhere, residing somehow in our heads. Their underlying genius often lost with the progression of time. After which, they need to be uncovered anew, often by fresh eyes.
+The specifications for these more commonly studied forms of knowledge seem to come from nowhere, appearing somehow in our heads. Their underlying genius often lost with the progression of time. After which, they need to be uncovered anew, often by fresh eyes.
 
 Defining effective procedures or coherent relational databases requires firm grounding in domain knowledge. That knowledge is largely conceptual. It doesn't involve calculation, but it captures and organizes patterns in reality which we intuitively map inside our heads into our own verbal understanding.
 
@@ -146,16 +146,22 @@ The text format used by `concept.el` is designed to be familiar and comfortable 
 
 These editing tools include:
 
-* a variety of (full and partial) text-completion interfaces
+* extensive data input and interactive editing features to rapidly build up new concept maps from an empty buffer via an ensemble of interacting editing verbs called *slurp*, *barf*, *repeat*, *fork*, *split*, and *isolate*
+* three levels of integration with the `eldoc` minibuffer documentation system
+* a variety of (full and partial) text-completion interfaces based on `completing-read`
 * buffer-wide data validation tools including a parser for concept maps implemented via the `peg` parsing expression grammar library
 * hyper-linking to external documents, image files, as well as online documentation
-* whole file scanning provided through `imenu`
+* whole file scanning and summarization via `imenu` integrations
 * document navigation and re-organization system provided through `outline` just like `org` mode in addition to custom tools tailored for concept maps
 * a search interface and query language provided through `consult`
 * a minibuffer-based editing interface which provides data validation
 * data "following" tools which help the user ensure the map is meaningful by grounding it in concrete resources
 * an automatically synchronized network graph representation of the concept map holding all the conceptual relationships stored in the relationship block portions of the buffer
-* a suite of local network analysis tools useful for refining concept maps to make them more comprehensive
+* a suite of network analysis tools useful for exporing and refining concept maps to make them more consistent and comprehensive
+* Several `tabulated-list` buffer interfaces for exploring different statistical aspects of your concept map
+* optional integration with many built-in and external Emacs libraries and packages include `calendar`, `osm`, `dictionary.el`, `eww`, and `elpher`
+* convenient interfaces for calling arbitrary emacs lisp expressions and shell commands; the former via a special-mode buffer which separates out return values, messages and text streams; the later via a wrapper around `compile`
+* extensive support for sorting and randomizing concept map elements, with a particular emphasis on supporting tailor-made canonical sorting algorithms so that git can make meaningful diffs for when research teams collaborate on developing concept maps together
 
 Together they make it feasible to productively develop and explore concept maps with hundreds of thousands of concepts and even more relationships within them.
 
