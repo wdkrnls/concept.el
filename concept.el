@@ -7592,9 +7592,12 @@ resource line."
            (old-text (concept-current-focus))
            (new-text
             (string-trim
-             (concept-read-string-with-completion
-              "Subject: " candidates
-              old-text 'concept-focus-editing-history old-text)))
+             (minibuffer-with-setup-hook
+                 (lambda ()
+                   (goto-char (minibuffer-prompt-end)))
+               (concept-read-string-with-completion
+                "Subject: " candidates
+                old-text 'concept-focus-editing-history old-text))))
            (focus-regexp concept-group-name-regexp))
       (cond ((equal old-text new-text)
              (message concept--edit-is-the-same-msg))
@@ -7615,9 +7618,12 @@ resource line."
              (old-text (concept-current-resource))
              (new-text
               (string-trim
-               (concept-read-string-with-completion
-                "Resource: " candidates
-                old-text 'concept-resource-editing-history old-text)))
+               (minibuffer-with-setup-hook
+                   (lambda ()
+                     (goto-char (minibuffer-prompt-end)))
+                 (concept-read-string-with-completion
+                  "Resource: " candidates
+                  old-text 'concept-resource-editing-history old-text))))
              (resource-regexp concept-group-name-regexp))
         (cond ((equal old-text new-text)
                (message concept--edit-is-the-same-msg))
@@ -7636,9 +7642,12 @@ resource line."
            (old-text (concept-current-concept))
            (new-text
             (string-trim
-             (concept-read-string-with-completion
-              "Object: " candidates
-              old-text 'concept-concept-editing-history old-text)))
+             (minibuffer-with-setup-hook
+                 (lambda ()
+                   (goto-char (minibuffer-prompt-end)))
+               (concept-read-string-with-completion
+                "Object: " candidates
+                old-text 'concept-concept-editing-history old-text))))
            (concept-regexp concept-group-name-regexp))
       (cond ((equal old-text new-text)
              (message concept--edit-is-the-same-msg))
@@ -7661,9 +7670,12 @@ resource line."
              (old-text (concept-current-relationship))
              (new-text
               (string-trim
-               (concept-read-string-with-completion
-                "Relationship: " candidates
-                old-text 'concept-relationship-editing-history old-text)))
+               (minibuffer-with-setup-hook
+                   (lambda ()
+                     (goto-char (minibuffer-prompt-end)))
+                 (concept-read-string-with-completion
+                  "Relationship: " candidates
+                  old-text 'concept-relationship-editing-history old-text))))
              (relationship-regexp concept-group-name-regexp))
         (cond ((equal old-text new-text)
                (message concept--edit-is-the-same-msg))
@@ -7687,9 +7699,12 @@ resource line."
              (old-text (concept-current-attribute))
              (new-text
               (string-trim
-               (concept-read-string-with-completion
-                "Keyword: " candidates
-                old-text 'concept-attribute-editing-history old-text)))
+               (minibuffer-with-setup-hook
+                   (lambda ()
+                     (goto-char (minibuffer-prompt-end)))
+                 (concept-read-string-with-completion
+                  "Keyword: " candidates
+                  old-text 'concept-attribute-editing-history old-text))))
              (keyword-regexp concept-group-name-regexp))
         (cond ((equal old-text new-text)
                (message "No changes were found between this edit and the original text!"))
@@ -7724,9 +7739,12 @@ resource line."
              (old-text (concept-current-exposition))
              (new-text
               (string-trim
-               (concept-read-string-with-completion
-                "Data: " candidates
-                old-text 'concept-editing-exposition-history old-text)))
+               (minibuffer-with-setup-hook
+                   (lambda ()
+                     (goto-char (minibuffer-prompt-end)))
+                 (concept-read-string-with-completion
+                  "Data: " candidates
+                  old-text 'concept-editing-exposition-history old-text))))
              (needed-delims (concept-pick-needed-data-delimiters new-text)))
         (when (not (equal old-text new-text))
           (beginning-of-line)
