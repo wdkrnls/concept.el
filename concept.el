@@ -7311,6 +7311,33 @@ modifying `mailcap-user-mime-data'."
            (re-search-forward "[^| ]" (line-end-position) t)
            (concept-describe-package-follow (thing-at-point 'sexp t))))
         ((and (concept-on-exposition-line)
+              (string= "emacs-apropos" (concept-exposition-parent-key)))
+         (save-excursion
+           (beginning-of-line)
+           (apropos (concept-current-exposition))))
+        ((and (concept-on-exposition-line)
+              (let ((parent (concept-exposition-parent-key)))
+                (or (string= "emacs-shortdoc" parent)
+                    (string= "shortdoc" parent))))
+         (save-excursion
+           (beginning-of-line)
+           (shortdoc (concept-current-exposition))))
+        ((and (concept-on-exposition-line)
+              (string= "emacs-function" (concept-exposition-parent-key)))
+         (save-excursion
+           (beginning-of-line)
+           (find-function (intern (concept-current-exposition)))))
+        ((and (concept-on-exposition-line)
+              (string= "emacs-library" (concept-exposition-parent-key)))
+         (save-excursion
+           (beginning-of-line)
+           (let ((library (concept-current-exposition)))
+             (condition-case err
+                 (find-library library)
+               (error
+                (message "No library found with that name. Perhaps you can find what you are looking for in the apropos?")
+                (apropos library))))))
+        ((and (concept-on-exposition-line)
               (or (string= "M-x" (concept-exposition-parent-key))
                   (string= "emacs-command" (concept-exposition-parent-key))))
          (save-excursion
