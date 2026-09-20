@@ -8330,6 +8330,7 @@ This variable is stored in `concept-map-network-graph'."
             #'concept-map--eldoc
             nil
             t)
+  (setq-local eldoc-idle-delay 2.0)
   (eldoc-mode 1))
 
 (add-hook 'concept-mode-hook #'concept-mode-setup-eldoc)
