@@ -1980,9 +1980,12 @@ would work on any buffer with trailing blank characters."
 This procedure takes an option argument ARG which advances multiple concepts at a time."
   (when (not arg)
     (setq arg 1))
-  (when (and (concept-in-relationship-block)
-             (or (concept-on-focus-line)
-                 (concept-on-data-line)))
+  (when (or (and (concept-in-relationship-block)
+                 (or (concept-on-focus-line)
+                     (concept-on-data-line)))
+            (and (concept-in-resource-block)
+                 (concept-on-exposition-line)
+                 (concept-inside-delimeters-p)))
     (save-excursion
       (let ((i 0)
             (conc nil))
@@ -2059,7 +2062,7 @@ blocks."
       (insert next-concept))))
 
 (defun concept-insert-next-concept-as-data-2 (arg)
-  "Repeat the current concept in focus as a data concept.
+  "Repeat the next concept in focus as a data concept.
 With a prefix argument, take just the part of the concept which is
 relevant."
   (interactive "P")
@@ -2067,7 +2070,8 @@ relevant."
         (k (if (numberp arg) arg 0)))
     (when next-concept
       (let ((next-part (concept-remove-part next-concept k)))
-        (end-of-line)
+        (unless (concept-on-exposition-line)
+          (end-of-line))
         (insert next-part)))))
 
 (defun concept-insert-concept-after-next-as-data ()
@@ -4695,7 +4699,8 @@ Place each relationship into its own block."
               (concept-insert-next-concept-as-focus k))
           (if (concept-on-last-concept)
               (concept-insert-last-concept-as-new k)
-            (concept-insert-next-concept-as-data-2 k))))))
+            (concept-insert-next-concept-as-data-2 k)))
+      (concept-insert-next-concept-as-data-2 k))))
 
 (defun concept-split-dwim ()
   "Split blocks up into two."
