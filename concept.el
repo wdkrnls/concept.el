@@ -6683,6 +6683,8 @@ kill-ring."
         (saved-yank-window-start      yank-window-start)
         (saved-this-command           this-command)
         (kill-ring-max                9999))
+    (when (concept-current-line-blank-p)
+      (kill-whole-line))
     (outline-end-of-subtree)
     (unless (looking-at-p "^[:space:]*$")
       (newline))
