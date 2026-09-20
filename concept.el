@@ -261,11 +261,12 @@ These are subject concepts. They were called focus concepts.")
 
 (defvar concept--special-keywords
   (list "file" "file-name" "url" "file-path"
-        "emacs-symbol"  "emacs-command" "emacs-package"
+        "emacs-symbol"  "emacs-command" "M-x"
+        "emacs-package" "emacs-buffer"
         "emacs-value" "emacs-option"
         "emacs-keybindings" "where-is"
         "emacs-keybinding" "kbd"
-        "elisp-call" "lisp"
+        "elisp-call" "emacs-lisp-call"
         "shell-command" "shell"
         "search-phrase" "line" "point" "page" "pdf-page"
         "man" "info"
@@ -276,7 +277,7 @@ These are subject concepts. They were called focus concepts.")
   "These keywords are followable.")
 
 (defvar concept--special-modifier-keywords
-  (list "prompt" "diary" "side-effect")
+  (list "prompt" "diary" "side-effect" "directory")
   "These keywords are not followable, but change the effect of followable keywords.")
 
 (defvar concept-map-eldoc-help-flavor
