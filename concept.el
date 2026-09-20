@@ -260,9 +260,11 @@ These are subject concepts. They were called focus concepts.")
                (car (last items))))))
 
 (defvar concept--special-keywords
-  (list "file" "file-name" "url" "file-path"
+  (list "file" "file-name" "url" "file-path" "emacs-buffer"
         "emacs-symbol"  "emacs-command" "M-x"
-        "emacs-package" "emacs-buffer"
+        "emacs-package" "emacs-library"
+        "emacs-function" "emacs-apropos"
+        "emacs-shortdoc" "shortdoc"
         "emacs-value" "emacs-option"
         "emacs-keybindings" "where-is"
         "emacs-keybinding" "kbd"
