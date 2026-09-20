@@ -270,10 +270,9 @@ These are subject concepts. They were called focus concepts.")
         "shell-command" "shell"
         "search-phrase" "line" "point" "page" "pdf-page"
         "man" "info"
-        "map" "place"
+        "map" "place" "date"
         "dictionary" "definition" "synonym"
-        "wiki" "wikipedia" "gemipedia"
-        "date")
+        "wiki" "wikipedia" "gemipedia")
   "These keywords are followable.")
 
 (defvar concept--special-modifier-keywords
