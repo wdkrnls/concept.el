@@ -2818,7 +2818,7 @@ A resource line starts with an `@' symbol."
    (concept-on-focus-line)
    (save-excursion
      (end-of-line)
-     (re-search-backward "^[~@]")
+     (re-search-backward "^[~@]" nil t)
      (concept-on-focus-line))))
 
 (defun concept-on-relationship-line ()
