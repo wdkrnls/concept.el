@@ -7554,6 +7554,39 @@ concept maps."
                   'exposition)))
           (t (error "This is a program logic bug!")))))
 
+(defun concept-visit-lines-one-at-a-time (&optional line-numbers)
+  "Visit LINE-NUMBERS one at a time, waiting for `n`.
+
+LINE-NUMBERS should be a list of 1-based line numbers, such as
+`(10 25 42)`.  If omitted or nil, read the list from the minibuffer.
+Press `q` to quit.
+
+This is a helper function to validate the results of `concept-map-changes-from-last-snapshot'."
+  (interactive
+   (list nil))
+  (setq line-numbers
+        (or line-numbers
+            (read
+             (read-string "Line numbers: "))))
+  (let ((original-point (point))
+        (continue t))
+    (unwind-protect
+        (dolist (line-number line-numbers)
+          (when continue
+            (goto-char (point-min))
+            (forward-line (1- line-number))
+            (recenter)
+            (message "Line %d — press n for next, q to quit"
+                     line-number)
+            (let ((key (read-key)))
+              (while (not (memq key '(?n ?q)))
+                (beep)
+                (message "Press n for next, or q to quit")
+                (setq key (read-key)))
+              (when (eq key ?q)
+                (setq continue nil)))))
+      (goto-char original-point))))
+
 (defun concept-map-changes-from-last-snapshot ()
   "Return line numbers for all focus concepts that have changed.
 This should find the focus lines for both the snapshot buffer and the
