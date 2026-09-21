@@ -7415,63 +7415,11 @@ Setting this variable to `nil' can be useful for debugging.")
     nil
   "Temporary file path for the concept map source file during the last diff.")
 
-(defun concept-map--refresh-snapshot-diff-buffer (&optional _ignore-auto _no-confirm)
-  "Refresh the snapshot diff buffer for this current concept map."
-  ;; XXX
-  nil)
-
-(defun concept-map-show-diff-with-snapshot-buffer ()
-  "Show the diff between the snapshot and the current concept map buffer."
+(defun concept-map-view-snapshot-diff ()
+  "View the diff of the current concept map against it's snapshot buffer."
   (interactive)
-  (unless (derived-mode-p 'concept-mode)
-    (user-error "This command must be run in a concept buffer"))
-  (let ((buf (current-buffer))
-        (snapshot
-         (cond
-          ((bufferp concept-map-snapshot-buffer)
-           concept-map-snapshot-buffer)
-          ((stringp concept-map-snapshot-buffer)
-           (get-buffer concept-map-snapshot-buffer))))
-        (old-file (make-temp-file "concept-map-old-"))
-        (new-file (make-temp-file "concept-map-new-"))
-        diff-buffer)
-    (unless (buffer-live-p snapshot)
-      (user-error "Snapshot buffer does not exist"))
-    (unwind-protect
-        (progn
-          ;; Write the snapshot to a temporary file.
-          (with-current-buffer snapshot
-            (write-region (point-min)
-                          (point-max)
-                          old-file
-                          nil
-                          'silent))
-          ;; Write the current buffer to a temporary file.
-          (write-region (point-min)
-                        (point-max)
-                        new-file
-                        nil
-                        'silent)
-          ;; Generate the unified diff.
-          (setq diff-buffer
-                (diff-no-select old-file new-file "-u" t))
-          (if diff-buffer
-              (progn
-                (when (buffer-live-p concept-map-snapshot-diff-buffer)
-                  (kill-buffer concept-map-snapshot-diff-buffer))
-                (with-current-buffer diff-buffer
-                  (setq-local revert-buffer-function
-                              #'concept-map--refresh-snapshot-diff-buffer)
-                  (rename-buffer (format "*concept-map-diff: %s*"
-                                         (buffer-name buf))))
-                (setq concept-map-snapshot-diff-buffer diff-buffer)
-                (display-buffer concept-map-snapshot-diff-buffer))
-            (message "No differences found between the snapshot and the live buffer.")))
-      ;; Always remove the temporary files.
-      (when (file-exists-p old-file)
-        (delete-file old-file))
-      (when (file-exists-p new-file)
-        (delete-file new-file)))))
+  (when (derived-mode-p 'concept-mode)
+    (diff-buffers concept-map-snapshot-buffer (current-buffer) "-u")))
 
 (defun concept-map--buffer-changed-line-numbers ()
   "Return lines changed since the last snapshot.
