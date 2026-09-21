@@ -7618,7 +7618,6 @@ unique even for multiple concept maps."
         (let* ((source (current-buffer))
                diff-buffer
                diff
-               diff-i
                old-line
                new-line
                old-focus
