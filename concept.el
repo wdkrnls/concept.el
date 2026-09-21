@@ -7415,7 +7415,7 @@ Setting this variable to `nil' can be useful for debugging.")
     nil
   "Temporary file path for the concept map source file during the last diff.")
 
-(defun concept-map-view-snapshot-diff ()
+(defun concept-map-diff-snapshot ()
   "View the diff of the current concept map against it's snapshot buffer."
   (interactive)
   (when (derived-mode-p 'concept-mode)
@@ -7500,8 +7500,7 @@ concept maps."
                          ;; the new line.
                          ((and (> (length diff-line) 0)
                                (eq (aref diff-line 0) ?+)
-                               (not (string-prefix-p "+++"
-                                                      diff-line)))
+                               (not (string-prefix-p "+++" diff-line)))
                           (setq pending-deletions nil)
                           (push new-line line-numbers)
                           (setq new-line (1+ new-line)))
@@ -7535,6 +7534,25 @@ concept maps."
               (delete-file old-file))
             (when (file-exists-p new-file)
               (delete-file new-file))))))))
+
+(defun concept-line-classification ()
+  "Compute the classification for the current line."
+  (when (derived-mode-p 'concept-mode)
+    (cond ((concept-in-relationship-block)
+           (cond ((concept-on-focus-line)
+                  'focus-concept)
+                 ((concept-on-relationship-line)
+                  'relationship)
+                 ((concept-on-data-concept-line)
+                  'data-concept)))
+          ((concept-in-resource-block)
+           (cond ((concept-on-resource-line)
+                  'resource-concept)
+                 ((concept-on-attribute-line)
+                  'attribute)
+                 ((concept-on-exposition-line)
+                  'exposition)))
+          (t (error "This is a program logic bug!")))))
 
 (defun concept-map--relationship-block-changed-p ()
   "Return non-nil if any changed block is a relationship block."
@@ -7911,7 +7929,7 @@ relationship block where two were in the snapshot buffer.
   (pop-to-buffer buffer)))
 
 (defun concept-map-make-network-from-edge-counts ()
-  "Rebuild the adjacency graph from `concept-map-network-edge-counts'."
+  "Build or rebuild the adjacency graph from `concept-map-network-edge-counts'."
   (when concept-map-network-edge-counts
     (let ((graph (make-hash-table :test #'equal)))
       (maphash
@@ -8316,6 +8334,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "C-c C-f")     #'concept-map-find-network-path)
 (define-key concept-mode-map (kbd "C-c M-h")     #'concept-map-find-network-hypernym)
 (define-key concept-mode-map (kbd "C-c C-h")     #'concept-map-find-network-hyponym)
+(define-key concept-mode-map (kbd "C-c M-d")     #'concept-map-diff-snapshot)
 
 (provide 'concept)
 ;;; concept.el ends here
