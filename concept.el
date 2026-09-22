@@ -7647,7 +7647,7 @@ unique even for multiple concept maps."
   "Update the concept map network after buffer modifications and a bit of inactivity.")
 
 (defvar concept-map-wait-time-before-network-update
-  5
+  2
   "Seconds to wait during idle time before trying to update the concept map
 network graph hash table.")
 
