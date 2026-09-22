@@ -8162,7 +8162,11 @@ make a partial network update, so we have done that."
     (setq relationship-regexp ".+"))
   (when (concept-map-can-do-partial-network-update-p)
     (concept-map-fix-edge-counts-from-last-snapshot)
-    (concept-map-make-network-from-edge-counts)))
+    (concept-map-make-network-from-edge-counts)
+    (setq concept-map-network-is-stale nil)
+    (concept-map--take-buffer-snapshot)
+    (force-mode-line-update t)))
+
   
 (defun concept-map-make-full-network-update (&optional relationship-regexp)
   "Extract the relationship network from the concept map.
@@ -8199,13 +8203,20 @@ key:
       (force-mode-line-update t)
       graph)))
 
+(defun concept-map-make-full-network-update-2 ()
+  "Make a full network update via the relationship edge counting route."
+  (concept-map-count-relationship-network-edges)
+  (concept-map-make-network-from-edge-counts)
+  (setq concept-map-network-is-stale nil)
+  (concept-map--take-buffer-snapshot)
+  (force-mode-line-update t))
+
 (defun concept-map-update-network (&optional relationship-regexp)
   "Perform an update of the concept map network graph."
   (interactive)
   (if concept-map-network-graph
       (concept-map-make-partial-network-update)
-    (concept-map-count-relationship-network-edges)
-    (concept-map-make-network-from-edge-counts)))
+    (concept-map-make-full-network-update-2)))
 
 (defun concept-map-network-reachable-p (start goal)
   "Return non-nil if GOAL is reachable from START."
