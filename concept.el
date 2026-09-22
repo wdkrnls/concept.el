@@ -7534,7 +7534,7 @@ unique even for multiple concept maps."
                           (with-current-buffer
                               diff-buffer
                             (buffer-string))))
-                  (when diff
+                  (if (and diff (not (string-match-p "Diff finished (no differences)" diff)))
                     (with-temp-buffer
                       (insert diff)
                       ;; Ignore all of the irrelevant parts
@@ -7637,7 +7637,8 @@ unique even for multiple concept maps."
                             (setq old-line (1+ old-line)
                                   new-line (1+ new-line))))
                           (forward-line 1)))
-                      (list (nreverse old-focus) (nreverse new-focus))))))))))))
+                      (list (nreverse old-focus) (nreverse new-focus)))
+                  (list nil nil))))))))))
 
 (defun concept-map--relationship-block-changed-p ()
   "Return NON-NIL if any changed block is a relationship block."
@@ -7765,7 +7766,7 @@ each concept map.")
 
 (defun concept-map--take-buffer-snapshot ()
   "Take a snapshot of the current buffer."
-  (when (derived-mode-p 'concept-mode)
+  (if (derived-mode-p 'concept-mode)
     (let ((map-buf (current-buffer)))
       (unless (buffer-live-p concept-map-snapshot-buffer)
         (setq concept-map-snapshot-buffer
@@ -7776,11 +7777,13 @@ each concept map.")
         (with-current-buffer concept-map-snapshot-buffer
           (concept-map-snapshot-mode)
           (setq concept-map-concept-buffer map-buf))
-        (setq concept-map-concept-buffer map-buf)
-        (with-current-buffer concept-map-snapshot-buffer
-          (let ((inhibit-read-only t))
-            (erase-buffer)
-            (insert-buffer-substring-no-properties map-buf)))))))
+        (setq concept-map-concept-buffer map-buf))
+      (with-current-buffer concept-map-snapshot-buffer
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (insert-buffer-substring-no-properties map-buf))))
+    (with-current-buffer concept-map-concept-buffer
+      (concept-map--take-buffer-snapshot))))
   
 (defvar-local concept-map-network-relationship-regexp
     ".+"
@@ -8077,18 +8080,30 @@ network edge counts.
   (concept-map--take-buffer-snapshot)
   (force-mode-line-update t))
 
-(defun concept-map-update-network (&optional relationship-regexp)
+(defvar concept-map-force-full-network-update
+  nil
+  "Control whether networks get updated fully every time regardly of
+whether a partial update is possible when using
+`concept-map-update-network'.")
+
+(defun concept-map-update-network (&optional relationship-regexp force-full)
   "Perform an update of the concept map network graph."
   (interactive)
-  (let (tried-partial)
-  (if (concept-map-can-do-partial-network-update-p)
-      (or (concept-map-make-partial-network-update)
-          (setq tried-partial t))
-    (concept-map-make-full-network-update))
-  (when (called-interactively-p 'interactive)
-    (if (null tried-partial)
-        (message "Backend concept map network data update successful!")
-      (message "Backend concept map network data update failed!")))))
+  (when (null force-full)
+    (setq force-full concept-map-force-full-network-update))
+  (let ((partial-possible (concept-map-can-do-partial-network-update-p))
+        tried-partial)
+    (if (and partial-possible (not force-full))
+        (or (concept-map-make-partial-network-update)
+            (setq tried-partial 'failed))
+      (concept-map-make-full-network-update))
+    (when (called-interactively-p 'interactive)
+      (cond ((and (null tried-partial) partial-possible)
+             (message "Incremental concept map network data update successful!"))
+            ((and partial-possible tried-partial)
+             (message "Incremental concept map network data update failed!"))
+            (t
+             (message "Full concept map network data rebuild successful!"))))))
 
 (defun concept-map-network-reachable-p (start goal)
   "Return non-nil if GOAL is reachable from START."
