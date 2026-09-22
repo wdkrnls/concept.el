@@ -7923,18 +7923,18 @@ representation of the concept map.")
 By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relationship-regexp'."
   (when (null relationship-regexp)
     (setq relationship-regexp concept-map-network-relationship-regexp))
-    (goto-line line-number)
-    (when (concept-in-relationship-block)
-      (goto-line (car (concept-find-relationship-block-extent)))
-      (concept-goto-next-concept)
-      (while (concept-on-data-concept-line)
-        (let ((relationship (concept-current-relationship)))
-          (when (string-match-p relationship-regexp relationship)
-            (concept-map-network-adjust-edge-count
-             (concept-current-focus)
-             (concept-current-concept)
-             change))
-            (concept-goto-next-concept)))))
+  (goto-line line-number)
+  (when (concept-in-relationship-block)
+    (goto-line (car (concept-find-relationship-block-extent)))
+    (concept-goto-next-concept)
+    (while (concept-on-data-concept-line)
+      (let ((relationship     (concept-current-relationship)))
+        (when (string-match-p relationship-regexp relationship)
+          (concept-map-network-adjust-edge-count
+           (concept-current-focus)
+           (concept-current-concept)
+           change))
+        (concept-goto-next-concept)))))
 
 (defun concept-map-fix-edge-counts-from-last-snapshot ()
   "Rescan the buffer to perform an incremental update of the edge counts."
@@ -8164,7 +8164,8 @@ key:
 
 (defun concept-map-make-full-network-update-2 ()
   "Make a full network update via the relationship edge counting route."
-  (concept-map-count-relationship-network-edges)
+  (interactive)
+  (concept-map-count-relationship-network-edges t)
   (concept-map-make-network-from-edge-counts)
   (setq concept-map-network-is-stale nil)
   (concept-map--take-buffer-snapshot)
