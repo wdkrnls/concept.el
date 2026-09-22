@@ -7772,12 +7772,13 @@ each concept map.")
                 (concat "*" concept-map-buffer-snapshot-name ":%s*")
                 (buffer-name map-buf))))
         (with-current-buffer concept-map-snapshot-buffer
-          (setq concept-map-concept-buffer map-buf)
-          (concept-map-snapshot-mode)))
-      (with-current-buffer concept-map-snapshot-buffer
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (insert-buffer-substring-no-properties map-buf))))))
+          (concept-map-snapshot-mode)
+          (setq concept-map-concept-buffer map-buf))
+        (setq concept-map-concept-buffer map-buf)
+        (with-current-buffer concept-map-snapshot-buffer
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (insert-buffer-substring-no-properties map-buf)))))))
   
 (defvar-local concept-map-network-relationship-regexp
     ".+"
@@ -7797,13 +7798,16 @@ representation of the concept map.")
 
 (defun concept-map-network-adjust-edge-count (parent child change)
   "Adjust the count for the relationship edge PARENT -> CHILD by CHANGE."
-  (let* ((key (concept-map-network-edge-counts-key parent child))
-         (counts concept-map-network-edge-counts)
-         (old-count (gethash key counts 0))
-         (new-count (+ old-count change)))
-    (if (<= new-count 0)
-        (remhash key counts)
-      (puthash key new-count counts))))
+  (when concept-map-snapshot-buffer
+    (let* ((key (concept-map-network-edge-counts-key parent child))
+           (counts
+            (with-current-buffer concept-map-concept-buffer
+              concept-map-network-edge-counts))
+           (old-count (gethash key counts 0))
+           (new-count (+ old-count change)))
+      (if (<= new-count 0)
+          (remhash key counts)
+        (puthash key new-count counts)))))
 
 (defun sign (x)
   "Compute the sign of a signed integer."
@@ -7822,7 +7826,7 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
     (goto-line (car (concept-find-relationship-block-extent)))
     (concept-goto-next-concept)
     (while (concept-on-data-concept-line)
-      (let ((relationship     (concept-current-relationship)))
+      (let ((relationship (concept-current-relationship)))
         (when (string-match-p relationship-regexp relationship)
           (concept-map-network-adjust-edge-count
            (concept-current-focus)
@@ -8002,6 +8006,8 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
   (unless (derived-mode-p 'concept-mode)
     (user-error "This only works inside of a concept-mode buffer with a valid concept map!"))
   (and concept-map-network-graph
+       concept-map-snapshot-buffer
+       concept-map-concept-buffer
        concept-map-network-edge-counts
        concept-map-network-is-stale
        (concept-map-grammar-parses-p)))
@@ -8059,7 +8065,7 @@ network edge counts.
       (force-mode-line-update t)
       graph)))
 
-(defun concept-map-make-full-network-update-2 ()
+(defun concept-map-make-full-network-update ()
   "Make a full network update via the relationship edge counting route."
   (interactive)
   (concept-map-count-relationship-network-edges t)
@@ -8071,15 +8077,14 @@ network edge counts.
 (defun concept-map-update-network (&optional relationship-regexp)
   "Perform an update of the concept map network graph."
   (interactive)
-  (if (and concept-map-network-graph
-           concept-map-network-edge-counts)
+  (if (concept-map-can-do-partial-network-update-p)
       (concept-map-make-partial-network-update)
-    (concept-map-make-full-network-update-2)))
+    (concept-map-make-full-network-update)))
 
 (defun concept-map-network-reachable-p (start goal)
   "Return non-nil if GOAL is reachable from START."
   (let ((graph (or concept-map-network-graph
-                   (concept-map-make-full-network-update-2)))
+                   (concept-map-make-full-network-update)))
         (visited (make-hash-table :test #'equal))
         (pending (list start)))
     (catch 'found
@@ -8097,7 +8102,7 @@ network edge counts.
 (defun concept-map--network-path (start goal)
   "Return a path from START to GOAL, or nil if GOAL is unreachable."
   (let ((graph (or concept-map-network-graph
-                   (concept-map-make-full-network-update-2)))
+                   (concept-map-make-full-network-update)))
         (visited (make-hash-table :test #'equal))
         (pending (list (cons start (list start)))))
     (catch 'path-found
