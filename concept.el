@@ -2993,11 +2993,14 @@ This is a wrapper function useful for interactive usage."
   (interactive)
   (let ((pattern "^[~|]")
         (line-move-visual nil))
-    (next-line)
-    (beginning-of-line)
-    (while (not (concept-on-concept-line))
-      (re-search-forward pattern nil t))
-    (end-of-line)))
+    (if (concept-map-has-more-data-concepts)
+        (progn
+          (next-line)
+          (beginning-of-line)
+          (while (not (concept-on-concept-line))
+            (re-search-forward pattern nil t))
+          (end-of-line))
+      (goto-char (point-max)))))
 
 (defun concept-goto-next-data-concept ()
   "Navigate forward until the next concept"
@@ -7952,7 +7955,7 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
           (concept-map-adjust-edge-counts-for-relationship-block line-number -1)))
       (dolist (line-number new-lines)
         (with-current-buffer source
-          (concept-map-adjust-edge-counts-for-relationship-block line-number 1))))))
+          (concept-map-adjust-edge-counts-for-relationship-block line-number  1))))))
 
 (defun concept-map-count-relationship-network-edges (&optional overwrite)
   "Take a count of every network edge in the buffer."
@@ -7962,9 +7965,9 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
     (save-excursion
       (concept--goto-first-heading)
       (while (concept-on-focus-line)
-        (concept-map-adjust-edge-counts-for-relationship-block
-         (line-number-at-pos (point)) 1)
-        (concept-goto-next-focus)))))
+        (let ((line-number (line-number-at-pos (point))))
+          (concept-map-adjust-edge-counts-for-relationship-block line-number 1)
+          (concept-goto-next-focus))))))
 
 (defun concept--propertize-pair-as-subjects (x)
   (cons (propertize (car x) 'face 'concept-subject)
