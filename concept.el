@@ -7537,7 +7537,7 @@ unique even for multiple concept maps."
                       ;; Ignore all of the irrelevant parts
                       (goto-char (point-min))
                       (re-search-forward "^$")
-                      (kill-region (point) (point-max))
+                      (delete-region (point) (point-max))
                       (goto-char (point-min))
                       (re-search-forward "^@@")
                       (while (not (eobp))
@@ -7637,7 +7637,7 @@ unique even for multiple concept maps."
                       (list (nreverse old-focus) (nreverse new-focus))))))))))))
 
 (defun concept-map--relationship-block-changed-p ()
-  "Return non-nil if any changed block is a relationship block."
+  "Return NON-NIL if any changed block is a relationship block."
   (when (bufferp concept-map-snapshot-buffer)
     (let ((changes (concept-map-changes-from-last-snapshot)))
       (or (car changes) (cadr changes)))))
