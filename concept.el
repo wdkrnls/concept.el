@@ -8078,9 +8078,15 @@ network edge counts.
 (defun concept-map-update-network (&optional relationship-regexp)
   "Perform an update of the concept map network graph."
   (interactive)
+  (let (tried-partial)
   (if (concept-map-can-do-partial-network-update-p)
-      (concept-map-make-partial-network-update)
-    (concept-map-make-full-network-update)))
+      (or (concept-map-make-partial-network-update)
+          (setq tried-partial t))
+    (concept-map-make-full-network-update))
+  (when (called-interactively-p 'interactive)
+    (if (null tried-partial)
+        (message "Backend concept map network data update successful!")
+      (message "Backend concept map network data update failed!")))))
 
 (defun concept-map-network-reachable-p (start goal)
   "Return non-nil if GOAL is reachable from START."
