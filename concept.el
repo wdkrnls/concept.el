@@ -2422,10 +2422,11 @@ A resource line starts with an `@' symbol."
   "Test if we are inside a relationship block."
   (or
    (concept-on-focus-line)
-   (save-excursion
-     (end-of-line)
-     (re-search-backward "^[~@]")
-     (concept-on-focus-line))))
+   (and (concept-on-data-line)
+        (save-excursion
+          (end-of-line)
+          (re-search-backward "^[~@]")
+          (concept-on-focus-line)))))
 
 (defun concept-on-relationship-line ()
   "Test if the current line is a relationship line."
