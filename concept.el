@@ -7363,6 +7363,16 @@ If it doesn't parse, move the point to where the first failure is."
      (goto-char (nth 1 error-signal))
      (user-error "Parse failed at point!"))))
 
+(defun concept-map-grammar-parses-p ()
+  "Return t if the current concept map parses, otherwise return nil.
+On failure, leave point at the first parse error."
+  (let ((inhibit-message t))
+    (save-excursion
+      (condition-case nil
+          (concept-map-check-parse)
+        (user-error
+         nil)))))
+
 (defvar-local concept-map-network-is-stale
     nil
   "Declare the network to be stale.
@@ -8139,7 +8149,8 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
   (unless (derived-mode-p 'concept-mode)
     (user-error "This only works inside of a concept-mode buffer with a valid concept map!"))
   (and concept-map-network-graph
-       concept-map-network-is-stale))
+       concept-map-network-is-stale
+       (concept-map-grammar-parses-p)))
 
 (defun concept-map-make-partial-network-update (&optional relationship-regexp)
   "Attempt to perform a partial network update.
@@ -8191,8 +8202,10 @@ key:
 (defun concept-map-update-network (&optional relationship-regexp)
   "Perform an update of the concept map network graph."
   (interactive)
-  (or (concept-map-make-partial-network-update)
-      (concept-map-make-full-network-update)))
+  (if concept-map-network-graph
+      (concept-map-make-partial-network-update)
+    (concept-map-count-relationship-network-edges)
+    (concept-map-make-network-from-edge-counts)))
 
 (defun concept-map-network-reachable-p (start goal)
   "Return non-nil if GOAL is reachable from START."
