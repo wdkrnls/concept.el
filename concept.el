@@ -8020,7 +8020,6 @@ make a partial network update, so we have done that."
     (setq concept-map-network-is-stale nil)
     (concept-map--take-buffer-snapshot)
     (force-mode-line-update t)))
-
   
 (defun concept-map-make-full-network-update-legacy (&optional relationship-regexp)
   "Extract the relationship network from the concept map.
