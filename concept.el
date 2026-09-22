@@ -7819,20 +7819,21 @@ representation of the concept map.")
   "Adjust the edge counts by CHANGE for one relationship block at a time.
 
 By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relationship-regexp'."
-  (when (null relationship-regexp)
-    (setq relationship-regexp concept-map-network-relationship-regexp))
-  (goto-line line-number)
-  (when (concept-in-relationship-block)
-    (goto-line (car (concept-find-relationship-block-extent)))
-    (concept-goto-next-concept)
-    (while (concept-on-data-concept-line)
-      (let ((relationship (concept-current-relationship)))
-        (when (string-match-p relationship-regexp relationship)
-          (concept-map-network-adjust-edge-count
-           (concept-current-focus)
-           (concept-current-concept)
-           change))
-        (concept-goto-next-concept)))))
+  (save-excursion
+    (when (null relationship-regexp)
+      (setq relationship-regexp concept-map-network-relationship-regexp))
+    (goto-line line-number)
+    (when (concept-in-relationship-block)
+      (goto-line (car (concept-find-relationship-block-extent)))
+      (concept-goto-next-concept)
+      (while (concept-on-data-concept-line)
+        (let ((relationship (concept-current-relationship)))
+          (when (string-match-p relationship-regexp relationship)
+            (concept-map-network-adjust-edge-count
+             (concept-current-focus)
+             (concept-current-concept)
+             change))
+          (concept-goto-next-concept))))))
 
 (defun concept-map-fix-edge-counts-from-last-snapshot ()
   "Rescan the buffer to perform an incremental update of the edge counts."
