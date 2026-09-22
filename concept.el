@@ -7661,36 +7661,12 @@ unique even for multiple concept maps."
                          ;; Added lines in the source buffer start with +.
                          ((and (>  (length diff-line) 0)
                                (eq (aref diff-line 0) ?+))
-                          ;; Since there is a new line in the source buffer,
-                          ;; increment it.  Look at the snapshot buffer to see
-                          ;; if the old line before it is in a relationship
-                          ;; block. If so, then it could be relevant. The
-                          ;; network hash table doesn't depend on stuff outside
-                          ;; of relationship blocks. However, it still may be
-                          ;; irrelevant if the new line in the source buffer is
-                          ;; a focus line and is inserted after the last line of
-                          ;; the relationship block in the snapshot buffer. Are
-                          ;; there any other situations where it is irrelevant?
-                          ;; If the new line begins a resource block, then it's
-                          ;; also irrelevant.  When the previous relationship
-                          ;; block is irrelevant, then we only add a focus line
-                          ;; for the source buffer. Otherwise, we add both.
-                          
-                          ;; If the new line is a focus concept and old-line is
-                          ;; the last line of it's block, then this addition
-                          ;; begins a completely new relationship block. If on
-                          ;; the other hand, the old line is not the last line
-                          ;; in its relationship block in the snapshot buffer,
-                          ;; then the new line could either be part of an
-                          ;; extension to the snapshot relationship block, or a
-                          ;; split that shrinks that block. Either way, that
-                          ;; snapshot relationship block is just as relevant to
-                          ;; the accounting.
-
-                          ;; isn't? If it is, then the line inserted following
-                          ;; will either be part of a new relationship block or
-                          ;; be an extension of the original relationship block
-                          ;; or it couldbe a new resource block.
+                          ;; Look at the snapshot buffer to see if the old line
+                          ;; before it is in a relationship block. If so, then
+                          ;; it could be relevant. The network hash table
+                          ;; doesn't depend on stuff outside of relationship
+                          ;; blocks. However, it still may be irrelevant for
+                          ;; other reasons.
                           (let (src-kind
                                 src-end
                                 in-src-block)
@@ -7716,6 +7692,8 @@ unique even for multiple concept maps."
                                 (let ((proposal (line-number-at-pos (point))))
                                   (unless (memq proposal old-focus)
                                     (push proposal old-focus))))))
+                          ;; Since there is a new line in the source buffer,
+                          ;; increment it.
                           (setq new-line (1+ new-line)))
                          ;; Deleted line start with -.
                          ((and (> (length diff-line) 0)
