@@ -8002,6 +8002,7 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
   (unless (derived-mode-p 'concept-mode)
     (user-error "This only works inside of a concept-mode buffer with a valid concept map!"))
   (and concept-map-network-graph
+       concept-map-network-edge-counts
        concept-map-network-is-stale
        (concept-map-grammar-parses-p)))
 
