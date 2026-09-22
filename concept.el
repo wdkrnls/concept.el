@@ -7948,16 +7948,40 @@ representation of the concept map.")
         ((= x 0)  0)
         (t        1)))
   
-(defun concept-map-adjust-edge-counts-for-relationship-block (line-number change)
+(defun concept-map-adjust-edge-counts-for-relationship-block (line-number change &optional relationship-regexp)
   "Adjust the edge counts for the whole relationship block."
+  (when (null relationship-regexp)
+    (setq relationship-regexp concept-map-network-relationship-regexp))
     (goto-line line-number)
     (when (concept-in-relationship-block)
       (goto-line (car (concept-find-relationship-block-extent)))
       (concept-goto-next-concept)
       (while (concept-on-data-concept-line)
-        (concept-map-network-adjust-edge-count
-         (concept-current-focus) (concept-current-concept) change)
-        (concept-goto-next-concept))))
+        (let ((relationship (concept-current-relationship)))
+          (when (string-match-p relationship-regexp relationship)
+            (concept-map-network-adjust-edge-count
+             (concept-current-focus)
+             (concept-current-concept)
+             change))
+            (concept-goto-next-concept)))))
+
+(defun concept-map-fix-edge-counts-from-last-snapshot ()
+  "Rescan the buffer to perform an incremental update of the edge counts."
+  (when (derived-mode-p 'concept-mode)
+    (let* ((snapshot concept-map-snapshot-buffer)
+           (source   (current-buffer))
+           (line-numbers
+            (concept-map-changes-from-last-snapshot))
+           (old-lines
+            (car line-numbers))
+           (new-lines
+            (cdr line-numbers)))
+      (dolist (line-number old-lines)
+        (with-current-buffer snapshot
+          (concept-map-adjust-edge-counts-for-relationship-block line-number -1)))
+      (dolist (line-number new-lines)
+        (with-current-buffer source
+          (concept-map-adjust-edge-counts-for-relationship-block line-number 1))))))
 
 (defun concept-map-count-relationship-network-edges (&optional overwrite)
   "Take a count of every network edge in the buffer."
@@ -8112,8 +8136,8 @@ representation of the concept map.")
 (defun concept-map-can-do-partial-network-update-p ()
   (unless (derived-mode-p 'concept-mode)
     (user-error "This only works inside of a concept-mode buffer with a valid concept map!"))
-  (let ((changes (concept-map--buffer-changed-line-numbers)))
-    (seq-every-p (lambda (change) (< 0 change)) changes)))
+  (and concept-map-network-graph
+       concept-map-network-is-stale))
 
 (defun concept-map-make-partial-network-update (&optional relationship-regexp)
   "Attempt to perform a partial network update.
@@ -8123,23 +8147,9 @@ make a partial network update, so we have done that."
     (user-error "This only works inside of a concept-mode buffer with a valid concept map!"))
   (when (null relationship-regexp)
     (setq relationship-regexp ".+"))
-  (when (and concept-map-network-graph
-             ;; We only know how to update with additions only right now!
-             (concept-map-can-do-partial-network-update-p))
-    (let ((changes (concept-map--buffer-changed-line-numbers))
-          (map-buf (current-buffer))
-          (snap-buf concept-map-snapshot-buffer)
-          (graph concept-map-network-graph))
-      (save-excursion
-        (dolist (change changes)
-          (goto-line change)
-          (when (concept-on-data-concept-line)
-            (let ((relationship (concept-get-relationship)))
-              (when (string-match-p relationship-regexp relationship)
-                (let ((parent (concept-current-focus))
-                      (children (concept-get-child-concepts)))
-                  (puthash parent (delete-dups (append (gethash parent graph) children)) graph)))))))
-      (setq concept-map-network-graph graph))))
+  (when (concept-map-can-do-partial-network-update-p)
+    (concept-map-fix-edge-counts-from-last-snapshot)
+    (concept-map-make-network-from-edge-counts)))
   
 (defun concept-map-make-full-network-update (&optional relationship-regexp)
   "Extract the relationship network from the concept map.
