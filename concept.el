@@ -7748,50 +7748,9 @@ unique even for multiple concept maps."
 
 (defun concept-map--relationship-block-changed-p ()
   "Return non-nil if any changed block is a relationship block."
-  (if (bufferp concept-map-snapshot-buffer)
-      (let ((changed-lines
-             (concept-map--buffer-changed-line-numbers)))
-        (catch 'found
-          (dolist (line changed-lines)
-            (cond ((< line 0)
-                   (with-current-buffer concept-map-snapshot-buffer
-                     (goto-line (abs line))
-                     (when (concept-in-relationship-block)
-                       (throw 'found t))))
-                  (t
-                   (save-excursion
-                     (goto-line line)
-                     (when (concept-in-relationship-block)
-                       (throw 'found t))))))))
-    (setq concept-map-network-is-stale t)
-    (when concept-map-should-update-stale-network
-      (concept-map-update-network))
-    nil))
-
-(defun concept-map--give-rb-symbol ()
-  (when (concept-in-relationship-block)
-    (cond ((concept-on-focus-line)        'focus)
-          ((concept-on-data-concept-line) 'data-concept)
-          ((concept-on-relationship-line) 'relationship))))
-  
-(defun concept-map--relationship-block-changes ()
-  "Return non-nil if any changed block is a relationship block."
-  (if (bufferp concept-map-snapshot-buffer)
-      (let ((changed-lines (concept-map--buffer-changed-line-numbers)))
-        (save-excursion
-          (mapcar
-           (lambda (line)
-             (if (< line 0)
-                 (with-current-buffer concept-map-snapshot-buffer
-                   (goto-line (1- (abs line)))
-                   (concept-map--give-rb-symbol))
-               (goto-line line)
-               (concept-map--give-rb-symbol)))
-           changed-lines)))
-    (setq concept-map-network-is-stale t)
-    (when concept-map-should-update-stale-network
-      (concept-map-update-network))
-    nil))
+  (when (bufferp concept-map-snapshot-buffer)
+    (let ((changes (concept-map-changes-from-last-snapshot)))
+      (or (car changes) (cadr changes)))))
 
 (defvar-local concept-map--network-update-timer nil
   "Update the concept map network after buffer modifications and a bit of inactivity.")
