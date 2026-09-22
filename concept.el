@@ -7803,16 +7803,17 @@ representation of the concept map.")
 
 (defun concept-map-network-adjust-edge-count (parent child change)
   "Adjust the count for the relationship edge PARENT -> CHILD by CHANGE."
-  (when concept-map-snapshot-buffer
-    (let* ((key (concept-map-network-edge-counts-key parent child))
-           (counts
-            (with-current-buffer concept-map-concept-buffer
-              concept-map-network-edge-counts))
-           (old-count (gethash key counts 0))
-           (new-count (+ old-count change)))
-      (if (<= new-count 0)
-          (remhash key counts)
-        (puthash key new-count counts)))))
+  (if (eq (current-buffer) concept-map-concept-buffer)
+      (let* ((key (concept-map-network-edge-counts-key parent child))
+             (counts concept-map-network-edge-counts)
+             (old-count (gethash key counts 0))
+             (new-count (+ old-count change)))
+        (if (<= new-count 0)
+            (remhash key counts)
+          (puthash key new-count counts))
+        (setq concept-map-network-edge-counts counts))
+    (with-current-buffer concept-map-concept-buffer
+      (concept-map-network-adjust-edge-count parent child change))))
 
 (defun sign (x)
   "Compute the sign of a signed integer."
