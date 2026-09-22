@@ -7987,7 +7987,7 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
            (old-lines
             (car line-numbers))
            (new-lines
-            (cdr line-numbers)))
+            (cadr line-numbers)))
       (dolist (line-number old-lines)
         (with-current-buffer snapshot
           (concept-map-adjust-edge-counts-for-relationship-block line-number -1)))
