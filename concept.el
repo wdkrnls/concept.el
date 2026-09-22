@@ -7803,6 +7803,10 @@ representation of the concept map.")
 
 (defun concept-map-network-adjust-edge-count (parent child change)
   "Adjust the count for the relationship edge PARENT -> CHILD by CHANGE."
+  (unless concept-map-concept-buffer
+    (error "This buffer connection must be defined."))
+  (unless concept-map-network-edge-counts
+    (error "The edge counts must first be built up from scratch before adjusting them."))
   (if (eq (current-buffer) concept-map-concept-buffer)
       (let* ((key (concept-map-network-edge-counts-key parent child))
              (counts concept-map-network-edge-counts)
@@ -7861,15 +7865,17 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
 
 (defun concept-map-count-relationship-network-edges (&optional overwrite)
   "Take a count of every network edge in the buffer."
-  (when (derived-mode-p 'concept-mode)
-    (when (or (null concept-map-network-edge-counts) overwrite)
-      (setq concept-map-network-edge-counts (make-hash-table :test #'equal)))
-    (save-excursion
-      (concept--goto-first-heading)
-      (while (concept-on-focus-line)
-        (let ((line-number (line-number-at-pos (point))))
-          (concept-map-adjust-edge-counts-for-relationship-block line-number 1)
-          (concept-goto-next-focus))))))
+  (if (derived-mode-p 'concept-mode)
+      (progn
+        (when (or (null concept-map-network-edge-counts) overwrite)
+          (setq concept-map-network-edge-counts (make-hash-table :test #'equal)))
+        (save-excursion
+          (concept--goto-first-heading)
+          (while (concept-on-focus-line)
+            (let ((line-number (line-number-at-pos (point))))
+              (concept-map-adjust-edge-counts-for-relationship-block line-number 1)
+              (concept-goto-next-focus)))))
+    (error "We expect this to be called from the source buffer. Aborting!")))
 
 (defun concept--propertize-pair-as-subjects (x)
   (cons (propertize (car x) 'face 'concept-subject)
@@ -8075,10 +8081,10 @@ network edge counts.
 (defun concept-map-make-full-network-update ()
   "Make a full network update via the relationship edge counting route."
   (interactive)
+  (concept-map--take-buffer-snapshot) ;; needed for intrabuffer connection setup
   (concept-map-count-relationship-network-edges t)
   (concept-map-make-network-from-edge-counts)
   (setq concept-map-network-is-stale nil)
-  (concept-map--take-buffer-snapshot)
   (force-mode-line-update t))
 
 (defvar concept-map-force-full-network-update
