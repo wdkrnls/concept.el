@@ -7949,7 +7949,9 @@ representation of the concept map.")
         (t        1)))
   
 (defun concept-map-adjust-edge-counts-for-relationship-block (line-number change &optional relationship-regexp)
-  "Adjust the edge counts for the whole relationship block."
+  "Adjust the edge counts by CHANGE for one relationship block at a time.
+
+By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relationship-regexp'."
   (when (null relationship-regexp)
     (setq relationship-regexp concept-map-network-relationship-regexp))
     (goto-line line-number)
