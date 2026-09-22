@@ -8021,7 +8021,7 @@ make a partial network update, so we have done that."
     (force-mode-line-update t)))
 
   
-(defun concept-map-make-full-network-update (&optional relationship-regexp)
+(defun concept-map-make-full-network-update-legacy (&optional relationship-regexp)
   "Extract the relationship network from the concept map.
 This network is restricted to operating on relationship blocks. Store
 the resulting data structure in `concept-map-network-graph'.
@@ -8033,6 +8033,9 @@ key:
  '((foo . (bar))
    (bar . (baz))
    (baz . ()))
+
+This is the legacy version. It works, but skips computing relationship
+network edge counts.
 "
   (interactive)
   (unless (derived-mode-p 'concept-mode)
@@ -8076,7 +8079,7 @@ key:
 (defun concept-map-network-reachable-p (start goal)
   "Return non-nil if GOAL is reachable from START."
   (let ((graph (or concept-map-network-graph
-                   (concept-map-make-full-network-update)))
+                   (concept-map-make-full-network-update-2)))
         (visited (make-hash-table :test #'equal))
         (pending (list start)))
     (catch 'found
@@ -8094,7 +8097,7 @@ key:
 (defun concept-map--network-path (start goal)
   "Return a path from START to GOAL, or nil if GOAL is unreachable."
   (let ((graph (or concept-map-network-graph
-                   (concept-map-make-full-network-update)))
+                   (concept-map-make-full-network-update-2)))
         (visited (make-hash-table :test #'equal))
         (pending (list (cons start (list start)))))
     (catch 'path-found
