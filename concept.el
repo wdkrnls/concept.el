@@ -8068,7 +8068,8 @@ key:
 (defun concept-map-update-network (&optional relationship-regexp)
   "Perform an update of the concept map network graph."
   (interactive)
-  (if concept-map-network-graph
+  (if (and concept-map-network-graph
+           concept-map-network-edge-counts)
       (concept-map-make-partial-network-update)
     (concept-map-make-full-network-update-2)))
 
