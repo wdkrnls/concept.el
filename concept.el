@@ -7947,21 +7947,6 @@ representation of the concept map.")
   (cond ((< x 0) -1)
         ((= x 0)  0)
         (t        1)))
-
-(defun concept-map-find-modified-relationship-blocks (line-numbers)
-  "Given LINE-NUMBERS, return the line numbers of all relevant focus lines in both buffers.
-These lines provide sign posts for processing relationship blocks in
-both buffers. In the snapshot buffer, the relationship edges in each
-relationship block need to be decremented. In the editing buffer, they
-need to be incremented.
-
-The logic involves looking at each change from the perspective of both
-buffers. This allows it to detect merges which result from atleast two
-line deletions in the snapshot buffer but which create one big
-relationship block where two were in the snapshot buffer.
-"
-  ;; XXX
-  nil)
   
 (defun concept-map-adjust-edge-counts-for-relationship-block (line-number change)
   "Adjust the edge counts for the whole relationship block."
