@@ -591,6 +591,46 @@ One way a programmer might think of a concept map (as imagined in `concept.el`) 
 
 I have fixed a bunch of network updating bugs, but I'm still exploring.
 
+I found a logic bug in my network updating code. When I took the `example.map` and split it such that I transformed:
+
+```
+~ concepts
+| :include
+| core-concepts
+| categorized-concepts
+| defined-concepts
+```
+
+into:
+
+```
+~ concepts
+| :include
+| core-concepts
+| categorized-concepts
+~ concepts
+| :include
+| defined-concepts
+```
+
+I found that the diff looked like this:
+
+```
+@@ -15,6 +15,8 @@
+ | :include
+ | core-concepts
+ | categorized-concepts
++~ concepts
++| :include
+ | defined-concepts
+ ~ concepts
+ | :include
+```
+
+The problem is that my current logic considers being on the outer edges of the snapshot relationship block implies that the new addition is standalone. However, in this situation it isn't. Just saying that `(concept-on-last-line-in-block-p)` is somehow not enough to exclude the relationship block in the snapshot buffer from being excluded. That makes sense if the last line is above the insertions, but not below. I'm not sure how to capture such a statement in code.
+
+The most promising approach I am not yet using is based on around using save-excursion calls to navigate around adjacent diff-lines and inspect that way. This sort of thing might be far more appropriate for solving these sorts of problems.
+
 ### Tools for working with concepts themselves
 
 Thinking about names in a standard way would really help with merging two different concept maps as well. So, in the future we hope to provide tools for parsing concepts in terms of the `{classification|core|definition}` framework discussed earlier. One challenge we have frequently seen is that concept names start getting longer and longer the more we work with concept maps. Tasteful categorization can help, but, e.g., when dealing with documenting useful elisp functions, it become useful to make some shorthand summarizations for brevity. These can challenge the power of these tools, but there may be useful conventions which can support the development of tools to overcome these issues.
