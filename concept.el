@@ -7803,10 +7803,6 @@ representation of the concept map.")
 
 (defun concept-map-network-adjust-edge-count (parent child change)
   "Adjust the count for the relationship edge PARENT -> CHILD by CHANGE."
-  (unless concept-map-concept-buffer
-    (error "This buffer connection must be defined."))
-  (unless concept-map-network-edge-counts
-    (error "The edge counts must first be built up from scratch before adjusting them."))
   (if (eq (current-buffer) concept-map-concept-buffer)
       (let* ((key (concept-map-network-edge-counts-key parent child))
              (counts concept-map-network-edge-counts)
