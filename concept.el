@@ -8030,7 +8030,9 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
        concept-map-concept-buffer
        concept-map-network-edge-counts
        concept-map-network-is-stale
-       (concept-map-grammar-parses-p)))
+       (concept-map-grammar-parses-p)
+       (with-current-buffer concept-map-snapshot-buffer
+         (concept-map-grammar-parses-p))))
 
 (defun concept-map-make-partial-network-update (&optional relationship-regexp)
   "Attempt to perform a partial network update.
@@ -8088,6 +8090,8 @@ network edge counts.
 (defun concept-map-make-full-network-update ()
   "Make a full network update via the relationship edge counting route."
   (interactive)
+  (unless (concept-map-grammar-parses-p)
+    (user-error "The concept map is currently in an invalid state. Please fix it first!"))
   (concept-map--take-buffer-snapshot) ;; needed for intrabuffer connection setup
   (concept-map-count-relationship-network-edges t)
   (concept-map-make-network-from-edge-counts)
