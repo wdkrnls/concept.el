@@ -7533,6 +7533,7 @@ unique even for multiple concept maps."
                diff
                old-line
                new-line
+               offset
                old-focus
                new-focus)
           (save-excursion
@@ -7571,10 +7572,11 @@ unique even for multiple concept maps."
                                    (match-string 1 diff-line))
                                   new-line
                                   (string-to-number
-                                   (match-string 2 diff-line))))
+                                   (match-string 2 diff-line)))
+                            (setq offset (- new-line old-line)))
                            ;; Added lines in the source buffer start with +.
                            ((and (>  (length diff-line) 0)
-                                 (eq (aref diff-line 0) ?+))
+                                 (eq (aref diff-line 0) ?+)) ; TODO: (string-prefix-p "+" diff-line) is more readable
                             ;; Look at the snapshot buffer to see if the old line
                             ;; before it is in a relationship block. If so, then
                             ;; it could be relevant. The network hash table
@@ -7601,7 +7603,8 @@ unique even for multiple concept maps."
                                 (when (and in-src-block
                                            (concept-in-relationship-block)
                                            (not (or (concept-on-focus-line)
-                                                    (concept-on-last-line-in-block-p))))
+                                                    (and (concept-on-last-line-in-block-p)
+                                                         (<= (+ old-line offset) new-line)))))
                                   (concept-goto-current-focus)
                                   (let ((proposal (line-number-at-pos (point))))
                                     (unless (memq proposal old-focus)
