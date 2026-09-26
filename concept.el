@@ -1443,6 +1443,17 @@ concept maps. It places ideas with similar names next to each other."
       (goto-line line)
       (end-of-line))))
 
+(defun concept-map-toggle-automatic-network-upates ()
+  "Toggle automatic network updating."
+  (interactive)
+  (if concept-map-should-update-stale-network
+      (progn
+        (setq concept-map-should-update-stale-network nil)
+        (message "Automatic network updates disabled!"))
+    (progn
+      (setq concept-map-should-update-stale-network t)
+      (message "Automatic network updates enabled!"))))
+
 (defun concept--split-string-by-bare-tilde (str)
   "Split STR by ~, but don't split at ~ inside [~]."
   (let ((result '())
