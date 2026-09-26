@@ -7672,7 +7672,8 @@ network graph hash table.")
         (setq concept-map-network-is-stale t)
       (setq concept-map-network-is-stale nil))
     (when (and block-changed
-               concept-map-should-update-stale-network)
+               concept-map-should-update-stale-network
+               (concept-map-grammar-parses-p))
       (concept-map--schedule-network-update))))
   
 (defun concept-map--schedule-network-update (&rest _args)
@@ -8091,7 +8092,8 @@ network edge counts.
   "Make a full network update via the relationship edge counting route."
   (interactive)
   (unless (concept-map-grammar-parses-p)
-    (user-error "The concept map is currently in an invalid state. Please fix it first!"))
+    (user-error "The concept map is currently in an invalid state. Please fix it first! (%s)"
+                (key-description (car (where-is-internal #'concept-map-check-parse)))))
   (concept-map--take-buffer-snapshot) ;; needed for intrabuffer connection setup
   (concept-map-count-relationship-network-edges t)
   (concept-map-make-network-from-edge-counts)
