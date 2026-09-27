@@ -7663,7 +7663,11 @@ unique even for multiple concept maps."
       (or (car changes) (cadr changes)))))
 
 (defvar-local concept-map--network-update-timer nil
-  "Update the concept map network after buffer modifications and a bit of inactivity.")
+  "Update the concept map network after buffer modifications and a bit of inactivity.
+This is the short term updating system. It might not always work. There
+is a another system which operates at a longer time interval because it
+is not triggered by a save. That time regular interval is determined by
+the local variable `concept-map-idle-network-update-time-interval'.")
 
 (defvar concept-map-wait-time-before-network-update
   2
@@ -7680,6 +7684,41 @@ network graph hash table.")
 (defun concept-map--after-save ()
   "Mark the network stale when a relationship block has changed."
   (when (and concept-map-network-is-stale
+             concept-map-should-update-stale-network)
+    (concept-map--schedule-network-update)))
+
+(defvar concept-map-idle-network-update-time-interval
+  11
+  "Default length of time for which to check the buffer for a needed network update on idle.")
+
+(defvar-local concept-map-idle-network-update-timer
+    nil
+  "Timer object which records how long it has been since the last network update check after a long idle.")
+
+(defun concept-map--start-idle-network-update-check ()
+  "Start checking for stale networks during idle time."
+  (setq concept-map-idle-network-update-timer
+        (run-with-idle-timer
+         concept-map-idle-network-update-time-interval
+         t ; REPEAT every N seconds of idle time
+         (lambda (buffer)
+           (when (buffer-live-p buffer)
+             (with-current-buffer buffer
+               (concept-map--schedule-network-update-after-long-idle))))
+         (current-buffer))))
+
+(defun concept-map--cancel-network-update-after-long-idle-timer ()
+  "Stop checking the buffer on idle when the concept map buffer is closed."
+  (when (timerp concept-map-idle-network-update-timer)
+    (concept-map--debug "Canceled long idle network update timer in %s" (buffer-name))
+    (cancel-timer concept-map-idle-network-update-timer)
+    (setq concept-map-idle-network-update-timer nil)))
+
+(defun concept-map--schedule-network-update-after-long-idle ()
+  "Update the variable if it is stale."
+  (when (and (derived-mode-p 'concept-mode)
+             (not (buffer-modified-p))
+             concept-map-network-is-stale
              concept-map-should-update-stale-network)
     (concept-map--schedule-network-update)))
 
@@ -7731,6 +7770,7 @@ This variable is stored in `concept-map-network-graph'."
   "Enable automatic network updates for the current buffer."
   (when concept-map-should-update-stale-network
     (concept-map-update-network))
+  (concept-map--start-idle-network-update-check)
   (add-hook 'after-change-functions
             #'concept-map--after-change
             nil
@@ -7745,6 +7785,10 @@ This variable is stored in `concept-map-network-graph'."
             t)
   (add-hook 'kill-buffer-hook
             #'concept-map--kill-snapshot-buffer
+            nil
+            t)
+  (add-hook 'kill-buffer-hook
+            #'concept-map--cancel-network-update-after-long-idle-timer
             nil
             t))
 
