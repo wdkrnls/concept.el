@@ -7673,13 +7673,15 @@ network graph hash table.")
   (let ((block-changed (concept-map--relationship-block-changed-p)))
     (if block-changed
         (setq concept-map-network-is-stale t)
-      (setq concept-map-network-is-stale nil))
-    (when (and block-changed
-               concept-map-should-update-stale-network
-               (concept-map-grammar-parses-p))
-      (concept-map--schedule-network-update))))
-  
-(defun concept-map--schedule-network-update (&rest _args)
+      (setq concept-map-network-is-stale nil))))
+
+(defun concept-map--after-save ()
+  "Mark the network stale when a relationship block has changed."
+  (when (and concept-map-network-is-stale
+             concept-map-should-update-stale-network)
+    (concept-map--schedule-network-update)))
+
+(defun concept-map--schedule-network-update ()
   "Schedule a network update after a period of user inactivity."
   (when (timerp concept-map--network-update-timer)
     (cancel-timer concept-map--network-update-timer)
@@ -7698,16 +7700,20 @@ network graph hash table.")
 (defun concept-map--run-scheduled-network-update (buffer)
   "Update BUFFER's concept map network.
 This variable is stored in `concept-map-network-graph'."
-  (if (not (buffer-live-p buffer))
-      (concept-map--debug "Skipped update: buffer no longer exists")
-    (with-current-buffer buffer
-      (setq concept-map--network-update-timer nil)
-      (when (and (derived-mode-p 'concept-mode)
-                 concept-map-should-update-stale-network)
-         (concept-map--debug
-          "Running concept-map-update-network in %s"
-          (buffer-name))
-        (concept-map-update-network)))))
+  (cond ((not (buffer-live-p buffer))
+         (concept-map--debug "Skipped update: buffer no longer exists"))
+        ((not (concept-map-grammar-parses-p))
+         (concept-map--debug "Skipped update: buffer syntax is invalid"))
+        (t
+         (with-current-buffer buffer
+           (setq concept-map--network-update-timer nil)
+           (when (and (derived-mode-p 'concept-mode)
+                      concept-map-network-is-stale
+                      concept-map-should-update-stale-network)
+             (concept-map--debug
+              "Running concept-map-update-network in %s"
+              (buffer-name))
+             (concept-map-update-network nil nil t))))))
 
 (defun concept-map--cancel-network-update-timer ()
   "Cancel any pending network update for the current buffer."
@@ -7725,6 +7731,10 @@ This variable is stored in `concept-map-network-graph'."
     (concept-map-update-network))
   (add-hook 'after-change-functions
             #'concept-map--after-change
+            nil
+            t)
+  (add-hook 'after-save-hook
+            #'concept-map--after-save
             nil
             t)
   (add-hook 'kill-buffer-hook
@@ -8034,7 +8044,7 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
        concept-map-network-edge-counts)
       (setq concept-map-network-graph graph))))
 
-(defun concept-map-can-do-partial-network-update-p ()
+(defun concept-map-can-do-partial-network-update-p (&optional skip-grammar-check)
   (unless (derived-mode-p 'concept-mode)
     (user-error "This only works inside of a concept-mode buffer with a valid concept map!"))
   (and concept-map-network-graph
@@ -8042,9 +8052,10 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
        concept-map-concept-buffer
        concept-map-network-edge-counts
        concept-map-network-is-stale
-       (concept-map-grammar-parses-p)
-       (with-current-buffer concept-map-snapshot-buffer
-         (concept-map-grammar-parses-p))))
+       (or skip-grammar-check (concept-map-grammar-parses-p))
+       (or skip-grammar-check
+           (with-current-buffer concept-map-snapshot-buffer
+             (concept-map-grammar-parses-p)))))
 
 (defun concept-map-make-partial-network-update (&optional relationship-regexp)
   "Attempt to perform a partial network update.
@@ -8117,12 +8128,12 @@ network edge counts.
 whether a partial update is possible when using
 `concept-map-update-network'.")
 
-(defun concept-map-update-network (&optional relationship-regexp force-full)
+(defun concept-map-update-network (&optional relationship-regexp force-full skip-grammar-check)
   "Perform an update of the concept map network graph."
   (interactive)
   (when (null force-full)
     (setq force-full concept-map-force-full-network-update))
-  (let ((partial-possible (concept-map-can-do-partial-network-update-p))
+  (let ((partial-possible (concept-map-can-do-partial-network-update-p skip-grammar-check))
         tried-partial)
     (if (and partial-possible (not force-full))
         (or (concept-map-make-partial-network-update)
