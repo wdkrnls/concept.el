@@ -7715,6 +7715,10 @@ This variable is stored in `concept-map-network-graph'."
     (cancel-timer concept-map--network-update-timer))
   (setq concept-map--network-update-timer nil))
 
+(defun concept-map--kill-snapshot-buffer ()
+  "Also Kill the snapshot buffer when it's concept map is killed."
+  (kill-buffer concept-map-snapshot-buffer))
+
 (defun concept-mode-setup-network-updating ()
   "Enable automatic network updates for the current buffer."
   (when concept-map-should-update-stale-network
@@ -7725,6 +7729,10 @@ This variable is stored in `concept-map-network-graph'."
             t)
   (add-hook 'kill-buffer-hook
             #'concept-map--cancel-network-update-timer
+            nil
+            t)
+  (add-hook 'kill-buffer-hook
+            #'concept-map--kill-snapshot-buffer
             nil
             t))
 
