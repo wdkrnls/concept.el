@@ -1452,6 +1452,8 @@ concept maps. It places ideas with similar names next to each other."
         (message "Automatic network updates disabled!"))
     (progn
       (setq concept-map-should-update-stale-network t)
+      (when (concept-map--relationship-block-changed-p)
+        (concept-map--schedule-network-update))
       (message "Automatic network updates enabled!"))))
 
 (defun concept--split-string-by-bare-tilde (str)
