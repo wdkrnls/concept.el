@@ -627,9 +627,55 @@ I found that the diff looked like this:
  | :include
 ```
 
-The problem is that my current logic considers being on the outer edges of the snapshot relationship block implies that the new addition is standalone. However, in this situation it isn't. Just saying that `(concept-on-last-line-in-block-p)` is somehow not enough to exclude the relationship block in the snapshot buffer from being excluded. That makes sense if the last line is above the insertions, but not below. I'm not sure how to capture such a statement in code.
+The result should be `((14) (14 18))`. The current result is `(nil (18))`.
 
-The most promising approach I am not yet using is based on around using save-excursion calls to navigate around adjacent diff-lines and inspect that way. This sort of thing might be far more appropriate for solving these sorts of problems.
+The problem is that my current logic considers the outer edges of a relationship block to be enough information to make a decision. In this case, it implies that the new addition is standalone because it creates a new relationship block. However, in this situation it isn't. Just saying that `(concept-on-last-line-in-block-p)` is not enough to prevent the relationship block in the snapshot buffer from being excluded. That makes sense if the last line is above the insertions, but not in the described situation below. I'm not sure how to capture such a statement in code.
+
+The most promising approach I am not yet using is based on around the idea of having save-excursion calls navigate around adjacent diff-lines and inspect what the previously shared lines are after an one-or-more line addition operation. The fact that both the previously shared line is a data concept and the next shared line is also a data concept should be enough to trigger the inclusion of the previous relationship block in both the car and the cadr relationship block list outputs from `(concept-map-changes-from-last-snapshot)`. Then, since the there was an addition, that should be enough to add the other one.
+
+This approach makes a lot more sense, and so seems far more appropriate for solving the incremental network update problem.
+
+I found that undoing this situation revealed another bug.
+
+Turning
+
+```
+~ concepts
+| :include
+| core-concepts
+| categorized-concepts
+~ concepts
+| :include
+| defined-concepts
+```
+
+into:
+
+```
+~ concepts
+| :include
+| core-concepts
+| categorized-concepts
+| defined-concepts
+```
+
+Then calling `(concept-map-changes-from-last-snapshot)` revealed that it believed the relationship block starting on line 18 in the snapshot buffer had changed, but not that the previous relationship block starting on line 14 had also changed.
+
+The diff for that looks like:
+
+```
+@@ -15,8 +15,6 @@
+ | :include
+ | core-concepts
+ | categorized-concepts
+-~ concepts
+-| :include
+ | defined-concepts
+ ~ concepts
+ | :include
+```
+
+Note that this is purely a deletion. It merges two relationship blocks together into one relationship block. The result should be `((14 18) (14))`. Instead it is `((18) nil)`. The fact that the deletion did not span the whole relationship block with the next shared line being a data concept line and that the previous shared line was also data concept line should have triggered the focus line of the previous shared line to be triggered for both source and snapshot buffers.
 
 ### Tools for working with concepts themselves
 
