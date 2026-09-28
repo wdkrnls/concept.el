@@ -7576,6 +7576,18 @@ This is a helper function to validate the results of `concept-map-changes-from-l
        (concept-diff--find-line-number-in-source)
        (buffer-substring-no-properties (line-beginning-position) (line-end-position))))))
 
+(defun concept-diff--detect-replacement ()
+  "Detect that a replacement is occurring on the current line in the unified diff output."
+  (unless (derived-mode-p 'diff-mode)
+    (user-error "This should only be called against unified diff output."))
+  (save-excursion
+    (beginning-of-line)
+    (when (looking-at "^[+]")
+      (previous-line)
+      (while (looking-at "^[+]")
+        (previous-line))
+      (looking-at "^[-]"))))
+
 (defun concept-map-changes-from-last-snapshot ()
   "Return line numbers for all focus concepts that have changed.
 This should find the focus lines for both the snapshot buffer and the
