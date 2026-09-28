@@ -7503,7 +7503,7 @@ This is a helper function to validate the results of `concept-map-changes-from-l
       (goto-char original-point))))
 
 (defun concept-diff--previously-shared-line ()
-  "Find the previously shared line in unified diff output."
+  "Find the previously shared line in current unified diff output hunk."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This should only be called against unified diff output."))
   (save-excursion
@@ -7515,7 +7515,40 @@ This is a helper function to validate the results of `concept-map-changes-from-l
        (concept-diff--find-line-number-in-source)
        (buffer-substring-no-properties (1+ (line-beginning-position)) (line-end-position))))))
 
+(defun concept-diff--first-line-in-change-group ()
+  "Find the first line sharing the same change symbol in the unified diff output hunk."
+  (unless (derived-mode-p 'diff-mode)
+    (user-error "This should only be called against unified diff output."))
+  (save-excursion
+    (beginning-of-line)
+    (when (looking-at "^[+-]")
+      (cond ((looking-at "^+")
+             (re-search-backward "^[^+]")
+             (re-search-forward "^+")
+             (concept-diff--find-line-number-in-source))
+            ((looking-at "^-")
+             (re-search-backward "^[^-]")
+             (re-search-forward "^-")
+             (concept-diff--find-line-number-in-snapshot))))))
+
+(defun concept-diff--last-line-in-change-group ()
+  "Find the last line sharing the same change symbol in the unified diff output hunk."
+  (unless (derived-mode-p 'diff-mode)
+    (user-error "This should only be called against unified diff output."))
+  (save-excursion
+    (beginning-of-line)
+    (when (looking-at "^[+-]")
+      (cond ((looking-at "^+")
+             (re-search-forward "^[^+]")
+             (re-search-backward "^+")
+             (concept-diff--find-line-number-in-source))
+            ((looking-at "^-")
+             (re-search-forward "^[^-]")
+             (re-search-backward "^-")
+             (concept-diff--find-line-number-in-snapshot))))))
+
 (defun concept-diff--find-line-number-in-snapshot ()
+  "Find the associated line number of the diff line in the snapshot buffer."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This should only be called against unified diff output."))
   (save-excursion
@@ -7540,6 +7573,7 @@ This is a helper function to validate the results of `concept-map-changes-from-l
         (user-error "The current diff-line doesn't exist in the snapshot buffer. Aborting!"))))
 
 (defun concept-diff--find-line-number-in-source ()
+  "Find the associated line number of the diff line in the source buffer."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This should only be called against unified diff output."))
   (save-excursion
@@ -7585,6 +7619,43 @@ This is a helper function to validate the results of `concept-map-changes-from-l
     (when (looking-at "^[+]")
       (re-search-backward "^[^+]")
       (looking-at "^[-]"))))
+
+(defun concept-diff--detect-merge ()
+  "Detect that a merge is occurring on a deletion line in unified diff output.
+A merge occurs when the number of focus lines decreases from the
+snapshot to the source buffer."
+  (unless (derived-mode-p 'diff-mode)
+    (user-error "This should only be called against unified diff output."))
+  (save-excursion
+    (beginning-of-line)
+    (when (looking-at "^[-]")
+      (let ((first-line (concept-diff--first-line-in-change-group))
+            (last-line  (concept-diff--last-line-in-change-group)))
+        (if (concept-diff--detect-replacement)
+            (let (snap-count src-count)
+              (progn
+                (with-current-buffer concept-map-snapshot-buffer
+                  (setq snap-count
+                        (how-many
+                         "^~"
+                         (progn (goto-line first-line) (line-beginning-position))
+                         (progn (goto-line last-line)  (line-end-position))))))
+              (re-search-forward "^+")
+              (beginning-of-line)
+              (let ((first-line (concept-diff--first-line-in-change-group))
+                    (last-line  (concept-diff--last-line-in-change-group)))
+                (with-current-buffer concept-map-concept-buffer
+                  (setq src-count
+                        (how-many
+                         "^~"
+                         (progn (goto-line first-line) (line-beginning-position))
+                         (progn (goto-line last-line)  (line-end-position))))))
+              (< src-count snap-count))
+          (with-current-buffer concept-map-snapshot-buffer
+            (< 0 (how-many
+                  "^~"
+                  (progn (goto-line first-line) (line-beginning-position))
+                  (progn (goto-line last-line)  (line-end-position))))))))))
 
 (defun concept-map-changes-from-last-snapshot ()
   "Return line numbers for all focus concepts that have changed.
