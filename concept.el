@@ -7583,9 +7583,7 @@ This is a helper function to validate the results of `concept-map-changes-from-l
   (save-excursion
     (beginning-of-line)
     (when (looking-at "^[+]")
-      (previous-line)
-      (while (looking-at "^[+]")
-        (previous-line))
+      (re-search-backward "^[^+]")
       (looking-at "^[-]"))))
 
 (defun concept-map-changes-from-last-snapshot ()
