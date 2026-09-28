@@ -7515,8 +7515,64 @@ This is a helper function to validate the results of `concept-map-changes-from-l
        (concept-diff--find-line-number-in-source)
        (buffer-substring-no-properties (1+ (line-beginning-position)) (line-end-position))))))
 
+(defun concept-diff--first-line-in-edit ()
+  "Find the first line of a contiguous group of edited lines in a
+hunk.
+
+What is a `change group'? There are two possible definitions for a
+change group. It could be contiguous block of additions or a contiguous
+block of deletions. Or, it could be a contiguous block of deletions
+followed by additions as in a replacement situation. The eliminate
+confusion, we make some additional terminology.
+
+ where a change group makes sense as a
+concept. A contiguous group of one or more lines corresponding to edits
+creates a change group. There are addition change groups, deletion
+change groups, and replacement/modification change groups."
+  (unless (derived-mode-p 'diff-mode)
+    (user-error "This should only be called against unified diff output."))
+  (save-excursion
+    (beginning-of-line)
+    (when (looking-at "^[+-]")
+      (cond ((looking-at "^+")
+             (re-search-backward "^[^+]")
+             (if (looking-at "^ ")
+                 (re-search-forward "^+")
+               (re-search-backward "^[^-]")
+               (re-search-forward "^-"))
+             (concept-diff--find-line-number-in-source))
+            ((looking-at "^-")
+             (re-search-backward "^[^-]")
+             (re-search-forward "^-")
+             (concept-diff--find-line-number-in-snapshot))))))
+
+(defun concept-diff--last-line-in-edit ()
+  "Find the last line of the change group in the unified diff output hunk."
+  (unless (derived-mode-p 'diff-mode)
+    (user-error "This should only be called against unified diff output."))
+  (save-excursion
+    (beginning-of-line)
+    (when (looking-at "^[+-]")
+      (cond ((looking-at "^+")
+             (re-search-forward "^[^+]")
+             (re-search-backward "^+")
+             (concept-diff--find-line-number-in-source))
+            ((looking-at "^-")
+             (re-search-forward "^[^-]")
+             (if (looking-at "^ ")
+                 (re-search-backward "^-")
+               (re-search-forward "^[^+]")
+               (re-search-backward "^[+]"))
+             (concept-diff--find-line-number-in-snapshot))))))
+
 (defun concept-diff--first-line-in-change-group ()
-  "Find the first line sharing the same change symbol in the unified diff output hunk."
+  "Find the first line sharing the same change symbol in the unified diff output hunk.
+
+Note that is is different than looking at an edit. An edit is a more
+general operation, which looks at a whole contiguous block of changes in
+the buffer. A change group corresponds to a smaller unit, which only
+sometimes corresponds to an edit in the case of pure insertions or
+deletions."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This should only be called against unified diff output."))
   (save-excursion
@@ -7553,7 +7609,7 @@ This is a helper function to validate the results of `concept-map-changes-from-l
     (user-error "This should only be called against unified diff output."))
   (save-excursion
     (beginning-of-line)
-    (if ((looking-at "^[- ]")
+    (if ((looking-at "^[ -]")
            (let* ((pt (point))
                   (diff-line-number (line-number-at-pos pt))
                   line-number)
@@ -7567,7 +7623,7 @@ This is a helper function to validate the results of `concept-map-changes-from-l
                  (setq line-number snapshot-start)
                  (while (not (eq (line-number-at-pos (point)) diff-line-number))
                    (forward-line)
-                   (when (looking-at "^[- ]")
+                   (when (looking-at "^[ -]")
                      (setq line-number (1+ line-number))))
                  line-number))))
         (user-error "The current diff-line doesn't exist in the snapshot buffer. Aborting!"))))
@@ -7628,26 +7684,34 @@ the replacement process you are: either `'addition' or `'deletion'."
           (t nil))))
 
 (defun concept-diff--detect-merge ()
-  "Detect that a merge is occurring on a deletion line in unified diff output.
+  "Detect whether a merge is occurring on a deletion line in
+unified diff output.
+
 A merge occurs when the number of focus lines decreases from the
-snapshot to the source buffer."
+snapshot to the source buffer. In the case of a replacement operation
+occurring, this procedure counts the number of focus lines on either
+side and subtracts one from the other. Positive numbers indicate
+splits. Negative numbers indicate merges or deletions. In the case of an
+addition operation, this procedure looks at the first and last shared
+line to verify that they are both data concepts."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This should only be called against unified diff output."))
   (save-excursion
     (beginning-of-line)
-    (when (looking-at "^[-]")
-      (let ((first-line (concept-diff--first-line-in-change-group))
+    (when (looking-at "^-")
+      (let ((first-line (car (concept-diff--first-line-in-change-group)))
             (last-line  (concept-diff--last-line-in-change-group)))
         (if (concept-diff--detect-replacement)
             (let (snap-count src-count)
               (progn
                 (with-current-buffer concept-map-snapshot-buffer
+                  (goto-line first-line)
                   (setq snap-count
                         (how-many
                          "^~"
                          (progn (goto-line first-line) (line-beginning-position))
                          (progn (goto-line last-line)  (line-end-position))))))
-              (re-search-forward "^+")
+              (re-search-forward "^[+]")
               (beginning-of-line)
               (let ((first-line (concept-diff--first-line-in-change-group))
                     (last-line  (concept-diff--last-line-in-change-group)))
