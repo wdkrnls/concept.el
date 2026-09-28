@@ -7611,14 +7611,21 @@ This is a helper function to validate the results of `concept-map-changes-from-l
        (buffer-substring-no-properties (line-beginning-position) (line-end-position))))))
 
 (defun concept-diff--detect-replacement ()
-  "Detect that a replacement is occurring on the current line in the unified diff output."
+  "Detect that a replacement is occurring on the current line in the unified diff output.
+Nil means that a replacement is not occurring. Non-nil gives where in
+the replacement process you are: either `'addition' or `'deletion'."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This should only be called against unified diff output."))
   (save-excursion
     (beginning-of-line)
-    (when (looking-at "^[+]")
-      (re-search-backward "^[^+]")
-      (looking-at "^[-]"))))
+    (cond ((looking-at "^[+]")
+           (re-search-backward "^[^+]")
+           (and (looking-at "^-") 'addition))
+          ((looking-at "^-")
+           (re-search-forward "^[^-]")
+           (beginning-of-line)
+           (and (looking-at "^[+]") 'deletion))
+          (t nil))))
 
 (defun concept-diff--detect-merge ()
   "Detect that a merge is occurring on a deletion line in unified diff output.
