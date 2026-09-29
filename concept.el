@@ -7508,29 +7508,21 @@ This is a helper function to validate the results of `concept-map-changes-from-l
     (user-error "This should only be called against unified diff output."))
   (save-excursion
     (beginning-of-line)
+    (when (looking-at "^@@")
+      (user-error "This function should only be called inside the body of a hunk."))
     (when (looking-at "^[+-]")
-      (re-search-backward "^ ")
-      (list
-       (concept-diff--find-line-number-in-snapshot)
-       (concept-diff--find-line-number-in-source)
-       (buffer-substring-no-properties (1+ (line-beginning-position)) (line-end-position))))))
+      (re-search-backward "^ "))
+    (list
+     (concept-diff--find-line-number-in-snapshot)
+     (concept-diff--find-line-number-in-source)
+     (line-number-at-pos (point)))))
 
 (defun concept-diff--first-line-in-edit ()
-  "Find the first line of a contiguous group of edited lines in a
-hunk.
-
-What is a `change group'? There are two possible definitions for a
-change group. It could be contiguous block of additions or a contiguous
-block of deletions. Or, it could be a contiguous block of deletions
-followed by additions as in a replacement situation. The eliminate
-confusion, we make some additional terminology.
-
- where a change group makes sense as a
-concept. A contiguous group of one or more lines corresponding to edits
-creates a change group. There are addition change groups, deletion
-change groups, and replacement/modification change groups."
+  "Find the first line of a group of edited lines in a diff hunk."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This should only be called against unified diff output."))
+  (when (looking-at "^@@")
+    (user-error "This function should only be called inside the body of a hunk."))
   (save-excursion
     (beginning-of-line)
     (when (looking-at "^[+-]")
@@ -7540,11 +7532,13 @@ change groups, and replacement/modification change groups."
                  (re-search-forward "^+")
                (re-search-backward "^[^-]")
                (re-search-forward "^-"))
-             (concept-diff--find-line-number-in-source))
+             (list (line-number-at-pos (point))
+                   (concept-diff--find-line-number-in-source)))
             ((looking-at "^-")
              (re-search-backward "^[^-]")
              (re-search-forward "^-")
-             (concept-diff--find-line-number-in-snapshot))))))
+             (list (line-number-at-pos (point))
+                   (concept-diff--find-line-number-in-snapshot)))))))
 
 (defun concept-diff--last-line-in-edit ()
   "Find the last line of the change group in the unified diff output hunk."
@@ -7556,39 +7550,96 @@ change groups, and replacement/modification change groups."
       (cond ((looking-at "^+")
              (re-search-forward "^[^+]")
              (re-search-backward "^+")
-             (concept-diff--find-line-number-in-source))
+             (list (line-number-at-pos (point))
+                   (concept-diff--find-line-number-in-source)))
             ((looking-at "^-")
              (re-search-forward "^[^-]")
              (if (looking-at "^ ")
                  (re-search-backward "^-")
                (re-search-forward "^[^+]")
                (re-search-backward "^[+]"))
-             (concept-diff--find-line-number-in-snapshot))))))
+             (list (line-number-at-pos (point))
+                   (concept-diff--find-line-number-in-snapshot)))))))
+
+(defun concept-diff--edit-size ()
+  "Determin the size of an edit as it appears in the diff buffer.
+The size of an edit in the replacement case is the most interesting. In
+all other cases, the size of the edit is difference between the line
+number on the last line of the edit.
+
+If you insert one new line and that is all, the edit size is 1. If you
+delete one line, the edit size is also 1. If you modify a single line,
+the diff shows two lines, but the edit size is intuitively also 1.
+
+If you are not looking at an edit, then report 0 as the edit size."
+  (unless (derived-mode-p 'diff-mode)
+    (user-error "This should only be called against unified diff output."))
+  (when (looking-at "^@@")
+    (user-error "This function is supposed to be called inside the body of a hunk."))
+  (if (looking-at "^[+-]")
+      (let ((first-line (car (concept-diff--first-line-in-edit)))
+            (last-line  (car (concept-diff--last-line-in-edit))))
+        (if (concept-diff--detect-replacement)
+            (1+
+             (if (eq 1 (- last-line first-line))
+                 0
+               (let ((first-new-line
+                      (save-excursion
+                        (if (looking-at "^[+]")
+                            (concept-diff--first-line-in-change-group)
+                          (re-search-forward "^[+]")
+                          (concept-diff--first-line-in-change-group)))))
+                 (- (- last-line first-new-line)
+                    (- (1- first-new-line) first-line)))))
+          (1+ (- last-line first-line))))
+    0))
 
 (defun concept-diff--first-line-in-change-group ()
-  "Find the first line sharing the same change symbol in the unified diff output hunk.
+  "Find the first line sharing the same change symbol in the diff hunk.
+As with `concept-diff--last-line-in-change-group', this reports both
+the line in the `diff' buffer as well as the line in either the
+`snapshot' or `source' buffers, depending on whether the line is in an
+insertion group or a deletion group.
 
-Note that is is different than looking at an edit. An edit is a more
-general operation, which looks at a whole contiguous block of changes in
-the buffer. A change group corresponds to a smaller unit, which only
-sometimes corresponds to an edit in the case of pure insertions or
-deletions."
+What is a `change group'? There are two possible definitions for a
+change group. It could be contiguous block of additions or a contiguous
+block of deletions. Or, it could be a contiguous block of deletions
+followed by additions as in a replacement situation. The eliminate
+confusion, we make some additional terminology.
+
+A contiguous group of one or more lines corresponding to edits creates a
+change group. There are addition change groups, deletion change groups,
+and replacement/modification change groups.
+
+Note that is is different from, but related to, looking at an edit. An
+edit is a more general operation. An edit looks at a whole contiguous
+block of changes in the buffer. A change group corresponds to a smaller
+unit, which only sometimes corresponds to an edit in the case of pure
+insertions or deletions."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This should only be called against unified diff output."))
   (save-excursion
     (beginning-of-line)
+    (when (looking-at "^@@")
+      (user-error "This function should only be called within body of a diff hunk."))
     (when (looking-at "^[+-]")
       (cond ((looking-at "^+")
              (re-search-backward "^[^+]")
              (re-search-forward "^+")
-             (concept-diff--find-line-number-in-source))
+             (list (line-number-at-pos (point))
+                   (concept-diff--find-line-number-in-source)))
             ((looking-at "^-")
              (re-search-backward "^[^-]")
              (re-search-forward "^-")
-             (concept-diff--find-line-number-in-snapshot))))))
+             (list (line-number-at-pos (point))
+                   (concept-diff--find-line-number-in-snapshot)))))))
 
 (defun concept-diff--last-line-in-change-group ()
-  "Find the last line sharing the same change symbol in the unified diff output hunk."
+  "Find the last line sharing the same change symbol in the unified diff output hunk.
+As with `concept-diff--first-line-in-change-group', this reports both
+the line in the `diff' buffer as well as the line in either the
+`snapshot' or `source' buffers, depending on whether the line is in an
+insertion group or a deletion group."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This should only be called against unified diff output."))
   (save-excursion
@@ -7597,11 +7648,13 @@ deletions."
       (cond ((looking-at "^+")
              (re-search-forward "^[^+]")
              (re-search-backward "^+")
-             (concept-diff--find-line-number-in-source))
+             (list (line-number-at-pos (point))
+                   (concept-diff--find-line-number-in-source)))
             ((looking-at "^-")
              (re-search-forward "^[^-]")
              (re-search-backward "^-")
-             (concept-diff--find-line-number-in-snapshot))))))
+             (list (line-number-at-pos (point))
+                   (concept-diff--find-line-number-in-snapshot)))))))
 
 (defun concept-diff--find-line-number-in-snapshot ()
   "Find the associated line number of the diff line in the snapshot buffer."
@@ -7660,11 +7713,13 @@ deletions."
   (save-excursion
     (beginning-of-line)
     (when (looking-at "^[+-]")
-      (re-search-forward "^ ")
-      (list
-       (concept-diff--find-line-number-in-snapshot)
-       (concept-diff--find-line-number-in-source)
-       (buffer-substring-no-properties (line-beginning-position) (line-end-position))))))
+      (re-search-forward "^ "))
+    (when (looking-at "^@@")
+      (user-error "This function should only be called inside the body of a hunk."))
+    (list
+     (concept-diff--find-line-number-in-snapshot)
+     (concept-diff--find-line-number-in-source)
+     (line-number-at-pos (point)))))
 
 (defun concept-diff--detect-replacement ()
   "Detect that a replacement is occurring on the current line in the unified diff output.
@@ -7681,19 +7736,26 @@ the replacement process you are: either `'addition' or `'deletion'."
            (re-search-forward "^[^-]")
            (beginning-of-line)
            (and (looking-at "^[+]") 'deletion))
+          ((looking-at "^@@")
+           (user-error "This function should only be called inside the body of a hunk."))
           (t nil))))
 
 (defun concept-diff--detect-merge ()
   "Detect whether a merge is occurring on a deletion line in
 unified diff output.
 
-A merge occurs when the number of focus lines decreases from the
-snapshot to the source buffer. In the case of a replacement operation
-occurring, this procedure counts the number of focus lines on either
-side and subtracts one from the other. Positive numbers indicate
-splits. Negative numbers indicate merges or deletions. In the case of an
-addition operation, this procedure looks at the first and last shared
-line to verify that they are both data concepts."
+A merge occurs when two relationship blocks fuse together. This causes
+the number of focus lines to decrease from the snapshot to the source
+buffer. This can happen in two ways. In the case of a replacement
+operation, this happens by deleting relationship line and either via
+slurping up a focus line into a data line or deleting that focus line
+altogether.
+
+This procedure counts the number of focus lines on either side and
+subtracts one from the other. Positive numbers indicate splits. Negative
+numbers indicate merges or deletions. In the case of an addition
+operation, this procedure looks at the first and last shared line to
+verify that they are both data concepts."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This should only be called against unified diff output."))
   (save-excursion
