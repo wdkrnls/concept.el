@@ -7505,12 +7505,9 @@ This is a helper function to interactively validate the results of
 
 (defun concept-diff--previously-shared-line ()
   "Find the previously shared line in current unified diff output hunk."
-  (unless (derived-mode-p 'diff-mode)
-    (user-error "This should only be called against unified diff output."))
+  (concept-diff--assert-diff-mode)
   (save-excursion
-    (beginning-of-line)
-    (when (looking-at "^@@")
-      (user-error "This function should only be called inside the body of a hunk."))
+    (concept-diff--assert-not-hunk-header)
     (when (looking-at "^[+-]")
       (re-search-backward "^ "))
     (list
@@ -7520,10 +7517,8 @@ This is a helper function to interactively validate the results of
 
 (defun concept-diff--first-line-in-edit ()
   "Find the first line of a group of edited lines in a diff hunk."
-  (unless (derived-mode-p 'diff-mode)
-    (user-error "This should only be called against unified diff output."))
-  (when (looking-at "^@@")
-    (user-error "This function should only be called inside the body of a hunk."))
+  (concept-diff--assert-diff-mode)
+  (concept-diff--assert-not-hunk-header)
   (save-excursion
     (beginning-of-line)
     (when (looking-at "^[+-]")
@@ -7543,8 +7538,7 @@ This is a helper function to interactively validate the results of
 
 (defun concept-diff--last-line-in-edit ()
   "Find the last line of the change group in the unified diff output hunk."
-  (unless (derived-mode-p 'diff-mode)
-    (user-error "This should only be called against unified diff output."))
+  (concept-diff--assert-diff-mode)
   (save-excursion
     (beginning-of-line)
     (when (looking-at "^[+-]")
@@ -7562,6 +7556,11 @@ This is a helper function to interactively validate the results of
              (list (line-number-at-pos (point))
                    (concept-diff--find-line-number-in-snapshot)))))))
 
+(defun concept-diff--assert-not-hunk-header ()
+  (beginning-of-line)
+  (when (looking-at "^@@")
+    (user-error "This function is supposed to be called inside the body of a hunk.")))
+
 (defun concept-diff--edit-size ()
   "Determin the size of an edit as it appears in the diff buffer.
 The size of an edit in the replacement case is the most interesting. In
@@ -7573,10 +7572,8 @@ delete one line, the edit size is also 1. If you modify a single line,
 the diff shows two lines, but the edit size is intuitively also 1.
 
 If you are not looking at an edit, then report 0 as the edit size."
-  (unless (derived-mode-p 'diff-mode)
-    (user-error "This should only be called against unified diff output."))
-  (when (looking-at "^@@")
-    (user-error "This function is supposed to be called inside the body of a hunk."))
+  (concept-diff--assert-diff-mode)
+  (concept-diff--assert-not-hunk-header)
   (if (looking-at "^[+-]")
       (let ((first-line (car (concept-diff--first-line-in-edit)))
             (last-line  (car (concept-diff--last-line-in-edit))))
@@ -7617,12 +7614,9 @@ edit is a more general operation. An edit looks at a whole contiguous
 block of changes in the buffer. A change group corresponds to a smaller
 unit, which only sometimes corresponds to an edit in the case of pure
 insertions or deletions."
-  (unless (derived-mode-p 'diff-mode)
-    (user-error "This should only be called against unified diff output."))
+  (concept-diff--assert-diff-mode)
   (save-excursion
-    (beginning-of-line)
-    (when (looking-at "^@@")
-      (user-error "This function should only be called within body of a diff hunk."))
+    (concept-diff--assert-not-hunk-header)
     (when (looking-at "^[+-]")
       (cond ((looking-at "^+")
              (re-search-backward "^[^+]")
@@ -7641,8 +7635,7 @@ As with `concept-diff--first-line-in-change-group', this reports both
 the line in the `diff' buffer as well as the line in either the
 `snapshot' or `source' buffers, depending on whether the line is in an
 insertion group or a deletion group."
-  (unless (derived-mode-p 'diff-mode)
-    (user-error "This should only be called against unified diff output."))
+  (concept-diff--assert-diff-mode)
   (save-excursion
     (beginning-of-line)
     (when (looking-at "^[+-]")
@@ -7659,8 +7652,7 @@ insertion group or a deletion group."
 
 (defun concept-diff--find-line-number-in-snapshot ()
   "Find the associated line number of the diff line in the snapshot buffer."
-  (unless (derived-mode-p 'diff-mode)
-    (user-error "This should only be called against unified diff output."))
+  (concept-diff--assert-diff-mode)
   (save-excursion
     (beginning-of-line)
     (if ((looking-at "^[ -]")
@@ -7684,8 +7676,7 @@ insertion group or a deletion group."
 
 (defun concept-diff--find-line-number-in-source ()
   "Find the associated line number of the diff line in the source buffer."
-  (unless (derived-mode-p 'diff-mode)
-    (user-error "This should only be called against unified diff output."))
+  (concept-diff--assert-diff-mode)
   (save-excursion
     (beginning-of-line)
     (if ((looking-at "^[+ ]")
@@ -7706,17 +7697,17 @@ insertion group or a deletion group."
                      (setq line-number (1+ line-number))))
                  line-number))))
         (user-error "The current diff-line doesn't exist in the source buffer. Aborting!"))))
+    (concept-diff--assert-not-hunk-header)
 
 (defun concept-diff--next-shared-line ()
   "Find the next shared line in unified diff output."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This should only be called against unified diff output."))
   (save-excursion
-    (beginning-of-line)
+    (concept-diff--assert-not-hunk-header)
     (when (looking-at "^[+-]")
       (re-search-forward "^ "))
-    (when (looking-at "^@@")
-      (user-error "This function should only be called inside the body of a hunk."))
+    (concept-diff--assert-not-hunk-header)
     (list
      (concept-diff--find-line-number-in-snapshot)
      (concept-diff--find-line-number-in-source)
@@ -7726,10 +7717,9 @@ insertion group or a deletion group."
   "Detect that a replacement is occurring on the current line in the unified diff output.
 Nil means that a replacement is not occurring. Non-nil gives where in
 the replacement process you are: either `'addition' or `'deletion'."
-  (unless (derived-mode-p 'diff-mode)
-    (user-error "This should only be called against unified diff output."))
+  (concept-diff--assert-diff-mode)
   (save-excursion
-    (beginning-of-line)
+    (concept-diff--assert-not-hunk-header)
     (cond ((looking-at "^[+]")
            (re-search-backward "^[^+]")
            (and (looking-at "^-") 'addition))
@@ -7737,13 +7727,17 @@ the replacement process you are: either `'addition' or `'deletion'."
            (re-search-forward "^[^-]")
            (beginning-of-line)
            (and (looking-at "^[+]") 'deletion))
-          ((looking-at "^@@")
-           (user-error "This function should only be called inside the body of a hunk."))
           (t nil))))
+
+(defun concept--assert-buffer-holds-concept-map ()
+  (unless (or (derived-mode-p 'concept-mode)
+              (derived-mode-p 'concept-map-snapshot-mode))
+    (user-error "This function should be run inside of a buffer holding a concept map.")))
 
 (defun concept--find-focus-relationship-pair-by (last-line)
   "Helper function for `concept-diff--change-group-holds-focus-relationship-pair'.
 It is designed to work in either the `source' or `snapshot' buffer."
+  (concept--assert-buffer-holds-concept-map)
   (catch 'both
     (while (<= (line-number-at-pos (point)) last-line)
       (cond ((concept-on-focus-line)
@@ -7773,8 +7767,7 @@ but a hopefully useful helper function.
 
 This involves looking at either the `snapshot' or `source' buffers
 depending on what type of change group the point is on."
-  (unless (derived-mode-p 'diff-mode)
-    (user-error "This should only be called against unified diff output."))
+  (concept-diff--assert-diff-mode)
   (save-excursion
     (beginning-of-line)
     (when (looking-at "^[+-]")
@@ -7791,6 +7784,11 @@ depending on what type of change group the point is on."
                  (save-excursion
                    (goto-line first-line)
                    (concept--find-focus-relationship-pair-by last-line)))))))))
+(defun concept-diff--assert-diff-mode ()
+  "Make sure you are inside a `diff' buffer."
+  (unless (derived-mode-p 'diff-mode)
+    (user-error "This function is meant to be run inside of a `diff' buffer.")))
+
 (defun concept-diff--detect-merge ()
   "Detect whether a merge is occurring on a deletion line in
 unified diff output.
