@@ -7788,10 +7788,101 @@ depending on what type of change group the point is on."
                  (save-excursion
                    (goto-line first-line)
                    (concept--find-focus-relationship-pair-by last-line)))))))))
+
+(defun concept-diff--only-idea-extension ()
+  "Detect when an edit merely extends an existing relationship block."
+  (concept-diff--assert-diff-mode)
+  (save-excursion
+    (beginning-of-line)
+    (and (looking-at "^[+]")
+         (not (concept-diff--detect-replacement))
+         (let ((first-line (nth 1 (concept-diff--first-line-in-edit)))
+               (last-line  (nth 1 (concept-diff--last-line-in-edit))))
+           (catch 'met
+             (with-current-buffer concept-map-concept-buffer
+               (save-excursion
+                 (goto-line first-line)
+                 (while (<= (line-number-at-pos (point)) last-line)
+                   (unless (or (concept-on-relationship-line) (concept-on-data-line))
+                     (throw 'met nil))
+                   (forward-line))))
+             t)))))
+
+(defun concept-diff--only-new-relationship-block-insertions ()
+  "Detect when an edit merely creates one or more new relationship blocks."
+  (concept-diff--assert-diff-mode)
+  (save-excursion
+    (beginning-of-line)
+    (and (looking-at "^[+]")
+         (not (concept-diff--detect-replacement))
+         (let ((first-line  (nth 1 (concept-diff--first-line-in-edit)))
+               (last-line   (nth 1 (concept-diff--last-line-in-edit)))
+               (next-shared (nth 1 (concept-diff--next-shared-line))))
+           (catch 'met
+             (with-current-buffer concept-map-concept-buffer
+               (save-excursion
+                 (goto-line first-line)
+                 (when (not (concept-on-focus-line))
+                   (throw 'met nil))
+                 (goto-line last-line)
+                 (when (not (concept-on-data-concept-line))
+                   (throw 'met nil))
+                 (goto-line next-shared)
+                 (when (not (or (concept-on-focus-line)
+                                (concept-on-resource-line)))
+                   (throw 'met nil))))
+             t)))))
+
+(defun concept-diff--only-complete-relationship-block-deletions ()
+  "Detect when an edit merely deletes one or more relationship blocks."
+  (concept-diff--assert-diff-mode)
+  (save-excursion
+    (beginning-of-line)
+    (and (looking-at "^-")
+         (not (concept-diff--detect-replacement))
+         (let ((first-line  (nth 1 (concept-diff--first-line-in-edit)))
+               (last-line   (nth 1 (concept-diff--last-line-in-edit)))
+               (next-shared (nth 1 (concept-diff--next-shared-line))))
+           (catch 'met
+             (with-current-buffer concept-map-snapshot-buffer
+               (goto-line first-line)
+               (when (not (concept-on-focus-line))
+                 (throw 'met nil))
+               (goto-line last-line)
+               (when (not (concept-on-data-concept-line))
+                 (throw 'met nil))
+               (goto-line next-shared)
+               (when (not (or (concept-on-focus-line)
+                              (concept-on-resource-line)))
+                 (throw 'met nil))))
+             t))))
+
 (defun concept-diff--assert-diff-mode ()
   "Make sure you are inside a `diff' buffer."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This function is meant to be run inside of a `diff' buffer.")))
+
+(defun concept-diff--only-idea-retraction ()
+  "Detect when an edit merely retracts parts of an existing relationship block.
+See also `concept-diff--detect-idea-extension' which corresponds to the
+opposite of this situation."
+  (concept-diff--assert-diff-mode)
+  (save-excursion
+    (beginning-of-line)
+    (and (looking-at "^-")
+         (not (concept-diff--detect-replacement))
+         (let ((first-line (nth 1 (concept-diff--first-line-in-edit)))
+               (last-line  (nth 1 (concept-diff--last-line-in-edit))))
+           (catch 'met
+             (with-current-buffer concept-map-snapshot-buffer
+               (save-excursion
+                 (goto-line first-line)
+                 (while (<= (line-number-at-pos (point)) last-line)
+                   (unless (or (concept-on-relationship-line)
+                               (concept-on-data-line))
+                     (throw 'met nil))
+                   (forward-line))))
+             t)))))
 
 (defun concept-diff--detect-merge ()
   "Detect whether a merge is occurring on a deletion line in
