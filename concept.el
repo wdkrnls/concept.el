@@ -7885,21 +7885,25 @@ opposite of this situation."
              t)))))
 
 (defun concept-diff--detect-merge ()
-  "Detect whether a merge is occurring on a deletion line in
-unified diff output.
+  "Detect whether a merge is occurring on a deletion line in diff output.
 
-A merge occurs when two relationship blocks fuse together. This causes
-the number of focus lines to decrease from the snapshot to the source
-buffer. This can happen in two ways. In the case of a replacement
-operation, this happens by deleting relationship line and either via
-slurping up a focus line into a data line or deleting that focus line
-altogether.
+A merge occurs when two or more relationship blocks fuse together. When
+this happens, a focus line must be destroyed. In addition, it's
+subsequent relationship line will usually also be destroyed. However,
+this is optional. It is entirely possible that a relationship group get
+slurped inside a previous relationship block.
 
-This procedure counts the number of focus lines on either side and
-subtracts one from the other. Positive numbers indicate splits. Negative
-numbers indicate merges or deletions. In the case of an addition
-operation, this procedure looks at the first and last shared line to
-verify that they are both data concepts."
+causes the number of focus lines to decrease from the `snapshot' buffer
+to the `source' buffer. This can happen in two ways. Either via
+replacement operation or a pure deletion. Both ways involve deleting a
+relationship line and a focus line. A focus line can be removed either
+by deletion or modifying it to become a data concept line.
+
+This procedure counts the number of focus lines on either side of a
+replacement edit and subtracts one from the other. Positive numbers
+indicate splits. Negative numbers indicate merges or deletions. In the
+case of an addition operation, this procedure looks at the first and
+last shared line to verify that they are both data concepts."
   (unless (derived-mode-p 'diff-mode)
     (user-error "This should only be called against unified diff output."))
   (save-excursion
