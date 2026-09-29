@@ -7470,13 +7470,14 @@ Setting this variable to `nil' can be useful for debugging.")
           (t (error "This is a program logic bug!")))))
 
 (defun concept-visit-lines-one-at-a-time (&optional line-numbers)
-  "Visit LINE-NUMBERS one at a time, waiting for `n`.
+  "Visit LINE-NUMBERS one at a time, waiting for the `n` key to be pressed.
 
 LINE-NUMBERS should be a list of 1-based line numbers, such as
 `(10 25 42)`.  If omitted or nil, read the list from the minibuffer.
 Press `q` to quit.
 
-This is a helper function to validate the results of `concept-map-changes-from-last-snapshot'."
+This is a helper function to interactively validate the results of
+`concept-map-changes-from-last-snapshot'."
   (interactive
    (list nil))
   (setq line-numbers
