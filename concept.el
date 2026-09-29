@@ -7699,9 +7699,14 @@ insertion group or a deletion group."
       (user-error "The current diff-line doesn't exist in the source buffer. Aborting!"))))
 
 (defun concept-diff--next-shared-line ()
-  "Find the next shared line in unified diff output."
-  (unless (derived-mode-p 'diff-mode)
-    (user-error "This should only be called against unified diff output."))
+  "Find the next shared line in unified diff output.
+This returns a list of three line numbers. The first is the line number
+in the `diff' buffer. The second is the line number in the `snapshot'
+buffer, and the third is the line number in the `source' buffer.
+
+See also the procedure `concept-diff--previously-shared-line' which does
+the almost the same, but in the other direction."
+  (concept-diff--assert-diff-mode)
   (save-excursion
     (concept-diff--assert-not-hunk-header)
     (when (looking-at "^[+-]")
