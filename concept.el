@@ -7678,26 +7678,25 @@ insertion group or a deletion group."
   "Find the associated line number of the diff line in the source buffer."
   (concept-diff--assert-diff-mode)
   (save-excursion
-    (beginning-of-line)
-    (if ((looking-at "^[+ ]")
-           (let* ((pt (point))
-                  (diff-line-number (line-number-at-pos pt))
-                  line-number)
-             (re-search-backward "^@@") ; this puts us at the beginning of the header line
-             (let ((hunk-header (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
-               (or (string-match "^@@ -\\([0-9]+\\)\\(?:,[0-9]+\\)? +\\+\\([0-9]+\\)" hunk-header)
-                   (error "Unexpected format for hunk header: %s" hunk-header))
-               (let ((snapshot-start
-                      (string-to-number
-                       (match-string 2 hunk-header))))
-                 (setq line-number snapshot-start)
-                 (while (not (eq (line-number-at-pos (point)) diff-line-number))
-                   (forward-line)
-                   (when (looking-at "^[+ ]")
-                     (setq line-number (1+ line-number))))
-                 line-number))))
-        (user-error "The current diff-line doesn't exist in the source buffer. Aborting!"))))
     (concept-diff--assert-not-hunk-header)
+    (if (looking-at "^[+ ]")
+        (let* ((pt (point))
+               (diff-line-number (line-number-at-pos pt))
+               line-number)
+          (re-search-backward "^@@") ; this puts us at the beginning of the header line
+          (let ((hunk-header (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
+            (or (string-match "^@@ -\\([0-9]+\\)\\(?:,[0-9]+\\)? +\\+\\([0-9]+\\)" hunk-header)
+                (error "Unexpected format for hunk header: %s" hunk-header))
+            (let ((snapshot-start
+                   (string-to-number
+                    (match-string 2 hunk-header))))
+              (setq line-number snapshot-start)
+              (while (not (eq (line-number-at-pos (point)) diff-line-number))
+                (forward-line)
+                (when (looking-at "^[+ ]")
+                  (setq line-number (1+ line-number))))
+              line-number)))
+      (user-error "The current diff-line doesn't exist in the source buffer. Aborting!"))))
 
 (defun concept-diff--next-shared-line ()
   "Find the next shared line in unified diff output."
