@@ -7740,6 +7740,56 @@ the replacement process you are: either `'addition' or `'deletion'."
            (user-error "This function should only be called inside the body of a hunk."))
           (t nil))))
 
+(defun concept--find-focus-relationship-pair-by (last-line)
+  "Helper function for `concept-diff--change-group-holds-focus-relationship-pair'.
+It is designed to work in either the `source' or `snapshot' buffer."
+  (catch 'both
+    (while (<= (line-number-at-pos (point)) last-line)
+      (cond ((concept-on-focus-line)
+             (forward-line)
+             (when (and (<= (line-number-at-pos (point)) last-line)
+                        (concept-on-relationship-line))
+               (throw 'both t)))
+            (t
+             (if (concept-map-has-more-concept-blocks)
+                 (concept-goto-next-focus)
+               (throw 'both nil)))))
+    nil))
+
+(defun concept-diff--change-group-holds-focus-relationship-pair ()
+  "See if a change group has both a focus line and a relationship line.
+
+The relationship line must immediately follow the focus line for this to
+be true. This is a necessary result of a merge or split occurring. When
+a merge occurs, a deletion change group holds the pair. When a split
+occurs, the insertion group holds the pair.
+
+It's possible that during a replacement operation, both the deletion and
+insertion change groups hold the pair. However, the final decision as to
+whether a merge or split has occurred is not up to this function, but to
+`concept-diff--detect-merge' or `concept-diff--detect-split'. This is
+but a hopefully useful helper function.
+
+This involves looking at either the `snapshot' or `source' buffers
+depending on what type of change group the point is on."
+  (unless (derived-mode-p 'diff-mode)
+    (user-error "This should only be called against unified diff output."))
+  (save-excursion
+    (beginning-of-line)
+    (when (looking-at "^[+-]")
+      (cond ((looking-at "^-")
+             (let ((first-line (nth 1 (concept-diff--first-line-in-change-group)))
+                   (last-line  (nth 1 (concept-diff--last-line-in-change-group))))
+               (with-current-buffer concept-map-snapshot-buffer
+                 (goto-line first-line)
+                 (concept--find-focus-relationship-pair-by last-line))))
+            ((looking-at "^[+]")
+             (let ((first-line (nth 1 (concept-diff--first-line-in-change-group)))
+                   (last-line  (nth 1 (concept-diff--last-line-in-change-group))))
+               (with-current-buffer concept-map-concept-buffer
+                 (save-excursion
+                   (goto-line first-line)
+                   (concept--find-focus-relationship-pair-by last-line)))))))))
 (defun concept-diff--detect-merge ()
   "Detect whether a merge is occurring on a deletion line in
 unified diff output.
