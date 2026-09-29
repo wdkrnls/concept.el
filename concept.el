@@ -7511,9 +7511,9 @@ This is a helper function to interactively validate the results of
     (when (looking-at "^[+-]")
       (re-search-backward "^ "))
     (list
+     (line-number-at-pos (point))
      (concept-diff--find-line-number-in-snapshot)
-     (concept-diff--find-line-number-in-source)
-     (line-number-at-pos (point)))))
+     (concept-diff--find-line-number-in-source))))
 
 (defun concept-diff--first-line-in-edit ()
   "Find the first line of a group of edited lines in a diff hunk."
@@ -7709,9 +7709,9 @@ insertion group or a deletion group."
       (re-search-forward "^ "))
     (concept-diff--assert-not-hunk-header)
     (list
+     (line-number-at-pos (point)
      (concept-diff--find-line-number-in-snapshot)
-     (concept-diff--find-line-number-in-source)
-     (line-number-at-pos (point)))))
+     (concept-diff--find-line-number-in-source)))))
 
 (defun concept-diff--detect-replacement ()
   "Detect that a replacement is occurring on the current line in the unified diff output.
