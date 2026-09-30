@@ -7873,9 +7873,9 @@ the almost the same, but in the other direction."
       (re-search-forward "^ "))
     (concept-diff--assert-not-hunk-header)
     (list
-     (line-number-at-pos (point)
+     (line-number-at-pos (point))
      (concept-diff--find-line-number-in-snapshot)
-     (concept-diff--find-line-number-in-source)))))
+     (concept-diff--find-line-number-in-source))))
 
 (defun concept-diff--detect-replacement ()
   "Detect that a replacement is occurring on the current line in the unified diff output.
