@@ -7537,7 +7537,7 @@ This is a helper function to interactively validate the results of
                    (concept-diff--find-line-number-in-snapshot)))))))
 
 (defun concept-diff--last-line-in-edit ()
-  "Find the last line of the change group in the unified diff output hunk."
+  "Find the last line of the current edit in the unified diff output hunk."
   (concept-diff--assert-diff-mode)
   (save-excursion
     (beginning-of-line)
@@ -7603,12 +7603,21 @@ each cost 1."
 (defun concept-diff--edit-size ()
   "Determin the size of an edit as it appears in the diff buffer.
 The size of an edit in the replacement case is the most interesting. In
-all other cases, the size of the edit is difference between the line
-number on the last line of the edit.
+all other cases, the size of the edit is the difference between the line
+number on the last line of the edit and the first line of the edit.
 
 If you insert one new line and that is all, the edit size is 1. If you
 delete one line, the edit size is also 1. If you modify a single line,
-the diff shows two lines, but the edit size is intuitively also 1.
+the diff shows two lines, but the edit size is intuitively also 1. If
+you replace the first line with four new lines, then the edit size is
+4. If you replace two lines with two different lines, then the edit size
+is 2. The same goes for replacing three or more lines with three or more
+new lines where the replacement length is equal to the original
+length. If the second part of the replacement is longer, than the
+original, then add 1 more starting from there. For example, if two lines
+become three lines, then the length is 2+1 = 3. If two lines become four
+lines, then 2+2=4 is the edit length. If two lines become one line, then
+the edit length is the sum of the change group lengths.
 
 If you are not looking at an edit, then report 0 as the edit size."
   (concept-diff--assert-diff-mode)
