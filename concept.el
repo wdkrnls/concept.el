@@ -7561,6 +7561,45 @@ This is a helper function to interactively validate the results of
   (when (looking-at "^@@")
     (user-error "This function is supposed to be called inside the body of a hunk.")))
 
+(defun concept--line-edit-distance (old-lines new-lines)
+  "Return line-level Damerau-Levenshtein edit distance.
+
+Insertion, deletion, replacement, and adjacent transposition operations
+each cost 1."
+  (let* ((a (vconcat old-lines))
+         (b (vconcat new-lines))
+         (n (length a))
+         (m (length b))
+         (d (make-vector (1+ m) nil)))
+    (dotimes (i (1+ m))
+      (aset d i (make-vector (1+ n) 0)))
+    (dotimes (i (1+ m))
+      (aset (aref d i) 0 i))
+    (dotimes (j (1+ n))
+      (aset (aref d 0) j j))
+    (dotimes (i m)
+      (dotimes (j n)
+        (let* ((row (1+ i))
+               (col (1+ j))
+               (cost (if (equal (aref b i) (aref a j)) 0 1))
+               (value
+                (min
+                 (1+ (aref (aref d (1- row)) col))
+                 (1+ (aref (aref d row) (1- col)))
+                 (+ cost
+                    (aref (aref d (1- row)) (1- col))))))
+          (when (and (> i 0)
+                     (> j 0)
+                     (equal (aref a (1- j)) (aref b i))
+                     (equal (aref a j) (aref b (1- i))))
+            (setq value
+                  (min value
+                       (+ 1
+                          (aref (aref d (- row 2))
+                                (- col 2))))))
+          (aset (aref d row) col value))))
+    (aref (aref d m) n)))
+
 (defun concept-diff--edit-size ()
   "Determin the size of an edit as it appears in the diff buffer.
 The size of an edit in the replacement case is the most interesting. In
