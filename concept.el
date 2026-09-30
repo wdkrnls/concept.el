@@ -7789,6 +7789,27 @@ depending on what type of change group the point is on."
                    (goto-line first-line)
                    (concept--find-focus-relationship-pair-by last-line)))))))))
 
+(defun concept-diff--change-group-holds-new-focus-before-relationship ()
+  "See if a change group has a new focus line before a relationship line.
+The relationship line must immediately follow the focus line as the next
+shared line for this to be true for a split to have possibly
+occurred. This test only makes sense within an insertion change block."
+  (concept-diff--assert-diff-mode)
+  (save-excursion
+    (concept-diff--assert-not-hunk-header)
+    (when (looking-at "^[+]")
+      (when (not (concept-diff--detect-replacement))
+        (let ((last-line   (nth 1 (concept-diff--last-line-in-edit)))
+              (next-shared (nth 2 (concept-diff--next-shared-line))))
+          (with-current-buffer concept-map-concept-buffer
+            (save-excursion
+              (goto-line next-shared)
+              (and (concept-on-relationship-line)
+                   (progn
+                     (previous-line)
+                     (and (concept-on-focus-line)
+                          (eq last-line (line-number-at-pos (point)))))))))))))
+
 (defun concept-diff--only-idea-extension ()
   "Detect when an edit merely extends an existing relationship block."
   (concept-diff--assert-diff-mode)
@@ -7904,13 +7925,12 @@ replacement edit and subtracts one from the other. Positive numbers
 indicate splits. Negative numbers indicate merges or deletions. In the
 case of an addition operation, this procedure looks at the first and
 last shared line to verify that they are both data concepts."
-  (unless (derived-mode-p 'diff-mode)
-    (user-error "This should only be called against unified diff output."))
+  (concept-diff--assert-diff-mode)
   (save-excursion
-    (beginning-of-line)
+    (concept-diff--assert-not-hunk-header)
     (when (looking-at "^-")
-      (let ((first-line (car (concept-diff--first-line-in-change-group)))
-            (last-line  (concept-diff--last-line-in-change-group)))
+      (let ((first-line (nth 1 (concept-diff--first-line-in-change-group)))
+            (last-line  (nth 1 (concept-diff--last-line-in-change-group))))
         (if (concept-diff--detect-replacement)
             (let (snap-count src-count)
               (progn
@@ -7921,10 +7941,10 @@ last shared line to verify that they are both data concepts."
                          "^~"
                          (progn (goto-line first-line) (line-beginning-position))
                          (progn (goto-line last-line)  (line-end-position))))))
-              (re-search-forward "^[+]")
+              (re-search-forward "^[+]") ; reached new change group!
               (beginning-of-line)
-              (let ((first-line (concept-diff--first-line-in-change-group))
-                    (last-line  (concept-diff--last-line-in-change-group)))
+              (let ((first-line (car (concept-diff--first-line-in-change-group)))
+                    (last-line  (car (concept-diff--last-line-in-change-group))))
                 (with-current-buffer concept-map-concept-buffer
                   (setq src-count
                         (how-many
@@ -7938,10 +7958,61 @@ last shared line to verify that they are both data concepts."
                   (progn (goto-line first-line) (line-beginning-position))
                   (progn (goto-line last-line)  (line-end-position))))))))))
 
+(defun concept-diff--detect-split ()
+  "Detect if a split happened during an edit.
+
+This inspects the `diff' hunk for irrefutable evidence of a split. One
+or more splits occur when a new focus line is inserted into the `source'
+buffer inside a relationship block. This insertion must happen either
+before a secondary relationship line or before a new data concept line
+where it must also be immediately followed by a new relationship
+line.
+
+In a split, the next shared line is a data concept line."
+  (unless (derived-mode-p 'diff-mode)
+    (user-error "This should only be called against unified diff output."))
+  (save-excursion
+    (beginning-of-line)
+    (when (looking-at "^[+]")
+      (let ((first-line (concept-diff--first-line-in-edit))
+            (last-line  (concept-diff--last-line-in-edit)))
+        (if (concept-diff--detect-replacement)
+            (progn
+              (goto-line (car first-line))
+              (let (snap-count src-count)
+                (progn
+                  (with-current-buffer concept-map-snapshot-buffer
+                    (goto-line (nth 1 first-line))
+                    (setq snap-count
+                          (how-many
+                           "^~"
+                           (progn (goto-line first-line) (line-beginning-position))
+                           (progn (goto-line last-line)  (line-end-position))))))
+                (re-search-forward "^[+]")
+                (beginning-of-line)
+                (let ((first-line (concept-diff--first-line-in-change-group))
+                      (last-line  (concept-diff--last-line-in-change-group)))
+                  (with-current-buffer concept-map-concept-buffer
+                    (goto-line (nth 1 first-line))
+                    (setq src-count
+                          (how-many
+                           "^~"
+                           (progn (goto-line first-line) (line-beginning-position))
+                           (progn (goto-line last-line)  (line-end-position))))))
+                (<  snap-count src-count)))
+          (with-current-buffer concept-map-source-buffer
+            (re-search-backward "^[^+]")
+            (re-search-forward "^[+]")
+            (beginning-of-line)
+            (< 0 (how-many
+                  "^~"
+                  (progn (goto-line first-line) (line-beginning-position))
+                  (progn (goto-line last-line)  (line-end-position))))))))))
+
 (defun concept-map-changes-from-last-snapshot ()
   "Return line numbers for all focus concepts that have changed.
-This should find the focus lines for both the snapshot buffer and the
-current buffer.
+This should find the focus lines of all affected relationship blocks for
+both the `snapshot' buffer and the `source' buffer.
 
 If there was an additional line added to the document, then identify the
 line number for the new version and the previous associated line number
@@ -8013,46 +8084,49 @@ unique even for multiple concept maps."
                                    (match-string 2 diff-line)))
                             (setq offset (- new-line old-line)))
                            ;; Added lines in the source buffer start with +.
-                           ((and (>  (length diff-line) 0)
-                                 (eq (aref diff-line 0) ?+)) ; TODO: (string-prefix-p "+" diff-line) is more readable
+                           ((and (< 0 (length diff-line))
+                                 (string-prefix-p "+" diff-line))
                             ;; Look at the snapshot buffer to see if the old line
                             ;; before it is in a relationship block. If so, then
                             ;; it could be relevant. The network hash table
                             ;; doesn't depend on stuff outside of relationship
                             ;; blocks. However, it still may be irrelevant for
                             ;; other reasons.
-                            (let (src-kind
-                                  src-end
-                                  in-src-block)
-                              (with-current-buffer source
-                                (goto-line new-line)
-                                (setq in-src-block (concept-in-relationship-block))
-                                (when in-src-block
-                                  (setq src-kind (concept-line-classification)
-                                        src-end  (concept-on-last-line-in-block-p))
-                                  (if (eq src-kind 'focus-concept)
-                                      (push new-line new-focus)
-                                    (concept-goto-current-focus)
-                                    (let ((proposal (line-number-at-pos (point))))
-                                      (unless (memq proposal new-focus)
-                                        (push proposal new-focus))))))
-                              (with-current-buffer snapshot
-                                (goto-line old-line)
-                                (when (and in-src-block
-                                           (concept-in-relationship-block)
-                                           (not (or (concept-on-focus-line)
-                                                    (and (concept-on-last-line-in-block-p)
-                                                         (<= (+ old-line offset) new-line)))))
-                                  (concept-goto-current-focus)
-                                  (let ((proposal (line-number-at-pos (point))))
-                                    (unless (memq proposal old-focus)
-                                      (push proposal old-focus))))))
+                            (let ((src-replacement-p (concept-diff--detect-replacement))
+                                  (prev-shared       (concept-diff--previously-shared-line))
+                                  (next-shared       (concept-diff--next-shared-line)))
+                              (let ((prev-shared-line-in-snp (nth 1 prev-shared))
+                                    (prev-shared-line-in-src (nth 2 prev-shared))
+                                    (next-shared-line-in-src (nth 2 next-shared))
+                                    (next-shared-line-in-snp (nth 1 next-shared)))
+                                (let (src-kind src-end in-src-block)
+                                  (with-current-buffer source
+                                    (goto-line new-line)
+                                    (setq in-src-block (concept-in-relationship-block))
+                                    (when in-src-block
+                                      (setq src-kind (concept-line-classification)
+                                            src-end  (concept-on-last-line-in-block-p))
+                                      (if (eq src-kind 'focus-concept)
+                                          (push new-line new-focus)
+                                        (concept-goto-current-focus)
+                                        (let ((proposal (line-number-at-pos (point))))
+                                          (unless (memq proposal new-focus)
+                                            (push proposal new-focus))))))
+                                  (with-current-buffer snapshot
+                                    (cond ((eq old-line prev-shared-line-in-snp)
+                                           (goto-line old-line)
+                                           (when (and in-src-block
+                                                      (concept-in-relationship-block))
+                                      (concept-goto-current-focus)
+                                      (let ((proposal (line-number-at-pos (point))))
+                                        (unless (memq proposal old-focus)
+                                          (push proposal old-focus))))))))))
                             ;; Since there is a new line in the source buffer,
                             ;; increment it.
                             (setq new-line (1+ new-line)))
                            ;; Deleted line start with -.
-                           ((and (> (length diff-line) 0)
-                                 (eq (aref diff-line 0) ?-))
+                           ((and (< 0 (length diff-line))
+                                 (string-prefix-p "-" diff-line))
                             ;; Since this old line was in the snapshot buffer,
                             ;; increment it there.
                             ;; Deleted lines are particularly interesting when
@@ -8084,8 +8158,8 @@ unique even for multiple concept maps."
                            ;; Unchanged context lines begin with blank
                            ;; spaces. These are in both buffers, so we increment
                            ;; both lines.
-                           ((and (>  (length diff-line) 0)
-                                 (eq (aref diff-line 0) ?\s))
+                           ((and (< 0 (length diff-line))
+                                 (string-prefix-p " " diff-line))
                             (setq old-line (1+ old-line)
                                   new-line (1+ new-line))))
                           (forward-line 1)))
