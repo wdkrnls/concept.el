@@ -8072,29 +8072,28 @@ In a split, the next shared line is a data concept line."
 
 (defun concept-map-changes-from-last-snapshot ()
   "Return line numbers for all focus concepts that have changed.
-This should find the focus lines of all affected relationship blocks for
-both the `snapshot' buffer and the `source' buffer.
+This function finds the focus lines of all affected relationship blocks
+for both the `snapshot' buffer and the `source' buffer. It has a deep
+understanding of the unified diff format.
 
-If there was an additional line added to the document, then identify the
-line number for the new version and the previous associated line number
-in the old version. Navigate inside those buffers and if the line is
-inside a relationship block, then return the current focus line. Then
-repeat the process for the other buffer.
+When an additional line added to the document, it identifies the line
+number for the new version in the `source' buffer. Then, it navigates
+inside that buffer to classify it and decide if that line is part of a
+relationship block. If it is, then the line number of its focus line is
+included in the second list in a list of lists. When a line is removed
+from a document, a similar process happens but for the `snapshot'
+buffer. This process repeats itself for all the edits in all the hunks
+in the `diff' buffer.
 
-Positive numbers identify focus concepts changed in the current buffer.
-Negative numbers identify focus concepts changed in the snapshot buffer.
+These focus line numbers identify the relationship blocks in the
+`snapshot' and `source' buffers which must be recounted in order to
+perform an accurate incremental update of the adjacency hash table
+encoding the full conceptual relationship network.
 
-These are the relationship blocks which must be recounted in order to
-perform an incremental update of the adjacency hash table.
-
-They are found by iterating through all the hunks in the unified diff
-between the snapshot buffer and the editing buffer. Any change
-whatsoever in a relationship block flags that relationship block in both
-versions of the buffer.
-
-See `concept-map-snapshot-buffer' for details about the snapshot
-buffer. This variable is buffer-local, so the snapshot buffer should be
-unique even for multiple concept maps."
+See the `concept-map-snapshot-buffer' for details about the `snapshot'
+buffer. Similarly, `concept-map-concept-buffer' holds a reference to the
+concept map `source' buffer. Both variables are buffer-local, so the
+pair should be unique when multiple concept maps are open."
   (when (derived-mode-p 'concept-mode)
     (let ((snapshot concept-map-snapshot-buffer))
       (when (bufferp snapshot)
