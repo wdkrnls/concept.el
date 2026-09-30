@@ -8009,6 +8009,14 @@ In a split, the next shared line is a data concept line."
                   (progn (goto-line first-line) (line-beginning-position))
                   (progn (goto-line last-line)  (line-end-position))))))))))
 
+(defun concept-diff--setup-buffer-connections (source-buffer)
+  "Setup buffer connections between the diff buffer and the original buffers."
+  (concept-diff--assert-diff-mode)
+  (setq-local concept-map-concept-buffer
+              (with-current-buffer source-buffer concept-map-concept-buffer)
+              concept-map-snapshot-buffer
+              (with-current-buffer source-buffer concept-map-snapshot-buffer)))
+
 (defun concept-map-changes-from-last-snapshot ()
   "Return line numbers for all focus concepts that have changed.
 This should find the focus lines of all affected relationship blocks for
