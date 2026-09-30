@@ -7604,46 +7604,153 @@ each cost 1."
           (aset (aref d row) col value))))
     (aref (aref d m) n)))
 
-(defun concept-diff--edit-size ()
-  "Determin the size of an edit as it appears in the diff buffer.
-The size of an edit in the replacement case is the most interesting. In
-all other cases, the size of the edit is the difference between the line
-number on the last line of the edit and the first line of the edit.
+(defun concept-diff--line-kind ()
+  "Return the diff marker for the current line, or nil.
 
-If you insert one new line and that is all, the edit size is 1. If you
-delete one line, the edit size is also 1. If you modify a single line,
-the diff shows two lines, but the edit size is intuitively also 1. If
-you replace the first line with four new lines, then the edit size is
-4. If you replace two lines with two different lines, then the edit size
-is 2. The same goes for replacing three or more lines with three or more
-new lines where the replacement length is equal to the original
-length. If the second part of the replacement is longer, than the
-original, then add 1 more starting from there. For example, if two lines
-become three lines, then the length is 2+1 = 3. If two lines become four
-lines, then 2+2=4 is the edit length. If two lines become one line, then
-the edit length is the sum of the change group lengths.
+The result is one of `?+', `?-', `? ', `?\\\\', or nil."
+  (when (> (line-end-position) (line-beginning-position))
+    (let ((char (char-after (line-beginning-position))))
+      (when (memq char '(?+ ?- ?  ?\\))
+        char))))
 
-If you are not looking at an edit, then report 0 as the edit size."
-  (concept-diff--assert-diff-mode)
-  (concept-diff--assert-not-hunk-header)
-  (if (looking-at "^[+-]")
-      (let ((first-line (car (concept-diff--first-line-in-edit)))
-            (last-line  (car (concept-diff--last-line-in-edit))))
-        (if (concept-diff--detect-replacement)
-            (1+
-             (if (eq 1 (- last-line first-line))
-                 0
-               (let ((first-new-line
-                      (car
-                       (save-excursion
-                         (if (looking-at "^[+]")
-                             (concept-diff--first-line-in-change-group)
-                           (re-search-forward "^[+]")
-                           (concept-diff--first-line-in-change-group))))))
-                 (- (- last-line first-new-line)
-                    (- (1- first-new-line) first-line)))))
-          (1+ (- last-line first-line))))
-    0))
+(defun concept-diff--add-line (marker text old-lines new-lines keep-context)
+  "Add TEXT, whose diff MARKER is given, to OLD-LINES and NEW-LINES.
+
+Return the updated pair of lists."
+  (cond ((= marker ?-)
+         (list (cons text old-lines) new-lines))
+        ((= marker ?+)
+         (list old-lines (cons text new-lines)))
+        ((and (= marker ? ) keep-context)
+         (list (cons text old-lines)
+               (cons text new-lines)))
+        (t
+         (list old-lines new-lines))))
+
+(defun concept-diff--lines-to-edit (beg end keep-context)
+  "Convert diff lines from BEG through END into an old/new pair."
+  (let ((old-lines nil)
+        (new-lines nil))
+    (save-excursion
+      (goto-char beg)
+      (while (< (point) end)
+        (let ((marker (concept-diff--line-kind)))
+          (when marker
+            (let* ((text (buffer-substring-no-properties
+                          (min (1+ (line-beginning-position))
+                               (line-end-position))
+                          (line-end-position)))
+                   (result (concept-diff--add-line
+                            marker text old-lines new-lines
+                            keep-context)))
+              (setq old-lines (car result)
+                    new-lines (cadr result)))))
+        (forward-line 1)))
+    (list (nreverse old-lines)
+          (nreverse new-lines))))
+
+(defun concept-diff--hunk-body-end ()
+  "Return the end position of the hunk whose header is at point."
+  (save-excursion
+    (forward-line 1)
+    (while (and (not (eobp))
+                (not (looking-at "^@@"))
+                (concept-diff--line-kind))
+      (forward-line 1))
+    (point)))
+
+(defun concept-diff--edit-bounds-at-point ()
+  "Return `(BEG . END)' for the changed-line group at point."
+  (unless (memq (concept-diff--line-kind) '(?+ ?-))
+    (user-error "Point is not on an added or removed diff line"))
+  (let (beg end)
+    (save-excursion
+      (beginning-of-line)
+      (while (and (not (bobp))
+                  (progn
+                    (forward-line -1)
+                    (memq (concept-diff--line-kind) '(?+ ?-))))
+        nil)
+      ;; We may have stepped onto the line before the edit.
+      (unless (memq (concept-diff--line-kind) '(?+ ?-))
+        (forward-line 1))
+      (setq beg (point))
+      (while (and (not (eobp))
+                  (memq (concept-diff--line-kind) '(?+ ?-)))
+        (forward-line 1))
+      (setq end (point)))
+    (cons beg end)))
+
+(defun concept-diff--hunk-header-p ()
+  "Return non-nil if point is on a unified-diff hunk header."
+  (save-excursion
+    (beginning-of-line)
+    (looking-at "^@@")))
+
+(defun concept-diff-edited-lines-in-region (beg end)
+  "Return old and new diff lines selected by the current context.
+
+If the region is active, return the selected diff lines. If point is on
+a hunk header, return the complete hunk, including context lines in both
+returned lists. Otherwise, point must be on an added or removed line,
+and the contiguous added/removed edit containing point is returned.
+
+The result has the form:
+
+    (OLD-LINES NEW-LINES)
+
+where each element is a list of line strings without diff prefixes. If
+placed on a context line, this returns `(list nil nil)'."
+  (interactive
+   (if (use-region-p)
+       (list (region-beginning) (region-end))
+     (list nil nil)))
+  (let (result)
+    (cond
+     ;; An active region takes precedence.
+     ((and beg end)
+      (setq result
+            (concept-diff--lines-to-edit beg end t)))
+     ;; Point is on a hunk header: return the whole hunk.
+     ((concept-diff--hunk-header-p)
+      (let ((hunk-beg (save-excursion
+                        (forward-line 1)
+                        (point)))
+            (hunk-end (concept-diff--hunk-body-end)))
+        (setq result
+              (concept-diff--lines-to-edit hunk-beg hunk-end t))))
+     ((eq (concept-diff--line-kind) 32)
+      (setq result
+            (list nil nil)))
+     ;; Otherwise return the edit containing point.
+     (t
+      (let* ((bounds (concept-diff--edit-bounds-at-point))
+             (edit-beg (car bounds))
+             (edit-end (cdr bounds)))
+        (setq result
+              (concept-diff--lines-to-edit edit-beg edit-end nil)))))
+    (when (called-interactively-p 'interactive)
+      (message "%S" result))
+    result))
+
+(defun concept-diff-edit-size (beg end)
+  "Return the line-edit distance for the selected diff content.
+
+With an active region, this measures the selected lines. On a hunk
+header, measure the entire hunk, including context lines. On an added
+or removed line, measure the contiguous edit containing point."
+  (interactive
+   (if (use-region-p)
+       (list (region-beginning) (region-end))
+     (list nil nil)))
+
+  (let* ((lines (concept-diff-edited-lines-in-region beg end))
+         (old-lines (car lines))
+         (new-lines (cadr lines))
+         (distance (line-sequence-distance old-lines new-lines)))
+    (when (called-interactively-p 'interactive)
+      (message "%d" distance))
+    distance))
 
 (defun concept-diff--first-line-in-change-group ()
   "Find the first line sharing the same change symbol in the diff hunk.
