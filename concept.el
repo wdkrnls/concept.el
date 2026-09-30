@@ -7634,11 +7634,12 @@ If you are not looking at an edit, then report 0 as the edit size."
              (if (eq 1 (- last-line first-line))
                  0
                (let ((first-new-line
-                      (save-excursion
-                        (if (looking-at "^[+]")
-                            (concept-diff--first-line-in-change-group)
-                          (re-search-forward "^[+]")
-                          (concept-diff--first-line-in-change-group)))))
+                      (car
+                       (save-excursion
+                         (if (looking-at "^[+]")
+                             (concept-diff--first-line-in-change-group)
+                           (re-search-forward "^[+]")
+                           (concept-diff--first-line-in-change-group))))))
                  (- (- last-line first-new-line)
                     (- (1- first-new-line) first-line)))))
           (1+ (- last-line first-line))))
