@@ -7989,16 +7989,50 @@ occurred. This test only makes sense within an insertion change block."
                    (forward-line))))
              t)))))
 
+(defun concept-diff--set-source-and-snapshot-buffers ()
+  "Set buffer-local variables for the buffers named in a diff header.
+The first `#<buffer ...>` label is treated as the `snapshot' buffer, and
+the second as the `source' buffer."
+  ;; TODO: The regular expression below isn't working. You will need to play
+  ;; with it. Note also that I have previously written the function XXX which
+  ;; should be able to set these up when called from the concept map source
+  ;; buffer.
+  (concept-diff--assert-diff-mode)
+  (save-excursion
+    (goto-char (point-min))
+    (let (buffers)
+      ;; The labels in the diff header look like:
+      ;;   #<buffer *concept-map-snapshot:concept.map*>
+      ;;   #<buffer concept.map>
+      (while (re-search-forward
+              "#<buffer[ \t]+\\([^>\n]+\\)>"
+              (line-end-position)
+              t)
+        (push (match-string-no-properties 1) buffers))
+      (setq buffers (nreverse buffers))
+      (unless (= (length buffers) 2)
+        (user-error "Could not find exactly two buffer labels in the diff header"))
+      (let ((snapshot (get-buffer (nth 0 buffers)))
+            (source   (get-buffer (nth 1 buffers))))
+        (unless (bufferp snapshot)
+          (user-error "Snapshot buffer does not exist: %s" (nth 0 buffers)))
+        (unless (bufferp source)
+          (user-error "Source buffer does not exist: %s" (nth 1 buffers)))
+        (setq-local my-diff-snapshot-buffer snapshot)
+        (setq-local my-diff-source-buffer source)))))
+
 (defun concept-diff--only-new-relationship-block-insertions ()
   "Detect when an edit merely creates one or more new relationship blocks."
   (concept-diff--assert-diff-mode)
+  (unless (bufferp concept-map-concept-buffer)
+    (user-error "This `diff' buffer is not yet associated with a snapshot "))
   (save-excursion
     (beginning-of-line)
     (and (looking-at "^[+]")
          (not (concept-diff--detect-replacement))
          (let ((first-line  (nth 1 (concept-diff--first-line-in-edit)))
                (last-line   (nth 1 (concept-diff--last-line-in-edit)))
-               (next-shared (nth 1 (concept-diff--next-shared-line))))
+               (next-shared (nth 2 (concept-diff--next-shared-line))))
            (catch 'met
              (with-current-buffer concept-map-concept-buffer
                (save-excursion
