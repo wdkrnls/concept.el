@@ -8000,7 +8000,7 @@ In a split, the next shared line is a data concept line."
                            (progn (goto-line first-line) (line-beginning-position))
                            (progn (goto-line last-line)  (line-end-position))))))
                 (<  snap-count src-count)))
-          (with-current-buffer concept-map-source-buffer
+          (with-current-buffer concept-map-concept-buffer
             (re-search-backward "^[^+]")
             (re-search-forward "^[+]")
             (beginning-of-line)
