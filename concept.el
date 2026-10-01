@@ -7792,11 +7792,10 @@ or removed line, measure the contiguous edit containing point."
    (if (use-region-p)
        (list (region-beginning) (region-end))
      (list nil nil)))
-
   (let* ((lines (concept-diff-edited-lines-in-region beg end))
          (old-lines (car lines))
          (new-lines (cadr lines))
-         (distance (line-sequence-distance old-lines new-lines)))
+         (distance (concept--line-edit-distance old-lines new-lines)))
     (when (called-interactively-p 'interactive)
       (message "%d" distance))
     distance))
