@@ -8330,7 +8330,10 @@ pair should be unique when multiple concept maps are open."
           (save-excursion
             (unwind-protect
                 (progn
-                  (setq diff-buffer (diff-no-select snapshot source "-u" t))
+                  (when (null concept-map-snapshot-diff-buffer)
+                    (setq concept-map-snapshot-diff-buffer
+                          (concept-diff--generate-new-buffer concept-map-concept-buffer)))
+                  (setq diff-buffer (diff-no-select snapshot source "-u" t concept-map-snapshot-diff-buffer))
                   (when diff-buffer
                     (if-let* ((diff (with-current-buffer diff-buffer (buffer-string)))
                               (diff-changes
@@ -8338,112 +8341,104 @@ pair should be unique when multiple concept maps are open."
                                     (not (string-empty-p diff))
                                     (not (string-match-p "Diff finished (no differences)" diff)))))
                         (with-current-buffer diff-buffer
-                            ;; Ignore all of the irrelevant parts
-                            (goto-char (point-min))
-                            (re-search-forward "^@@") ; goto first hunk
-                            (while (not (looking-at "^$"))
-                              ;; there will never be a completely blank line in
-                              ;; a diff buffer until the end of hunks
-                              (let ((diff-line
-                                     (buffer-substring-no-properties
-                                      (line-beginning-position)
-                                      (line-end-position))))
-                                (cond
-                                 ;; Hunk header, for example:
-                                 ;; @@ -10,3 +15,2 @@
-                                 ((string-match
-                                   "^@@ -\\([0-9]+\\)\\(?:,[0-9]+\\)? +\\+\\([0-9]+\\)"
-                                   diff-line)
-                                  ;; A new hunk starts.
-                                  (setq old-line
-                                        (string-to-number
-                                         (match-string 1 diff-line))
-                                        new-line
-                                        (string-to-number
-                                         (match-string 2 diff-line)))
-                                  (setq offset (- new-line old-line))) ; TODO: do we need the offset?
-                                 ;; Added lines in the source buffer start with +.
-                                 ((and (< 0 (length diff-line))
-                                       (string-prefix-p "+" diff-line))
-                                  ;; Look at the snapshot buffer to see if the old line
-                                  ;; before it is in a relationship block. If so, then
-                                  ;; it could be relevant. The network hash table
-                                  ;; doesn't depend on stuff outside of relationship
-                                  ;; blocks. However, it still may be irrelevant for
-                                  ;; other reasons.
-                                  (let ((src-replacement-p (concept-diff--detect-replacement))
-                                        (prev-shared       (concept-diff--previously-shared-line))
-                                        (next-shared       (concept-diff--next-shared-line)))
-                                    (let ((prev-shared-line-in-snp (nth 1 prev-shared))
-                                          (prev-shared-line-in-src (nth 2 prev-shared))
-                                          (next-shared-line-in-src (nth 2 next-shared))
-                                          (next-shared-line-in-snp (nth 1 next-shared)))
-                                      (let (src-kind src-end in-src-block)
-                                        (with-current-buffer source
-                                          (goto-line new-line)
-                                          (setq in-src-block (concept-in-relationship-block))
-                                          (when in-src-block
-                                            (setq src-kind (concept-line-classification)
-                                                  src-end  (concept-on-last-line-in-block-p))
-                                            (if (eq src-kind 'focus-concept)
-                                                (push new-line new-focus)
-                                              (concept-goto-current-focus)
-                                              (let ((proposal (line-number-at-pos (point))))
-                                                (unless (memq proposal new-focus)
-                                                  (push proposal new-focus))))))
-                                        (with-current-buffer snapshot
-                                          (cond ((eq old-line prev-shared-line-in-snp)
-                                                 (goto-line old-line)
-                                                 (when (and in-src-block
-                                                            (concept-in-relationship-block))
-                                                   (concept-goto-current-focus)
-                                                   (let ((proposal (line-number-at-pos (point))))
-                                                     (unless (memq proposal old-focus)
-                                                       (push proposal old-focus))))))))))
-                                  ;; Since there is a new line in the source buffer,
-                                  ;; increment it.
-                                  (setq new-line (1+ new-line)))
-                                 ;; Deleted line start with -.
-                                 ((and (< 0 (length diff-line))
-                                       (string-prefix-p "-" diff-line))
-                                  ;; Since this old line was in the snapshot buffer,
-                                  ;; increment it there.
-                                  ;; Deleted lines are particularly interesting when
-                                  ;; they are focus lines. If they are focus lines, then
-                                  ;; two situations are plausible: either the focus line
-                                  ;; is being modified, or two or more relationship
-                                  ;; blocks are being merged together. If the merge case
-                                  ;; is true, then the previous relationship block
-                                  ;; becomes relevant. How do we know there is a merge
-                                  ;; case? We can know by examining the extent of the
-                                  ;; relationship block in the snapshot buffer. This
-                                  ;; might be what that pending deletions thing is
-                                  ;; about.
-                                  (with-current-buffer snapshot
-                                    (goto-line old-line)
-                                    (when (concept-in-relationship-block)
-                                      (concept-goto-current-focus)
-                                      (let ((proposal (line-number-at-pos (point))))
-                                        (unless (memq proposal old-focus)
-                                          (push proposal old-focus)))))
+                          ;; Ignore all of the irrelevant parts
+                          (concept-diff--set-snapshot-and-source-buffers snapshot source)
+                          (goto-char (point-min))
+                          (re-search-forward "^@@") ; goto first hunk
+                          (while (not (looking-at "^$"))
+                            ;; there will never be a completely blank line in
+                            ;; a diff buffer until the end of hunks
+                            (let ((diff-line
+                                   (buffer-substring-no-properties
+                                    (line-beginning-position)
+                                    (line-end-position))))
+                              (cond
+                               ;; Hunk header, for example:
+                               ;; @@ -10,3 +15,2 @@
+                               ((string-match
+                                 "^@@ -\\([0-9]+\\)\\(?:,[0-9]+\\)? +\\+\\([0-9]+\\)"
+                                 diff-line)
+                                ;; A new hunk starts.
+                                (setq old-line
+                                      (string-to-number
+                                       (match-string 1 diff-line))
+                                      new-line
+                                      (string-to-number
+                                       (match-string 2 diff-line)))
+                                (setq offset (- new-line old-line))) ; TODO: do we need the offset?
+                               ;; Added lines in the source buffer start with +.
+                               ((and (< 0 (length diff-line))
+                                     (string-prefix-p "+" diff-line))
+                                ;; Look at the snapshot buffer to see if the old line
+                                ;; before it is in a relationship block. If so, then
+                                ;; it could be relevant. The network hash table
+                                ;; doesn't depend on stuff outside of relationship
+                                ;; blocks. However, it still may be irrelevant for
+                                ;; other reasons.
+                                (let (in-src-block)
                                   (with-current-buffer source
                                     (goto-line new-line)
-                                    (when (and (concept-in-relationship-block)
-                                               (concept-goto-current-focus)
-                                               (let ((proposal (line-number-at-pos (point))))
-                                                 (unless (memq proposal new-focus)
-                                                   (push proposal new-focus))))))
-                                  (setq old-line (1+ old-line)))
-                                 ;; Unchanged context lines begin with blank
-                                 ;; spaces. These are in both buffers, so we increment
-                                 ;; both lines.
-                                 ((and (< 0 (length diff-line))
-                                       (string-prefix-p " " diff-line))
-                                  (setq old-line (1+ old-line)
-                                        new-line (1+ new-line))))
-                                (forward-line 1)))
-                            (list (nreverse old-focus) (nreverse new-focus)))
-                        (list nil nil)))))))))))))
+                                    (when (concept-in-relationship-block)
+                                      (setq in-src-block t)
+                                      (if (concept-on-focus-line)
+                                          (push new-line new-focus)
+                                        (concept-goto-current-focus)
+                                        (let ((proposal (line-number-at-pos)))
+                                          (unless (memq proposal new-focus)
+                                            (push proposal new-focus))))))
+                                  (with-current-buffer snapshot
+                                    (cond ((eq old-line prev-shared-line-in-snp)
+                                           (goto-line old-line)
+                                           (when (and in-src-block
+                                                      (concept-in-relationship-block))
+                                             (concept-goto-current-focus)
+                                             (let ((proposal (line-number-at-pos (point))))
+                                               (unless (memq proposal old-focus)
+                                                 (push proposal old-focus))))))))
+                                ;; Since there is a new line in the source buffer,
+                                ;; increment it.
+                                (setq new-line (1+ new-line)))
+                               ;; Deleted line start with -.
+                               ((and (< 0 (length diff-line))
+                                     (string-prefix-p "-" diff-line))
+                                ;; Since this old line was in the snapshot buffer,
+                                ;; increment it there.
+                                ;; Deleted lines are particularly interesting when
+                                ;; they are focus lines. If they are focus lines, then
+                                ;; two situations are plausible: either the focus line
+                                ;; is being modified, or two or more relationship
+                                ;; blocks are being merged together. If the merge case
+                                ;; is true, then the previous relationship block
+                                ;; becomes relevant. How do we know there is a merge
+                                ;; case? We can know by examining the extent of the
+                                ;; relationship block in the snapshot buffer. This
+                                ;; might be what that pending deletions thing is
+                                ;; about.
+                                (with-current-buffer snapshot
+                                  (goto-line old-line)
+                                  (when (concept-in-relationship-block)
+                                    (concept-goto-current-focus)
+                                    (let ((proposal (line-number-at-pos (point))))
+                                      (unless (memq proposal old-focus)
+                                        (push proposal old-focus)))))
+                                (with-current-buffer source
+                                  (goto-line new-line)
+                                  (when (and (concept-in-relationship-block)
+                                             (concept-goto-current-focus)
+                                             (let ((proposal (line-number-at-pos (point))))
+                                               (unless (memq proposal new-focus)
+                                                 (push proposal new-focus))))))
+                                (setq old-line (1+ old-line)))
+                               ;; Unchanged context lines begin with blank
+                               ;; spaces. These are in both buffers, so we increment
+                               ;; both lines.
+                               ((and (< 0 (length diff-line))
+                                     (string-prefix-p " " diff-line))
+                                (setq old-line (1+ old-line)
+                                      new-line (1+ new-line))))
+                              (forward-line 1)))
+                          (list (nreverse old-focus) (nreverse new-focus)))
+                      (list nil nil)))))))))))
 
 (defun concept-map--relationship-block-changed-p ()
   "Return NON-NIL if any changed block is a relationship block."
