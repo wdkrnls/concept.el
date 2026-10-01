@@ -8021,23 +8021,22 @@ occurred. This test only makes sense within an insertion change block."
 (defun concept-diff--only-idea-extension ()
   "Detect when an edit merely extends an existing relationship block."
   (concept-diff--assert-diff-mode)
-  (save-excursion
-    (beginning-of-line)
-    (and (looking-at "^[+]")
-         (not (concept-diff--detect-replacement))
-         (let ((first-line (nth 1 (concept-diff--first-line-in-edit)))
-               (last-line  (nth 1 (concept-diff--last-line-in-edit))))
-           (catch 'met
+  (catch 'met
+    (save-excursion
+      (beginning-of-line)
+      (and (looking-at "^[+]")
+           (not (concept-diff--detect-replacement))
+           (let ((first-line (nth 1 (concept-diff--first-line-in-edit)))
+                 (last-line  (nth 1 (concept-diff--last-line-in-edit))))
              (with-current-buffer concept-map-concept-buffer
                (save-excursion
                  (goto-line first-line)
-                 (while (<= (line-number-at-pos (point)) last-line)
-                   (unless (or (concept-on-relationship-line) (concept-on-data-line))
-                     (throw 'met nil))
-                   (forward-line))))
-             t)))))
-
-(defun concept-diff--set-source-and-snapshot-buffers ()
+                 (or (while (<= (line-number-at-pos (point)) last-line)
+                       (unless (or (concept-on-relationship-line)
+                                   (concept-on-data-concept-line))
+                         (throw 'met nil))
+                       (forward-line))
+                     t))))))))
   "Set buffer-local variables for the buffers named in a diff header.
 The first `#<buffer ...>` label is treated as the `snapshot' buffer, and
 the second as the `source' buffer."
