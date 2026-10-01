@@ -8095,6 +8095,33 @@ the second as the `source' buffer."
                    (throw 'met nil))))
              t)))))
 
+(defun concept-diff--only-new-resource-block-insertions ()
+  "Detect when an edit merely creates one or more new resource blocks."
+  (concept-diff--assert-diff-mode)
+  (unless (bufferp concept-map-concept-buffer)
+    (user-error "This `diff' buffer is not yet associated with a snapshot "))
+  (save-excursion
+    (beginning-of-line)
+    (and (looking-at "^[+]")
+         (not (concept-diff--detect-replacement))
+         (let ((first-line  (nth 1 (concept-diff--first-line-in-edit)))
+               (last-line   (nth 1 (concept-diff--last-line-in-edit)))
+               (next-shared (nth 2 (concept-diff--next-shared-line))))
+           (catch 'met
+             (with-current-buffer concept-map-concept-buffer
+               (save-excursion
+                 (goto-line first-line)
+                 (when (not (concept-on-resource-line))
+                   (throw 'met nil))
+                 (goto-line last-line)
+                 (when (not (concept-on-exposition-line))
+                   (throw 'met nil))
+                 (goto-line next-shared)
+                 (when (not (or (concept-on-focus-line)
+                                (concept-on-resource-line)))
+                   (throw 'met nil))))
+             t)))))
+
 (defun concept-diff--only-complete-relationship-block-deletions ()
   "Detect when an edit merely deletes one or more relationship blocks."
   (concept-diff--assert-diff-mode)
