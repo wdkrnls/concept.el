@@ -9267,7 +9267,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "C-c C-f")     #'concept-map-find-network-path)
 (define-key concept-mode-map (kbd "C-c M-h")     #'concept-map-find-network-hypernym)
 (define-key concept-mode-map (kbd "C-c C-h")     #'concept-map-find-network-hyponym)
-(define-key concept-mode-map (kbd "C-c M-d")     #'concept-map-diff-snapshot)
+(define-key concept-mode-map (kbd "C-c M-d")     #'concept-map-diff-snapshot-and-source)
 
 (provide 'concept)
 ;;; concept.el ends here
