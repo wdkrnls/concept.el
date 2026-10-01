@@ -7444,11 +7444,60 @@ Setting this variable to `nil' can be useful for debugging.")
     nil
   "Temporary file path for the concept map source file during the last diff.")
 
-(defun concept-map-diff-snapshot ()
+(defvar-local concept-map-snapshot-diff-buffer
+    nil
+  "Buffer which holds the `snapshot' to `source' diff.")
+
+(defun concept-diff--generate-new-buffer (source)
+  (generate-new-buffer
+   (format "*concept-map-diff:%s*"
+           (buffer-name source))))
+
+(defun concept-diff-goto-source ()
+  "Jump to the corresponding source or snapshot buffer line."
+  (interactive)
+  (concept-diff--assert-diff-mode)
+  (unless (and (buffer-live-p concept-map-snapshot-buffer)
+               (buffer-live-p concept-map-concept-buffer))
+    (user-error "This doesn't appear to be a conceptual diff buffer. Aborting!"))
+  (save-excursion
+    (beginning-of-line)
+    (cond ((looking-at "^[+]")
+           (let ((source-line (concept-diff--find-line-number-in-source)))
+             (switch-to-buffer concept-map-concept-buffer)
+             (goto-line source-line)))
+          ((looking-at "^-")
+           (let ((snapshot-line (concept-diff--find-line-number-in-snapshot)))
+             (switch-to-buffer concept-map-snapshot-buffer)
+             (goto-line snapshot-line)))
+          ((looking-at "^ ")
+           (let ((source-line (concept-diff--find-line-number-in-source)))
+             (switch-to-buffer concept-map-concept-buffer)
+             (goto-line source-line)))
+          (t
+           (user-error "The selected line is not in either the `source' or `snapshot' buffers. Aborting!")))))
+
+(defun concept-map-diff-snapshot-and-source ()
   "View the diff of the current concept map against it's snapshot buffer."
   (interactive)
   (when (derived-mode-p 'concept-mode)
-    (diff-buffers concept-map-snapshot-buffer (current-buffer) "-u")))
+    (unless (and (buffer-live-p concept-map-snapshot-buffer)
+                 (buffer-live-p concept-map-concept-buffer))
+      (error "For some reason the links to the snapshot and source buffers are broken. Aborting!"))
+    (when (null concept-map-snapshot-diff-buffer)
+      (setq concept-map-snapshot-diff-buffer
+            (concept-diff--generate-new-buffer concept-map-concept-buffer)))
+    (diff-no-select
+     concept-map-snapshot-buffer
+     concept-map-concept-buffer
+     "-u"
+     nil
+     concept-map-snapshot-diff-buffer)
+    (let ((source   concept-map-concept-buffer)
+          (snapshot concept-map-snapshot-buffer))
+      (with-current-buffer concept-map-snapshot-diff-buffer
+        (concept-diff--set-snapshot-and-source-buffers snapshot source))
+      (switch-to-buffer concept-map-snapshot-diff-buffer))))
 
 (defun concept-line-classification ()
   "Compute the classification for the current line."
