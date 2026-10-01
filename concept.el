@@ -8037,36 +8037,44 @@ occurred. This test only makes sense within an insertion change block."
                          (throw 'met nil))
                        (forward-line))
                      t))))))))
+
+(defun concept-diff--setup-keymap ()
+  (let ((map (copy-keymap (current-local-map))))
+    (setq-local diff-mode-map map)
+    (use-local-map map)
+    (define-key map (kbd "<return>") #'concept-diff-goto-source)))
+
+(defun concept-diff--set-snapshot-and-source-buffers (&optional snapshot source)
   "Set buffer-local variables for the buffers named in a diff header.
 The first `#<buffer ...>` label is treated as the `snapshot' buffer, and
-the second as the `source' buffer."
-  ;; TODO: The regular expression below isn't working. You will need to play
-  ;; with it. Note also that I have previously written the function XXX which
-  ;; should be able to set these up when called from the concept map source
-  ;; buffer.
+the second as the `source' buffer. This is only done if these buffers
+are not explicitly provided to the function."
   (concept-diff--assert-diff-mode)
-  (save-excursion
-    (goto-char (point-min))
-    (let (buffers)
-      ;; The labels in the diff header look like:
-      ;;   #<buffer *concept-map-snapshot:concept.map*>
-      ;;   #<buffer concept.map>
-      (while (re-search-forward
-              "#<buffer[ \t]+\\([^>\n]+\\)>"
-              (line-end-position)
-              t)
-        (push (match-string-no-properties 1) buffers))
-      (setq buffers (nreverse buffers))
-      (unless (= (length buffers) 2)
-        (user-error "Could not find exactly two buffer labels in the diff header"))
-      (let ((snapshot (get-buffer (nth 0 buffers)))
-            (source   (get-buffer (nth 1 buffers))))
-        (unless (bufferp snapshot)
-          (user-error "Snapshot buffer does not exist: %s" (nth 0 buffers)))
-        (unless (bufferp source)
-          (user-error "Source buffer does not exist: %s" (nth 1 buffers)))
-        (setq-local my-diff-snapshot-buffer snapshot)
-        (setq-local my-diff-source-buffer source)))))
+  (if (and (not (null snapshot))
+           (bufferp snapshot)
+           (not (null source))
+           (bufferp source))
+      (progn
+        (setq-local concept-map-snapshot-buffer snapshot
+                    concept-map-concept-buffer source)
+        (concept-diff--setup-keymap))
+    (save-excursion
+      (goto-char (point-min))
+      (let* ((diff-line (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
+             (diff-line (replace-regexp-in-string "\\\\" "" diff-line)))
+        (string-match "--label #<buffer \\(.+\\)> --label #<buffer \\(.+\\)> /tmp" diff-line)
+        (when-let* ((snapshot-name (match-string 1 diff-line))
+                    (source-name   (match-string 2 diff-line)))
+          (let ((snapshot (get-buffer snapshot-name))
+                (source   (get-buffer source-name)))
+          (unless (bufferp snapshot)
+            (user-error "Snapshot buffer doesn't exist: %s" snapshot-name))
+          (unless (bufferp source)
+            (user-error "Source buffer doesn't exist: %s" source-name))
+          (setq-local concept-map-snapshot-buffer snapshot
+                      concept-map-concept-buffer  source)
+          (concept-diff--setup-keymap))))
+      t)))
 
 (defun concept-diff--only-new-relationship-block-insertions ()
   "Detect when an edit merely creates one or more new relationship blocks."
