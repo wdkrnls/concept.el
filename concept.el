@@ -8375,26 +8375,44 @@ pair should be unique when multiple concept maps are open."
                                 ;; doesn't depend on stuff outside of relationship
                                 ;; blocks. However, it still may be irrelevant for
                                 ;; other reasons.
-                                (let (in-src-block)
+                                (let (in-src-block on-src-focus prev-shared next-shared)
                                   (with-current-buffer source
                                     (goto-line new-line)
                                     (when (concept-in-relationship-block)
                                       (setq in-src-block t)
                                       (if (concept-on-focus-line)
-                                          (push new-line new-focus)
+                                          (progn
+                                            (setq on-src-focus t)
+                                            (push new-line new-focus))
                                         (concept-goto-current-focus)
                                         (let ((proposal (line-number-at-pos)))
                                           (unless (memq proposal new-focus)
                                             (push proposal new-focus))))))
+                                  (when on-src-focus
+                                    (setq prev-shared (nth 2 (concept-diff--previously-shared-line))
+                                          next-shared (nth 2 (concept-diff--next-shared-line)))
+                                    (with-current-buffer source
+                                      (save-excursion
+                                        (when (and (progn
+                                                     (goto-line prev-shared)
+                                                     (concept-on-data-concept-line))
+                                                   (progn
+                                                     (goto-line next-shared)
+                                                     (concept-on-data-concept-line)))
+                                          (goto-line prev-shared)
+                                          (concept-goto-current-focus)
+                                          (let ((proposal (line-number-at-pos)))
+                                            (unless (memq proposal new-focus)
+                                              (push proposal new-focus)))))))
                                   (with-current-buffer snapshot
-                                    (cond ((eq old-line prev-shared-line-in-snp)
-                                           (goto-line old-line)
-                                           (when (and in-src-block
-                                                      (concept-in-relationship-block))
-                                             (concept-goto-current-focus)
-                                             (let ((proposal (line-number-at-pos (point))))
-                                               (unless (memq proposal old-focus)
-                                                 (push proposal old-focus))))))))
+                                    (goto-line old-line)
+                                    (when (and in-src-block
+                                               (concept-in-relationship-block)
+                                               (concept-on-data-line))
+                                      (concept-goto-current-focus)
+                                      (let ((proposal (line-number-at-pos (point))))
+                                        (unless (memq proposal old-focus)
+                                          (push proposal old-focus))))))
                                 ;; Since there is a new line in the source buffer,
                                 ;; increment it.
                                 (setq new-line (1+ new-line)))
@@ -8414,20 +8432,35 @@ pair should be unique when multiple concept maps are open."
                                 ;; relationship block in the snapshot buffer. This
                                 ;; might be what that pending deletions thing is
                                 ;; about.
-                                (with-current-buffer snapshot
-                                  (goto-line old-line)
-                                  (when (concept-in-relationship-block)
-                                    (concept-goto-current-focus)
-                                    (let ((proposal (line-number-at-pos (point))))
-                                      (unless (memq proposal old-focus)
-                                        (push proposal old-focus)))))
-                                (with-current-buffer source
-                                  (goto-line new-line)
-                                  (when (and (concept-in-relationship-block)
-                                             (concept-goto-current-focus)
-                                             (let ((proposal (line-number-at-pos (point))))
-                                               (unless (memq proposal new-focus)
-                                                 (push proposal new-focus))))))
+                                (let (in-snp-block on-snp-focus prev-shared)
+                                  (with-current-buffer snapshot
+                                    (goto-line old-line)
+                                    (if (concept-on-focus-line)
+                                        (progn
+                                          (setq on-snp-focus t)
+                                          (push old-line old-focus))
+                                      (when (concept-in-relationship-block)
+                                        (setq in-snp-block t)
+                                        (concept-goto-current-focus)
+                                        (let ((proposal (line-number-at-pos)))
+                                          (unless (memq proposal old-focus)
+                                            (push proposal old-focus))))))
+                                  (when on-snp-focus
+                                    (setq prev-shared (nth 1 (concept-diff--previously-shared-line)))
+                                    (with-current-buffer snapshot
+                                      (goto-line prev-shared)
+                                      (when (concept-on-data-concept-line)
+                                        (concept-goto-current-focus)
+                                        (let ((proposal (line-number-at-pos)))
+                                          (unless (memq proposal old-focus)
+                                            (push proposal old-focus))))))
+                                  (with-current-buffer source
+                                    (goto-line new-line)
+                                    (when (concept-in-relationship-block)
+                                      (concept-goto-current-focus)
+                                      (let ((proposal (line-number-at-pos)))
+                                        (unless (memq proposal new-focus)
+                                          (push proposal new-focus))))))
                                 (setq old-line (1+ old-line)))
                                ;; Unchanged context lines begin with blank
                                ;; spaces. These are in both buffers, so we increment
@@ -8437,7 +8470,7 @@ pair should be unique when multiple concept maps are open."
                                 (setq old-line (1+ old-line)
                                       new-line (1+ new-line))))
                               (forward-line 1)))
-                          (list (nreverse old-focus) (nreverse new-focus)))
+                          (list (sort old-focus) (sort new-focus)))
                       (list nil nil)))))))))))
 
 (defun concept-map--relationship-block-changed-p ()
