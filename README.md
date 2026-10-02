@@ -570,6 +570,7 @@ The `snapshot` line number list is used to decrement the edge counts for all the
 The full case analysis involves detecting and handling (among others):
 
 * completely separate insertions of new ideas
+* completely separate insertions of new resources within existing ideas
 * extensions contained within existing relationship blocks
 * retractions contained within existing relationship blocks
 * extensions followed by new ideas
@@ -710,9 +711,25 @@ Note that this is purely a deletion. It merges two relationship blocks together 
 
 What is surprising to me is that the current heuristic works as well as it does. What is the current heuristic? It seeks to find all the focus lines of all the affected relationship blocks by looking through each line in both buffers: the snapshot and the source buffer. When starting from an addition line, it first looks at the source buffer to see if it's on a focus concept. If so, that triggers an immediate push to the source list. Otherwise, it validates that it's in a relationship block, and if so finds it's corresponding focus line. If that line is new, then it adds it.
 
-Then it looks at the snapshot buffer. It looks at the current line in the snapshot buffer. There are two possibilities: the snapshot line could be ahead of the source line or behind it. By ahead, we mean that the corresponding line in the diff is placed after the addition. Similarly, by behind we mean that the snapshot line is placed before it. During a pure addition, we only care about the snapshot buffer when the position in the source buffer concerns a relationship block. Changes outside of a relationship block are of no concern to us. Then we add that position in the snapshot buffer to the list if it is not on the last line or the first line of the relationship block. I don't really understand why. Plausibly, the line in question is shared between both the source and the snapshot buffer.
+Then it looks at the snapshot buffer. It looks at the current line in the snapshot buffer and checks that its in a relationship block and that it is not on a focus line. If so, then it considers it modified.
 
-If the last snapshot concept line is also a focus line, then it's clear that we are adding new data to an existing relationship block. Then why wouldn't we add it to the snapshot focus lines?
+This heuristic is clearly incomplete since the `old-line` could be after the `new-line` in the diff. Consider the split of multimedia browsers into two groups. The diff looks like so:
+
+```
+@@ -35,6 +35,8 @@
+ ~ multimedia-browsers
+ | :include
+ | image-browsers
++~ multimedia-browsers
++| :include
+ | music-players
+ | video-players
+ ~ image-browsers
+```
+
+The changes result should be `'((35) (35 38))`. With the heuristic we miss the 35 in the `source` buffer. Why? We miss it because we don't consider the previously shared line. That previously shared line is a data concept line and one of the new lines is a focus line. 
+
+There are two possibilities: the snapshot line could be ahead of the source line or behind it. By ahead, we mean that the corresponding line in the diff is placed after the addition. Similarly, by behind we mean that the snapshot line is placed before it. During a pure addition, we only care about the snapshot buffer when the position in the source buffer concerns a relationship block. Changes outside of a relationship block are of no concern to us. Then we add that position in the snapshot buffer to the list if it is not on the last line or the first line of the relationship block. I don't really understand why. Plausibly, the line in question is shared between both the source and the snapshot buffer.
 
 ### Tools for working with concepts themselves
 
