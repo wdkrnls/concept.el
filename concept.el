@@ -9357,6 +9357,11 @@ MEMO caches results, and VISITING detects dependency cycles."
     (mapc #'delete-overlay concept-bar-overlays)
     (setq concept-bar-overlays nil)))
 
+(defun concept-double-click-context-command (event)
+  (interactive "e")
+  (mouse-set-point event)
+  (call-interactively #'concept-follow-dwim))
+
 (defun concept-do-nothing ()
   (interactive)
   (message "Nothing was do because upcasing all the text in a concept map is a bad idea.")
@@ -9389,6 +9394,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "M-<up>")      #'concept-exchange-up-dwim)
 (define-key concept-mode-map (kbd "C-c k")       #'concept-kill-dwim)
 (define-key concept-mode-map (kbd "C-c f")       #'concept-follow-dwim)
+(define-key concept-mode-map [double-mouse-1]    #'concept-double-click-context-command)
 (define-key concept-mode-map (kbd "C-c ~")       #'concept-next-double-heading)
 (define-key concept-mode-map (kbd "C-c y r")     #'concept-consult-yank-from-resources)
 (define-key concept-mode-map (kbd "C-c y c")     #'concept-consult-yank-from-ideas)
