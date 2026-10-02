@@ -9264,6 +9264,89 @@ MEMO caches results, and VISITING detects dependency cycles."
                    concept (cdr result) (car result))))
       (cdr result))))
 
+(defvar-local concept-bar-overlays nil)
+
+(defface concept-box-glyph
+  '((t :inherit default
+       :height 1.0))
+  "Face used for structural box-drawing glyphs.")
+
+(defface concept-data-glyph
+  '((t :inherit shadow
+       :height 1.0))
+  "Face used for structural box-drawing glyphs.")
+
+(defconst concept-box-glyphs
+  '(("|" . ("│" . concept-box-glyph))
+    ("~" . ("┼" . concept-box-glyph))
+    ("@" . ("├" . concept-box-glyph))
+    ("{" . ("⎣" . concept-data-glyph))
+    ("}" . ("⎤" . concept-data-glyph))
+    ("[" . ("⎣" . concept-data-glyph))
+    ("]" . ("⎤" . concept-data-glyph))
+    ("‘" . ("⎣" . concept-data-glyph))
+    ("’" . ("⎤" . concept-data-glyph))))
+
+(defun concept-bar-add-overlay (start end source)
+  (let* ((entry (cdr (assoc source concept-box-glyphs)))
+         (glyph (car entry))
+         (face (cdr entry)))
+    (when entry
+      (let ((ov (make-overlay start end (current-buffer))))
+        (overlay-put ov 'display glyph)
+        (overlay-put ov 'face face)
+        (overlay-put ov 'evaporate t)
+        (push ov concept-bar-overlays)))))
+
+(defun concept-bars-refresh (&rest _)
+  (mapc #'delete-overlay concept-bar-overlays)
+  (setq concept-bar-overlays nil)
+  (save-excursion
+    (goto-char (point-min))
+    (while
+        (re-search-forward
+         "^|[[:space:]]+\\([[{‘]\\)\\|^\\([|~@]\\)\\|\\([]}’]\\)[[:space:]]*$"
+         nil t)
+      (let* ((opening (match-string-no-properties 1))
+             (source
+              (or opening
+                  (match-string-no-properties 2)
+                  (match-string-no-properties 3))))
+        (if opening
+            ;; First alternative matched:
+            ;; | {, | [, or | ‘
+            (progn
+              ;; Overlay the leading |
+              (concept-bar-add-overlay
+               (match-beginning 0)
+               (1+ (match-beginning 0))
+               "|")
+              ;; Overlay the opening symbol
+              (concept-bar-add-overlay
+               (match-beginning 1)
+               (match-end 1)
+               opening))
+          ;; Second or third alternative matched
+          (let ((group
+                 (if (match-beginning 2)
+                     2
+                   3)))
+            (concept-bar-add-overlay
+             (match-beginning group)
+             (match-end group)
+             source)))))))
+
+(define-minor-mode concept-bar-display-mode
+  "Display ASCII diagram characters as Unicode box-drawing glyphs."
+  :lighter "CBAR"
+  (if concept-bar-display-mode
+      (progn
+        (add-hook 'after-change-functions #'concept-bars-refresh nil t)
+        (concept-bars-refresh))
+    (remove-hook 'after-change-functions #'concept-bars-refresh t)
+    (mapc #'delete-overlay concept-bar-overlays)
+    (setq concept-bar-overlays nil)))
+
 (defun concept-do-nothing ()
   (interactive)
   (message "Nothing was do because upcasing all the text in a concept map is a bad idea.")
@@ -9332,6 +9415,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "C-c C-h")     #'concept-map-find-network-hyponym)
 (define-key concept-mode-map (kbd "C-c M-d")     #'concept-map-diff-snapshot-and-source)
 (define-key concept-mode-map (kbd "C-c M-u")     #'concept-map-toggle-automatic-network-upates)
+(define-key concept-mode-map (kbd "C-c M-\\")     #'concept-bar-display-mode)
 
 (provide 'concept)
 ;;; concept.el ends here
