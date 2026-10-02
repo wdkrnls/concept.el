@@ -3601,6 +3601,16 @@ In both cases this procedure can detect the delimiter in useful situations."
       (let ((pt (point)))
         (buffer-substring-no-properties pt (1+ pt))))))
 
+(defun concept-closing-delimeter ()
+  "Return the closing delimiter for this exposition line.
+See also `concept-current-delimiter'."
+  (when (concept-on-exposition-line)
+    (let ((delimiter (concept-current-delimiter)))
+      (pcase delimiter
+        ("{" "}")
+        ("[" "]")
+        ("‘" "’")))))
+
 (defun concept-inside-delimeters-p ()
   "On exposition lines, test whether the cursor is inside of the delimiters."
   (save-excursion
