@@ -621,7 +621,9 @@ One way a programmer might think of a concept map (as imagined in `concept.el`) 
 
 ### Network Updating Bugs
 
-I have fixed a bunch of network updating bugs, but I'm still exploring.
+I have spent a fair amount of time learning how to diff the two buffers and make automated classifications.
+
+I need to make network updating an optional feature that is disabled by default. It just takes too long to load at startup and that can be extremely irritating if you are not expecting it. It should be easy to toggle on/off. It just shouldn't be on by default.
 
 I found a logic bug in my network updating code. When I took the `example.map` and split it such that I transformed:
 
