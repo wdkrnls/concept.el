@@ -8432,7 +8432,7 @@ pair should be unique when multiple concept maps are open."
                                 ;; relationship block in the snapshot buffer. This
                                 ;; might be what that pending deletions thing is
                                 ;; about.
-                                (let (in-snp-block on-snp-focus prev-shared)
+                                (let (in-snp-block on-snp-focus prev-shared next-shared)
                                   (with-current-buffer snapshot
                                     (goto-line old-line)
                                     (if (concept-on-focus-line)
@@ -8446,7 +8446,8 @@ pair should be unique when multiple concept maps are open."
                                           (unless (memq proposal old-focus)
                                             (push proposal old-focus))))))
                                   (when on-snp-focus
-                                    (setq prev-shared (nth 1 (concept-diff--previously-shared-line)))
+                                    (setq prev-shared (nth 1 (concept-diff--previously-shared-line))
+                                          next-shared (nth 1 (concept-diff--next-shared-line)))
                                     (with-current-buffer snapshot
                                       (goto-line prev-shared)
                                       (when (concept-on-data-concept-line)
@@ -9330,6 +9331,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "C-c M-h")     #'concept-map-find-network-hypernym)
 (define-key concept-mode-map (kbd "C-c C-h")     #'concept-map-find-network-hyponym)
 (define-key concept-mode-map (kbd "C-c M-d")     #'concept-map-diff-snapshot-and-source)
+(define-key concept-mode-map (kbd "C-c M-u")     #'concept-map-toggle-automatic-network-upates)
 
 (provide 'concept)
 ;;; concept.el ends here
