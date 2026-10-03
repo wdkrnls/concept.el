@@ -9548,7 +9548,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 
 (define-minor-mode concept-bar-display-mode
   "Display ASCII diagram characters as Unicode box-drawing glyphs."
-  :lighter "CBAR"
+  :lighter " CBAR"
   (if concept-bar-display-mode
       (progn
         (add-hook 'after-change-functions #'concept-bars-refresh nil t)
