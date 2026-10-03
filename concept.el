@@ -1680,7 +1680,7 @@ blocks."
         (when (or (concept-on-data-line)
                   (concept-on-focus-line))
           (unless (and (concept-on-exposition-line)
-                       (not (concept-inside-delimeters-p)))
+                       (not (concept-inside-delimiters-p)))
             (insert last-part)))))))
 
 (defun concept-insert-next-concept-as-data ()
@@ -1782,7 +1782,7 @@ Choose the new concept from initially ordered list of all concept."
                  (concept-on-relationship-line)
                  (concept-on-attribute-line)
                  (and (concept-on-exposition-line)
-                      (not (concept-inside-delimeters-p)))))
+                      (not (concept-inside-delimiters-p)))))
     (let* ((choices (concept-find-all-concepts))
            (vertico-sort-function nil)
            (pick (completing-read
@@ -1818,7 +1818,7 @@ interactive editing by a user, this makes sense."
   (unless (or (concept-on-resource-line)
               (concept-on-attribute-line)
               (and (concept-on-exposition-line)
-                   (not (concept-inside-delimeters-p)))
+                   (not (concept-inside-delimiters-p)))
               (concept-on-relationship-line))
     (let* ((last-concept (or (and (concept-on-first-concept)
                                   (concept-next-focus))
@@ -3601,7 +3601,7 @@ In both cases this procedure can detect the delimiter in useful situations."
       (let ((pt (point)))
         (buffer-substring-no-properties pt (1+ pt))))))
 
-(defun concept-closing-delimeter ()
+(defun concept-closing-delimiter ()
   "Return the closing delimiter for this exposition line.
 See also `concept-current-delimiter'."
   (when (concept-on-exposition-line)
@@ -3611,7 +3611,7 @@ See also `concept-current-delimiter'."
         ("[" "]")
         ("‘" "’")))))
 
-(defun concept-inside-delimeters-p ()
+(defun concept-inside-delimiters-p ()
   "On exposition lines, test whether the cursor is inside of the delimiters."
   (save-excursion
     (and (concept-on-exposition-line)
