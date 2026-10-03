@@ -9472,6 +9472,21 @@ MEMO caches results, and VISITING detects dependency cycles."
   (mouse-set-point event)
   (call-interactively #'concept-follow-dwim))
 
+(defun concept-end-of-subtree ()
+  (interactive)
+  (let ((pt (point)))
+    (outline-end-of-subtree)
+    (when (eq pt (point))
+      (forward-line)
+      (when (not (eobp))
+        (outline-end-of-subtree)))))
+
+(defun concept-end-of-previous-subtree ()
+  (interactive)
+  (concept-goto-current-focus)
+  (previous-line)
+  (outline-end-of-subtree))
+
 (defun concept-do-nothing ()
   (interactive)
   (message "Nothing was do because upcasing all the text in a concept map is a bad idea.")
@@ -9541,6 +9556,8 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "C-c C-h")     #'concept-map-find-network-hyponym)
 (define-key concept-mode-map (kbd "C-c M-d")     #'concept-map-diff-snapshot-and-source)
 (define-key concept-mode-map (kbd "C-c M-u")     #'concept-map-toggle-automatic-network-upates)
+(define-key concept-mode-map (kbd "C-c M-a")     #'concept-end-of-previous-subtree)
+(define-key concept-mode-map (kbd "C-c M-b")     #'concept-end-of-subtree)
 (define-key concept-mode-map (kbd "C-c M-\\")     #'concept-bar-display-mode)
 
 (provide 'concept)
