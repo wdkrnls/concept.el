@@ -8792,7 +8792,8 @@ This variable is stored in `concept-map-network-graph'."
 
 (defun concept-map--kill-snapshot-buffer ()
   "Also Kill the snapshot buffer when it's concept map is killed."
-  (kill-buffer concept-map-snapshot-buffer))
+  (when (buffer-live-p concept-map-snapshot-buffer)
+    (kill-buffer concept-map-snapshot-buffer)))
 
 (defun concept-mode-setup-network-updating ()
   "Enable automatic network updates for the current buffer."
