@@ -2774,6 +2774,7 @@ Sort these names in order of usage frequency."
   "Get the name of the current resource."
   (when (concept-in-resource-block)
     (save-excursion
+      (end-of-line)
       (re-search-backward "^@ +" nil t)
       (concept-current-resource))))
 
