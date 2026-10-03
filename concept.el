@@ -3806,7 +3806,7 @@ See also `concept-current-delimiter'."
 
 (define-minor-mode concept-show-followable-mode
   "Add overlays which make followable exposition lines more obvious."
-  :lighter "CSHOW"
+  :lighter " CSHOW"
   (if concept-show-followable-mode
       (progn
         (add-hook 'post-command-hook
