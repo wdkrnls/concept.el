@@ -9130,7 +9130,7 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
            (with-current-buffer concept-map-snapshot-buffer
              (concept-map-grammar-parses-p)))))
 
-(defun concept-map-make-partial-network-update (&optional relationship-regexp)
+(defun concept-map-make-partial-network-update (&optional relationship-regexp skip-grammar-check)
   "Attempt to perform a partial network update.
 When only new data is added to the buffer, it's relatively trivial to
 make a partial network update, so we have done that."
@@ -9138,7 +9138,7 @@ make a partial network update, so we have done that."
     (user-error "This only works inside of a concept-mode buffer with a valid concept map!"))
   (when (null relationship-regexp)
     (setq relationship-regexp ".+"))
-  (when (concept-map-can-do-partial-network-update-p)
+  (when (concept-map-can-do-partial-network-update-p skip-grammar-check)
     (concept-map-fix-edge-counts-from-last-snapshot)
     (concept-map-make-network-from-edge-counts)
     (setq concept-map-network-is-stale nil)
@@ -9209,7 +9209,7 @@ whether a partial update is possible when using
   (let ((partial-possible (concept-map-can-do-partial-network-update-p skip-grammar-check))
         tried-partial)
     (if (and partial-possible (not force-full))
-        (or (concept-map-make-partial-network-update)
+        (or (concept-map-make-partial-network-update relationship-regexp skip-grammar-check)
             (setq tried-partial 'failed))
       (concept-map-make-full-network-update))
     (when (called-interactively-p 'interactive)
