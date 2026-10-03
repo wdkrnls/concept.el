@@ -3710,14 +3710,15 @@ See also `concept-current-delimiter'."
                    (overlay-put overlay 'face '(:underline t))
                    (overlay-put overlay 'mouse-face 'highlight))
                   ('box
-                   (overlay-put overlay 'face 'concept-region-box)))
+                   (overlay-put overlay 'face 'concept-region-box)
+                   (overlay-put overlay 'mouse-face 'highlight)))
                 (overlay-put overlay 'evaporate t)
                 (push overlay concept-show-followable-overlays))))
           (concept-goto-next-exposition))))))
 
 (defvar-local concept-show-followable-last-visible-range nil)
 
-(defun concept-show-followable-refresh-overlays-if-needed ()
+(defun concept-show-followable-refresh-overlays-if-needed (&rest _args)
   (let* ((window (selected-window))
          (range (cons (window-start window)
                       (window-end window t))))
@@ -3726,6 +3727,11 @@ See also `concept-current-delimiter'."
       (concept-show-followable-refresh-overlays))))
 
 (add-hook 'post-command-hook
+          #'concept-show-followable-refresh-overlays-if-needed
+          nil
+          t)
+
+(add-hook 'window-scroll-functions
           #'concept-show-followable-refresh-overlays-if-needed
           nil
           t)
