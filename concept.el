@@ -3804,15 +3804,27 @@ See also `concept-current-delimiter'."
       (setq concept-show-followable-last-visible-range range)
       (concept-show-followable-refresh-overlays))))
 
-(add-hook 'post-command-hook
-          #'concept-show-followable-refresh-overlays-if-needed
-          nil
-          t)
-
-(add-hook 'window-scroll-functions
-          #'concept-show-followable-refresh-overlays-if-needed
-          nil
-          t)
+(define-minor-mode concept-show-followable-mode
+  "Add overlays which make followable exposition lines more obvious."
+  :lighter "CSHOW"
+  (if concept-show-followable-mode
+      (progn
+        (add-hook 'post-command-hook
+                  #'concept-show-followable-refresh-overlays-if-needed
+                  nil
+                  t)
+        (add-hook 'window-scroll-functions
+                  #'concept-show-followable-refresh-overlays-if-needed
+                  nil
+                  t))
+    (remove-hook
+     'post-command-hook
+     #'concept-show-followable-refresh-overlays-if-needed
+     t)
+    (remove-hook
+     'window-scroll-functions
+     #'concept-show-followable-refresh-overlays-if-needed
+     t)))
 
 (defun concept-go-one-group-down ()
   "Navigate forwards to the next group."
