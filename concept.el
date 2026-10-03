@@ -8691,10 +8691,10 @@ network graph hash table.")
 
 (defun concept-map--after-change (&rest _args)
   "Mark the network stale when a relationship block has changed."
-  (let ((block-changed (concept-map--relationship-block-changed-p)))
-    (if block-changed
-        (setq concept-map-network-is-stale t)
-      (setq concept-map-network-is-stale nil))))
+  (if (or (not (buffer-live-p concept-map-snapshot-buffer))
+          (concept-map--relationship-block-changed-p))
+      (setq concept-map-network-is-stale t)
+    (setq concept-map-network-is-stale nil)))
 
 (defun concept-map--after-save ()
   "Mark the network stale when a relationship block has changed."
