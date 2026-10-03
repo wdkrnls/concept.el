@@ -7535,7 +7535,8 @@ This table is fairly convenient to work with from `igraph'."
 
 (defun concept-map-check-parse ()
   "Test whether the current concept map parses successfully.
-If it doesn't parse, move the point to where the first failure is."
+If it doesn't parse, move the point to where the first failure is.
+This function can be slow to execute on large buffers."
   (interactive)
   (condition-case error-signal
       (save-excursion
