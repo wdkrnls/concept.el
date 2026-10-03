@@ -3627,6 +3627,105 @@ See also `concept-current-delimiter'."
                   (and (search-backward "‘" (line-beginning-position) t)
                        (not (search-forward  "’" pt t)))))))))
 
+(defun concept-show-followable-region-on-line ()
+  "Return the region between the current line's delimiters, or nil."
+  (save-excursion
+    (beginning-of-line)
+    (when (concept-on-followable-exposition-line)
+      (let ((opening (concept-current-delimiter)))
+        (when (and opening
+                   (search-forward opening (line-end-position) t))
+          ;; Point is now just after the opening delimiter.
+          (let ((beg (point))
+                (closing (concept-closing-delimiter)))
+            (when (and closing
+                       (search-forward closing (line-end-position) t))
+              ;; Point is just after the closing delimiter.
+              ;; Move to the position immediately before it.
+              (backward-char)
+              (cons beg (point)))))))))
+
+(defvar-local concept-show-followable-overlays nil)
+
+(defvar concept-show-followable-keywords
+  '(("file" . link)
+    ("url"  . link)
+    ("info" . link)
+    ("man"  . link)
+    ("emacs-symbol" . link)
+    ("elisp-call" . box)
+    ("shell-command" . box)))
+
+(defun concept-delete-followable-overlays ()
+  (mapc #'delete-overlay concept-show-followable-overlays)
+  (setq concept-show-followable-overlays nil))
+
+(defun concept-on-followable-exposition-line ()
+  "Return non-nil when the current exposition line is followable."
+  (when (concept-on-exposition-line)
+    (and (member (concept-current-attribute)
+                 (mapcar #'car concept-show-followable-keywords))
+         t)))
+
+(defface concept-region-box
+  '((t (:inherit default :box t :line-width 1)))
+  "Face for boxing a concept region.")
+
+(defun concept-box-region (beg end)
+  "Draw a box around the region from BEG to END."
+  (interactive "r")
+  (unless (< beg end)
+    (user-error "Select a non-empty region"))
+  (let ((overlay (make-overlay beg end)))
+    (overlay-put overlay 'face 'concept-region-box)
+    (overlay-put overlay 'evaporate t)
+    overlay))
+
+(defun concept-show-followable-refresh-overlays ()
+  "Underline followable delimited regions visible in the selected window."
+  (interactive)
+  (let* ((window (selected-window))
+         (buffer (window-buffer window))
+         (beg    (window-start window))
+         (end    (window-end window t)))
+    (with-current-buffer buffer
+      (concept-delete-followable-overlays)
+      (save-excursion
+        (goto-char beg)
+        (when (not (concept-on-exposition-line))
+          (concept-goto-next-exposition))
+        (beginning-of-line)
+        (while (< (point) end)
+          (when-let ((bounds (concept-show-followable-region-on-line)))
+            (let* ((overlay (make-overlay (car bounds) (cdr bounds)))
+                   (keyword (concept-current-attribute))
+                   (face    (cdr (assoc keyword concept-show-followable-keywords))))
+              (when face
+                (pcase face
+                  ('link
+                   (overlay-put overlay 'face '(:underline t))
+                   (overlay-put overlay 'mouse-face 'highlight))
+                  ('box
+                   (overlay-put overlay 'face 'concept-region-box)))
+                (overlay-put overlay 'evaporate t)
+                (push overlay concept-show-followable-overlays))))
+          (concept-goto-next-exposition))))))
+
+(defvar-local concept-show-followable-last-visible-range nil)
+
+(defun concept-show-followable-refresh-overlays-if-needed ()
+  (let* ((window (selected-window))
+         (range (cons (window-start window)
+                      (window-end window t))))
+    (unless (equal range concept-show-followable-last-visible-range)
+      (setq concept-show-followable-last-visible-range range)
+      (concept-show-followable-refresh-overlays))))
+
+(add-hook 'post-command-hook
+          #'concept-show-followable-refresh-overlays-if-needed
+          nil
+          t)
+
 (defun concept-go-one-group-down ()
   "Navigate forwards to the next group."
   (interactive)
