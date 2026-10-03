@@ -2865,6 +2865,83 @@ Choose the new concept from initially ordered list of all resources."
                (kill-line)
                (kill-forward-chars 2)))))))
 
+(defun concept-slurp-next-resource ()
+  "Consume the next resource and all its attributes and data into the current resource."
+  (interactive)
+  (when (and (concept-on-exposition-line)
+             (concept-on-last-line-in-block-p)
+             (not (concept-on-last-line-p))
+             (save-excursion
+               (forward-line)
+               (concept-on-resource-line)))
+    (let ((last-resource (concept-current-resource-name))
+          (last-keyword (concept-current-attribute))
+          (line-move-visual nil))
+      (forward-line)
+      (let ((next-resource (concept-current-resource-name))
+            (next-keyword (save-excursion (forward-line) (concept-current-attribute))))
+        (if (equal last-resource next-resource)
+            (progn
+              (kill-whole-line)
+              (when (equal last-keyword next-keyword)
+                (kill-whole-line))
+              (end-of-line))
+          (previous-line)
+          (end-of-line))))))
+
+(defun concept-slurp-next-attribute ()
+  "Consume the next resource and all its attributes and data into the current resource."
+  (interactive)
+  (when (and (concept-on-exposition-line)
+             (not (concept-on-last-line-in-block-p))
+             (save-excursion
+               (forward-line)
+               (concept-on-attribute-line)))
+    (let ((resource (concept-current-resource-name))
+          (keyword (concept-current-attribute))
+          (line-move-visual nil))
+      (forward-line)
+      (let ((next-keyword (concept-current-attribute)))
+        (if (equal keyword next-keyword)
+            (progn
+              (kill-whole-line)
+              (end-of-line))
+          (previous-line)
+          (end-of-line))))))
+
+(defun concept-slurp-next-relationship-group ()
+  "Consume the next relationship and all its attributes and data into the current relationship group."
+  (interactive)
+  (when (and (concept-on-data-concept-line)
+             (not (concept-on-last-line-in-block-p))
+             (save-excursion
+               (forward-line)
+               (concept-on-relationship-line)))
+    (let ((relationship (concept-current-relationship))
+          (line-move-visual nil))
+      (forward-line)
+      (let ((next-relationship  (concept-current-relationship)))
+        (if (equal relationship next-relationship)
+            (progn
+              (kill-whole-line)
+              (end-of-line))
+          (previous-line)
+          (end-of-line))))))
+
+(defun concept-slurp-next-dwim ()
+  "Consume the next grouping and all its data into the current grouping."
+  (interactive)
+  (cond ((and (concept-on-data-concept-line)
+              (concept-on-last-line-in-block-p))
+         (concept-slurp-next-concept))
+        ((and (concept-on-exposition-line)
+              (concept-on-last-line-in-block-p))
+         (concept-slurp-next-resource))
+        ((concept-on-exposition-line)
+         (concept-slurp-next-attribute))
+        ((concept-on-data-concept-line)
+         (concept-slurp-next-relationship-group))))
+
 (defun concept-barf-current-concept ()
   "Convert the current data concept into a new focus concept."
   (interactive)
@@ -9509,7 +9586,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "C-M-.")       #'concept-insert-concept-dwim)
 (define-key concept-mode-map (kbd "C-.")         #'concept-insert-last-concept-as-new)
 (define-key concept-mode-map (kbd "M-i")         #'concept-insert-include-dwim)
-(define-key concept-mode-map (kbd "M-]")         #'concept-slurp-next-concept)
+(define-key concept-mode-map (kbd "M-]")         #'concept-slurp-next-dwim)
 (define-key concept-mode-map (kbd "M-[")         #'concept-barf-current-concept)
 (define-key concept-mode-map (kbd "C-M-<down>")  #'concept-goto-next-thing)
 (define-key concept-mode-map (kbd "C-M-<up>")    #'concept-goto-last-thing)
