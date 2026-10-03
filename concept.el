@@ -9649,7 +9649,8 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "C-c M-u")     #'concept-map-toggle-automatic-network-upates)
 (define-key concept-mode-map (kbd "C-c M-a")     #'concept-end-of-previous-subtree)
 (define-key concept-mode-map (kbd "C-c M-b")     #'concept-end-of-subtree)
-(define-key concept-mode-map (kbd "C-c M-\\")     #'concept-bar-display-mode)
+(define-key concept-mode-map (kbd "C-c M-\\")    #'concept-bar-display-mode)
+(define-key concept-mode-map (kbd "C-c M-f")     #'concept-show-followable-mode)
 
 (provide 'concept)
 ;;; concept.el ends here
