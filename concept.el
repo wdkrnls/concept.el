@@ -8906,7 +8906,7 @@ This variable is stored in `concept-map-network-graph'."
   (concept-map--setup-network-updating-hooks)
   (concept-map--start-idle-network-update-check)
   (when concept-map-should-update-stale-network
-    (concept-map--schedule-network-update)))
+    (concept-map-make-full-network-update)))
 
 (defun concept-map--tear-down-network-updating-hooks ()
   (remove-hook 'after-change-functions
