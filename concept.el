@@ -3751,11 +3751,11 @@ In both cases this procedure can detect the delimiter in useful situations."
       (let ((pt (point)))
         (buffer-substring-no-properties pt (1+ pt))))))
 
-(defun concept-closing-delimiter ()
+(defun concept-closing-delimiter (&optional opening)
   "Return the closing delimiter for this exposition line.
 See also `concept-current-delimiter'."
-  (when (concept-on-exposition-line)
-    (let ((delimiter (concept-current-delimiter)))
+  (when (or opening (concept-on-exposition-line))
+    (let ((delimiter (or opening (concept-current-delimiter))))
       (pcase delimiter
         ("{" "}")
         ("[" "]")
