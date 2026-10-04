@@ -3894,6 +3894,9 @@ See also `concept-current-delimiter'."
      #'concept-show-followable-refresh-overlays-if-needed
      t)))
 
+(add-hook 'concept-mode-hook
+          #'concept-show-followable-mode)
+
 (defun concept-go-one-group-down ()
   "Navigate forwards to the next group."
   (interactive)
@@ -4915,7 +4918,8 @@ Also remove every other element of the list which looks the same."
   (concept--setup-hippie-expand)
   (local-set-key (kbd "M-q") #'ignore))
 
-(add-hook 'concept-mode-hook #'concept--setup-niceties-including-hippie-expand)
+(add-hook 'concept-mode-hook
+          #'concept--setup-niceties-including-hippie-expand)
 
 (defun concept-insert-unicode-quote-brackets ()
   "Insert unicode quote brackets.
@@ -8863,11 +8867,7 @@ This variable is stored in `concept-map-network-graph'."
   (when (buffer-live-p concept-map-snapshot-buffer)
     (kill-buffer concept-map-snapshot-buffer)))
 
-(defun concept-mode-setup-network-updating ()
-  "Enable automatic network updates for the current buffer."
-  (when concept-map-should-update-stale-network
-    (concept-map--schedule-network-update))
-  (concept-map--start-idle-network-update-check)
+(defun concept-map--setup-network-updating-hooks ()
   (add-hook 'after-change-functions
             #'concept-map--after-change
             nil
@@ -8889,6 +8889,34 @@ This variable is stored in `concept-map-network-graph'."
             nil
             t))
 
+(defun concept-map-setup-network-updating ()
+  "Enable automatic network updates for the current buffer."
+  (concept-map--setup-network-updating-hooks)
+  (concept-map--start-idle-network-update-check)
+  (when concept-map-should-update-stale-network
+    (concept-map--schedule-network-update)))
+
+(defun concept-map-tear-down-network-updating-hooks ()
+  (remove-hook 'after-change-functions
+               #'concept-map--after-change
+               t)
+  (remove-hook 'after-save-hook
+               #'concept-map--after-save
+               t)
+  (remove-hook 'kill-buffer-hook
+               #'concept-map--cancel-network-update-timer
+               t)
+  (remove-hook 'kill-buffer-hook
+               #'concept-map--kill-snapshot-buffer
+               t)
+  (remove-hook 'kill-buffer-hook
+               #'concept-map--cancel-network-update-after-long-idle-timer
+               t))
+
+(defun concept-map-tear-down-network-updating ()
+  "Disable automatic network updates for the current buffer."
+  (concept-map--tear-down-network-updating-hooks))
+
 (defun concept-map--debug (format-string &rest args)
   "Log concept-map update activity."
   (with-current-buffer (get-buffer-create "*concept-map-debug*")
@@ -8897,8 +8925,15 @@ This variable is stored in `concept-map-network-graph'."
     (insert (apply #'format format-string args))
     (insert "\n")))
 
+(define-minor-mode concept-map-network-update-mode
+  "Setup network updating."
+  :lighter " CNUP"
+  (if concept-map-network-update-mode
+      (concept-map-setup-network-updating)
+    (concept-map-tear-down-network-updating)))
+
 (add-hook 'concept-mode-hook
-          #'concept-mode-setup-network-updating)
+          #'concept-map-network-update-mode)
 
 (defvar concept-map-buffer-snapshot-name
   "concept-map-snapshot"
@@ -9630,6 +9665,9 @@ MEMO caches results, and VISITING detects dependency cycles."
     (mapc #'delete-overlay concept-bar-overlays)
     (setq concept-bar-overlays nil)))
 
+(add-hook 'concept-mode-hook
+          #'concept-bar-display-mode)
+
 (defun concept-double-click-context-command (event)
   (interactive "e")
   (mouse-set-point event)
@@ -9719,6 +9757,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "C-c C-h")     #'concept-map-find-network-hyponym)
 (define-key concept-mode-map (kbd "C-c M-d")     #'concept-map-diff-snapshot-and-source)
 (define-key concept-mode-map (kbd "C-c M-u")     #'concept-map-toggle-automatic-network-upates)
+(define-key concept-mode-map (kbd "C-c C-M-u")   #'concept-map-network-update-mode)
 (define-key concept-mode-map (kbd "C-c M-a")     #'concept-end-of-previous-subtree)
 (define-key concept-mode-map (kbd "C-c M-b")     #'concept-end-of-subtree)
 (define-key concept-mode-map (kbd "C-c M-\\")    #'concept-bar-display-mode)
