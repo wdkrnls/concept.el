@@ -858,7 +858,7 @@ network."
    (mapcar (lambda (n)
              (if (< n 0)
                  (with-current-buffer concept-map-snapshot-buffer
-                   (goto-line (abs n))
+                   (concept--goto-line (abs n))
                    (- (car (concept-find-relationship-block-extend))))
                (with-current-buffer concept-map-concept-buffer
                  (goto-line n)
@@ -1399,7 +1399,7 @@ places ideas with similar names next to each other."
                 (setq swapped t)
 	        (concept-exchange-concept-down))))
             (setq i (1+ i)))))
-      (goto-line line)
+      (concept--goto-line line)
       (end-of-line))))
 
 (defun concept-exposition-partial-sort (&optional max-iter)
@@ -1440,7 +1440,7 @@ concept maps. It places ideas with similar names next to each other."
                 (setq swapped t)
 	        (concept-exchange-exposition-down))))
             (setq i (1+ i)))))
-      (goto-line line)
+      (concept--goto-line line)
       (end-of-line))))
 
 (defun concept-map-toggle-automatic-network-upates ()
@@ -4069,7 +4069,7 @@ relationship line is found."
                 (setq swapped t)
 	        (concept-move-relationship-group-down))))
             (setq i (1+ i)))))
-      (goto-line line)
+      (concept--goto-line line)
       (end-of-line))))
 
 (defun concept-attribute-group-partial-sort (&optional max-iter)
@@ -4102,7 +4102,7 @@ relationship line is found."
                 (setq swapped t)
 	        (concept-move-attribute-down))))
             (setq i (1+ i)))))
-      (goto-line line)
+      (concept--goto-line line)
       (end-of-line))))
 
 (defun concept-sift-down (root end)
@@ -6471,7 +6471,7 @@ enough for now."
         (when (not (= (line-number-at-pos (point)) (+ current-line 1)))
           (concept-next-double-heading))
       (progn
-        (goto-line 0)
+        (concept--goto-line 0)
         (concept-next-double-heading)))))
 
 (defvar-local concept-eww-buffer-has-rendered nil
@@ -6863,7 +6863,7 @@ modifying `mailcap-user-mime-data'."
                     (sit-for 0.1)
                     (when (buffer-live-p mbuf)
                       (with-current-buffer mbuf
-                        (goto-line (string-to-number value))))))
+                        (concept--goto-line (string-to-number value))))))
                  ((and (member "emacs-package" keys)
                        (member "file-name" keys))
                   (let ((line (concept-get-expository-data)))
@@ -6872,7 +6872,7 @@ modifying `mailcap-user-mime-data'."
                     (let ((fbuf (concept-follow-dwim)))
                       (when (buffer-live-p fbuf)
                         (with-current-buffer fbuf
-                          (goto-line (string-to-number line))))))))))
+                          (concept--goto-line (string-to-number line))))))))))
         ((and (concept-on-exposition-line)
               (or (string= "pdf-page" (concept-exposition-parent-key))
                   (string= "page"     (concept-exposition-parent-key))))
@@ -7747,15 +7747,15 @@ Setting this variable to `nil' can be useful for debugging.")
     (cond ((looking-at "^[+]")
            (let ((source-line (concept-diff--find-line-number-in-source)))
              (switch-to-buffer concept-map-concept-buffer)
-             (goto-line source-line)))
+             (concept--goto-line source-line)))
           ((looking-at "^-")
            (let ((snapshot-line (concept-diff--find-line-number-in-snapshot)))
              (switch-to-buffer concept-map-snapshot-buffer)
-             (goto-line snapshot-line)))
+             (concept--goto-line snapshot-line)))
           ((looking-at "^ ")
            (let ((source-line (concept-diff--find-line-number-in-source)))
              (switch-to-buffer concept-map-concept-buffer)
-             (goto-line source-line)))
+             (concept--goto-line source-line)))
           (t
            (user-error "The selected line is not in either the `source' or `snapshot' buffers. Aborting!")))))
 
@@ -8269,14 +8269,14 @@ depending on what type of change group the point is on."
              (let ((first-line (nth 1 (concept-diff--first-line-in-change-group)))
                    (last-line  (nth 1 (concept-diff--last-line-in-change-group))))
                (with-current-buffer concept-map-snapshot-buffer
-                 (goto-line first-line)
+                 (concept--goto-line first-line)
                  (concept--find-focus-relationship-pair-by last-line))))
             ((looking-at "^[+]")
              (let ((first-line (nth 1 (concept-diff--first-line-in-change-group)))
                    (last-line  (nth 1 (concept-diff--last-line-in-change-group))))
                (with-current-buffer concept-map-concept-buffer
                  (save-excursion
-                   (goto-line first-line)
+                   (concept--goto-line first-line)
                    (concept--find-focus-relationship-pair-by last-line)))))))))
 
 (defun concept-diff--change-group-holds-new-focus-before-relationship ()
@@ -8293,7 +8293,7 @@ occurred. This test only makes sense within an insertion change block."
               (next-shared (nth 2 (concept-diff--next-shared-line))))
           (with-current-buffer concept-map-concept-buffer
             (save-excursion
-              (goto-line next-shared)
+              (concept--goto-line next-shared)
               (and (concept-on-relationship-line)
                    (progn
                      (previous-line)
@@ -8312,7 +8312,7 @@ occurred. This test only makes sense within an insertion change block."
                  (last-line  (nth 1 (concept-diff--last-line-in-edit))))
              (with-current-buffer concept-map-concept-buffer
                (save-excursion
-                 (goto-line first-line)
+                 (concept--goto-line first-line)
                  (or (while (<= (line-number-at-pos (point)) last-line)
                        (unless (or (concept-on-relationship-line)
                                    (concept-on-data-concept-line))
@@ -8373,13 +8373,13 @@ are not explicitly provided to the function."
            (catch 'met
              (with-current-buffer concept-map-concept-buffer
                (save-excursion
-                 (goto-line first-line)
+                 (concept--goto-line first-line)
                  (when (not (concept-on-focus-line))
                    (throw 'met nil))
-                 (goto-line last-line)
+                 (concept--goto-line last-line)
                  (when (not (concept-on-data-concept-line))
                    (throw 'met nil))
-                 (goto-line next-shared)
+                 (concept--goto-line next-shared)
                  (when (not (or (concept-on-focus-line)
                                 (concept-on-resource-line)))
                    (throw 'met nil))))
@@ -8400,13 +8400,13 @@ are not explicitly provided to the function."
            (catch 'met
              (with-current-buffer concept-map-concept-buffer
                (save-excursion
-                 (goto-line first-line)
+                 (concept--goto-line first-line)
                  (when (not (concept-on-resource-line))
                    (throw 'met nil))
-                 (goto-line last-line)
+                 (concept--goto-line last-line)
                  (when (not (concept-on-exposition-line))
                    (throw 'met nil))
-                 (goto-line next-shared)
+                 (concept--goto-line next-shared)
                  (when (not (or (concept-on-focus-line)
                                 (concept-on-resource-line)))
                    (throw 'met nil))))
@@ -8424,13 +8424,13 @@ are not explicitly provided to the function."
                (next-shared (nth 1 (concept-diff--next-shared-line))))
            (catch 'met
              (with-current-buffer concept-map-snapshot-buffer
-               (goto-line first-line)
+               (concept--goto-line first-line)
                (when (not (concept-on-focus-line))
                  (throw 'met nil))
-               (goto-line last-line)
+               (concept--goto-line last-line)
                (when (not (concept-on-data-concept-line))
                  (throw 'met nil))
-               (goto-line next-shared)
+               (concept--goto-line next-shared)
                (when (not (or (concept-on-focus-line)
                               (concept-on-resource-line)))
                  (throw 'met nil))))
@@ -8455,7 +8455,7 @@ opposite of this situation."
            (catch 'met
              (with-current-buffer concept-map-snapshot-buffer
                (save-excursion
-                 (goto-line first-line)
+                 (concept--goto-line first-line)
                  (while (<= (line-number-at-pos (point)) last-line)
                    (unless (or (concept-on-relationship-line)
                                (concept-on-data-line))
@@ -8493,12 +8493,12 @@ last shared line to verify that they are both data concepts."
             (let (snap-count src-count)
               (progn
                 (with-current-buffer concept-map-snapshot-buffer
-                  (goto-line first-line)
+                  (concept--goto-line first-line)
                   (setq snap-count
                         (how-many
                          "^~"
-                         (progn (goto-line first-line) (line-beginning-position))
-                         (progn (goto-line last-line)  (line-end-position))))))
+                         (progn (concept--goto-line first-line) (line-beginning-position))
+                         (progn (concept--goto-line last-line)  (line-end-position))))))
               (re-search-forward "^[+]") ; reached new change group!
               (beginning-of-line)
               (let ((first-line (car (concept-diff--first-line-in-change-group)))
@@ -8507,14 +8507,14 @@ last shared line to verify that they are both data concepts."
                   (setq src-count
                         (how-many
                          "^~"
-                         (progn (goto-line first-line) (line-beginning-position))
-                         (progn (goto-line last-line)  (line-end-position))))))
+                         (progn (concept--goto-line first-line) (line-beginning-position))
+                         (progn (concept--goto-line last-line)  (line-end-position))))))
               (< src-count snap-count))
           (with-current-buffer concept-map-snapshot-buffer
             (< 0 (how-many
                   "^~"
-                  (progn (goto-line first-line) (line-beginning-position))
-                  (progn (goto-line last-line)  (line-end-position))))))))))
+                  (progn (concept--goto-line first-line) (line-beginning-position))
+                  (progn (concept--goto-line last-line)  (line-end-position))))))))))
 
 (defun concept-diff--detect-split ()
   "Detect if a split happened during an edit.
@@ -8536,27 +8536,27 @@ In a split, the next shared line is a data concept line."
             (last-line  (concept-diff--last-line-in-edit)))
         (if (concept-diff--detect-replacement)
             (progn
-              (goto-line (car first-line))
+              (concept--goto-line (car first-line))
               (let (snap-count src-count)
                 (progn
                   (with-current-buffer concept-map-snapshot-buffer
-                    (goto-line (nth 1 first-line))
+                    (concept--goto-line (nth 1 first-line))
                     (setq snap-count
                           (how-many
                            "^~"
-                           (progn (goto-line first-line) (line-beginning-position))
-                           (progn (goto-line last-line)  (line-end-position))))))
+                           (progn (concept--goto-line first-line) (line-beginning-position))
+                           (progn (concept--goto-line last-line)  (line-end-position))))))
                 (re-search-forward "^[+]")
                 (beginning-of-line)
                 (let ((first-line (concept-diff--first-line-in-change-group))
                       (last-line  (concept-diff--last-line-in-change-group)))
                   (with-current-buffer concept-map-concept-buffer
-                    (goto-line (nth 1 first-line))
+                    (concept--goto-line (nth 1 first-line))
                     (setq src-count
                           (how-many
                            "^~"
-                           (progn (goto-line first-line) (line-beginning-position))
-                           (progn (goto-line last-line)  (line-end-position))))))
+                           (progn (concept--goto-line first-line) (line-beginning-position))
+                           (progn (concept--goto-line last-line)  (line-end-position))))))
                 (<  snap-count src-count)))
           (with-current-buffer concept-map-concept-buffer
             (re-search-backward "^[^+]")
@@ -8564,8 +8564,8 @@ In a split, the next shared line is a data concept line."
             (beginning-of-line)
             (< 0 (how-many
                   "^~"
-                  (progn (goto-line first-line) (line-beginning-position))
-                  (progn (goto-line last-line)  (line-end-position))))))))))
+                  (progn (concept--goto-line first-line) (line-beginning-position))
+                  (progn (concept--goto-line last-line)  (line-end-position))))))))))
 
 (defun concept-diff--setup-buffer-connections (source-buffer)
   "Setup buffer connections between the diff buffer and the original buffers."
@@ -8659,7 +8659,7 @@ pair should be unique when multiple concept maps are open."
                                 ;; other reasons.
                                 (let (in-src-block on-src-focus prev-shared next-shared)
                                   (with-current-buffer source
-                                    (goto-line new-line)
+                                    (concept--goto-line new-line)
                                     (when (concept-in-relationship-block)
                                       (setq in-src-block t)
                                       (if (concept-on-focus-line)
@@ -8676,18 +8676,18 @@ pair should be unique when multiple concept maps are open."
                                     (with-current-buffer source
                                       (save-excursion
                                         (when (and (progn
-                                                     (goto-line prev-shared)
+                                                     (concept--goto-line prev-shared)
                                                      (concept-on-data-concept-line))
                                                    (progn
-                                                     (goto-line next-shared)
+                                                     (concept--goto-line next-shared)
                                                      (concept-on-data-concept-line)))
-                                          (goto-line prev-shared)
+                                          (concept--goto-line prev-shared)
                                           (concept-goto-current-focus)
                                           (let ((proposal (line-number-at-pos)))
                                             (unless (memq proposal new-focus)
                                               (push proposal new-focus)))))))
                                   (with-current-buffer snapshot
-                                    (goto-line old-line)
+                                    (concept--goto-line old-line)
                                     (when (and in-src-block
                                                (concept-in-relationship-block)
                                                (concept-on-data-line))
@@ -8716,7 +8716,7 @@ pair should be unique when multiple concept maps are open."
                                 ;; about.
                                 (let (in-snp-block on-snp-focus prev-shared next-shared)
                                   (with-current-buffer snapshot
-                                    (goto-line old-line)
+                                    (concept--goto-line old-line)
                                     (if (concept-on-focus-line)
                                         (progn
                                           (setq on-snp-focus t)
@@ -8731,14 +8731,14 @@ pair should be unique when multiple concept maps are open."
                                     (setq prev-shared (nth 1 (concept-diff--previously-shared-line))
                                           next-shared (nth 1 (concept-diff--next-shared-line)))
                                     (with-current-buffer snapshot
-                                      (goto-line prev-shared)
+                                      (concept--goto-line prev-shared)
                                       (when (concept-on-data-concept-line)
                                         (concept-goto-current-focus)
                                         (let ((proposal (line-number-at-pos)))
                                           (unless (memq proposal old-focus)
                                             (push proposal old-focus))))))
                                   (with-current-buffer source
-                                    (goto-line new-line)
+                                    (concept--goto-line new-line)
                                     (when (concept-in-relationship-block)
                                       (concept-goto-current-focus)
                                       (let ((proposal (line-number-at-pos)))
@@ -9048,7 +9048,11 @@ representation of the concept map.")
   (cond ((< x 0) -1)
         ((= x 0)  0)
         (t        1)))
-  
+
+(defun concept--goto-line (N)
+  (goto-char (point-min))
+  (forward-line (1- N)))
+
 (defun concept-map-adjust-edge-counts-for-relationship-block (line-number change &optional relationship-regexp)
   "Adjust the edge counts by CHANGE for one relationship block at a time.
 
@@ -9056,9 +9060,9 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
   (save-excursion
     (when (null relationship-regexp)
       (setq relationship-regexp concept-map-network-relationship-regexp))
-    (goto-line line-number)
+    (concept--goto-line line-number)
     (when (concept-in-relationship-block)
-      (goto-line (car (concept-find-relationship-block-extent)))
+      (concept--goto-line (car (concept-find-relationship-block-extent)))
       (concept-goto-next-concept)
       (while (concept-on-data-concept-line)
         (let ((relationship (concept-current-relationship)))
