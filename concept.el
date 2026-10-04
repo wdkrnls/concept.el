@@ -8765,7 +8765,7 @@ pair should be unique when multiple concept maps are open."
       (or (car changes) (cadr changes)))))
 
 (defvar-local concept-map--network-update-timer nil
-  "Update the concept map network after buffer modifications and a bit of inactivity.
+  "Update the concept map network after buffer modifications and inactivity.
 This is the short term updating system. It might not always work. There
 is a another system which operates at a longer time interval because it
 is not triggered by a save. That time regular interval is determined by
