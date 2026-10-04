@@ -8853,8 +8853,20 @@ network graph hash table.")
 This variable is stored in `concept-map-network-graph'."
   (cond ((not (buffer-live-p buffer))
          (concept-map--debug "Skipped update: buffer no longer exists"))
-        ((not (concept-map-grammar-parses-p))
+        ((with-current-buffer buffer (not (concept-map-grammar-parses-p)))
          (concept-map--debug "Skipped update: buffer syntax is invalid"))
+        ((with-current-buffer buffer
+           (or (null concept-map-network-graph)
+             (null concept-map-network-edge-counts)
+             (null concept-map-snapshot-buffer)
+             (null concept-map-concept-buffer)))
+         (concept-map--debug
+          "Running concept-map-make-full-network-update in %s"
+          (buffer-name))
+         (when concept-map-should-update-stale-network
+           (with-current-buffer buffer
+             (setq concept-map--network-update-timer nil)
+             (concept-map-make-full-network-update))))
         (t
          (with-current-buffer buffer
            (setq concept-map--network-update-timer nil)
@@ -8908,7 +8920,7 @@ This variable is stored in `concept-map-network-graph'."
   (concept-map--setup-network-updating-hooks)
   (concept-map--start-idle-network-update-check)
   (when concept-map-should-update-stale-network
-    (concept-map-make-full-network-update)))
+    (concept-map--schedule-network-update)))
 
 (defun concept-map--tear-down-network-updating-hooks ()
   (remove-hook 'after-change-functions
