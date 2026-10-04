@@ -8781,6 +8781,14 @@ network graph hash table.")
       (setq concept-map-network-is-stale t)
     (setq concept-map-network-is-stale nil)))
 
+(defun concept-map--post-command (&rest _args)
+  "Mark the network stale when a relationship block has changed."
+  (when (or (null concept-map-network-graph)
+            (null concept-map-network-edge-counts)
+            (null concept-map-concept-buffer)
+            (null concept-map-snapshot-buffer))
+    (setq concept-map-network-is-stale t)))
+
 (defun concept-map--after-save ()
   "Mark the network stale when a relationship block has changed."
   (when (and concept-map-network-is-stale
@@ -8872,6 +8880,10 @@ This variable is stored in `concept-map-network-graph'."
             #'concept-map--after-change
             nil
             t)
+  (add-hook 'post-command-hook
+            #'concept-map--post-command
+            nil
+            t)
   (add-hook 'after-save-hook
             #'concept-map--after-save
             nil
@@ -8899,6 +8911,9 @@ This variable is stored in `concept-map-network-graph'."
 (defun concept-map--tear-down-network-updating-hooks ()
   (remove-hook 'after-change-functions
                #'concept-map--after-change
+               t)
+  (remove-hook 'post-command-hook
+               #'concept-map--post-command
                t)
   (remove-hook 'after-save-hook
                #'concept-map--after-save
