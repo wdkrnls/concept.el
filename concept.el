@@ -3157,7 +3157,7 @@ This is a wrapper function useful for interactive usage."
         (line-move-visual nil))
     (if (concept-map-has-more-data-concepts)
         (progn
-          (next-line)
+          (forward-line)
           (beginning-of-line)
           (while (not (concept-on-concept-line))
             (re-search-forward pattern nil t))
@@ -3169,7 +3169,7 @@ This is a wrapper function useful for interactive usage."
   (interactive)
   (let ((pattern "^|")
         (line-move-visual nil))
-    (next-line)
+    (forward-line)
     (beginning-of-line)
     (while (not (and (concept-on-concept-line)
                      (concept-on-data-line)))
@@ -3285,7 +3285,7 @@ This is a wrapper function useful for interactive usage."
   (if (not (concept-map-has-more-attributes))
       (goto-char (point-max))
     (let ((pt (point)))
-      (next-line)
+      (forward-line)
       (beginning-of-line)
       (catch 'done
         (while (not (concept-on-attribute-line))
@@ -3293,7 +3293,7 @@ This is a wrapper function useful for interactive usage."
             (goto-char pt)
             (message "No more attributes in visible buffer!")
             (throw 'done nil))
-          (next-line))
+          (forward-line))
         (end-of-line)
         t))))
 
@@ -3353,7 +3353,7 @@ concepts."
         (when (save-excursion
                 (if (equal direction "up")
                     (previous-line)
-                  (next-line))
+                  (forward-line))
                 (and (concept-on-data-line)
                      (concept-on-concept-line)))
           (if (equal direction "up")
@@ -3361,7 +3361,7 @@ concepts."
                 (transpose-lines 1)
                 (previous-line 2))
             (progn
-              (next-line)
+              (forward-line)
               (transpose-lines 1)
               (previous-line))))
         (end-of-line)))))
@@ -3392,14 +3392,14 @@ adjacent exposition line."
           (when (save-excursion
                   (if (equal direction "up")
                       (previous-line)
-                    (next-line))
+                    (forward-line))
                   (concept-on-exposition-line))
             (if (equal direction "up")
                 (progn
                   (transpose-lines 1)
                   (previous-line 2))
               (progn
-                (next-line)
+                (forward-line)
                 (transpose-lines 1)
                 (previous-line)))))))))
 
@@ -3939,14 +3939,14 @@ This starts at the focus line and increments every time a data line is found.
   (let ((line-move-visual nil))
     (save-excursion
       (concept-goto-current-focus)
-      (next-line)
+      (forward-line)
       (let ((n 0))
         (while (and (concept-in-relationship-block)
                     (not (concept-on-focus-line)))
           (when (and (concept-on-data-line)
                      (not (concept-on-relationship-line)))
             (setq n (1+ n)))
-          (next-line))
+          (forward-line))
         n))))
 
 (defun concept-relationship-group-count ()
@@ -3956,13 +3956,13 @@ relationship line is found."
   (let ((line-move-visual nil))
     (save-excursion
       (concept-goto-current-focus)
-      (next-line)
+      (forward-line)
       (let ((n 0))
         (while (and (concept-in-relationship-block)
                     (not (concept-on-focus-line)))
           (when (concept-on-relationship-line)
             (setq n (1+ n)))
-          (next-line))
+          (forward-line))
         n))))
 
 (defun concept-relationship-group-concept-count ()
@@ -4289,7 +4289,7 @@ control is exercised through modifying the global variables:
   (let ((line-move-visual nil))
     (save-excursion
       (concept-goto-last-resource-or-stay)
-      (next-line)
+      (forward-line)
       (let ((n 0))
         (while (and (not (concept-on-focus-line))
                     (concept-in-resource-block)
@@ -4297,7 +4297,7 @@ control is exercised through modifying the global variables:
                     (not (eobp)))
           (when (not (concept-on-attribute-line))
             (setq n (1+ n)))
-          (next-line))
+          (forward-line))
         n)))))
 
 (defun concept-resource-block-count ()
@@ -4308,13 +4308,13 @@ resource line is found."
   (let ((line-move-visual nil))
     (save-excursion
       (concept-goto-current-focus)
-      (next-line)
+      (forward-line)
       (let ((n 0))
         (while (and (not (concept-on-focus-line))
                     (not (eobp)))
           (when (concept-on-resource-line)
             (setq n (1+ n)))
-          (next-line))
+          (forward-line))
         n))))
 
 (defun concept-idea-has-resources ()
@@ -4341,13 +4341,13 @@ line is found."
   (let ((line-move-visual nil))
     (save-excursion
       (concept-goto-current-focus)
-      (next-line)
+      (forward-line)
       (let ((n 0))
         (while (and (not (concept-on-focus-line))
                     (not (eobp)))
           (when (concept-on-attribute-line)
             (setq n (1+ n)))
-          (next-line))
+          (forward-line))
         n))))
 
 (defun concept-unique-relationship-block-attribute-count ()
@@ -4358,7 +4358,7 @@ relationship is found."
   (let ((line-move-visual nil))
     (save-excursion
       (concept-goto-current-focus)
-      (next-line)
+      (forward-line)
       (let ((seen (make-hash-table :test #'equal))
             relationship)
         (while (not (concept-on-focus-line))
@@ -4366,7 +4366,7 @@ relationship is found."
             (setq attribute (concept-get-attribute))
             (unless (gethash attribute seen)
               (puthash attribute t seen)))
-          (next-line))
+          (forward-line))
         (hash-table-count seen)))))
 
 (defun concept-unique-relationship-group-count ()
@@ -4377,7 +4377,7 @@ relationship is found."
   (let ((line-move-visual nil))
     (save-excursion
       (concept-goto-current-focus)
-      (next-line)
+      (forward-line)
       (let ((seen (make-hash-table :test #'equal))
             relationship)
         (while (and (concept-in-relationship-block)
@@ -4386,7 +4386,7 @@ relationship is found."
             (setq relationship (concept-get-relationship))
             (unless (gethash relationship seen)
               (puthash relationship t seen)))
-          (next-line))
+          (forward-line))
         (hash-table-count seen)))))
 
 (defun concept-unique-resource-block-count ()
@@ -4397,7 +4397,7 @@ resource is found."
   (let ((line-move-visual nil))
     (save-excursion
       (concept-goto-current-focus)
-      (next-line)
+      (forward-line)
       (let ((seen (make-hash-table :test #'equal))
             resource)
         (while (not (concept-on-focus-line))
@@ -4405,7 +4405,7 @@ resource is found."
             (setq resource (concept-current-resource))
             (unless (gethash resource seen)
               (puthash resource t seen)))
-          (next-line))
+          (forward-line))
         (hash-table-count seen)))))
 
 (defun concept-insert-relationship-block (focus relationship concept)
@@ -4770,7 +4770,7 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
            (progn
              (concept-insert-relationship-line relationship)
              (when (save-excursion
-                     (next-line)
+                     (forward-line)
                      (not (concept-on-data-line)))
                (concept-add-new-data)))))))
 
@@ -4954,7 +4954,7 @@ These brackets can hold just about any kind of data."
       (save-restriction
         (concept-narrow-to-concept-block)
         (concept-goto-current-focus)
-        (next-line)
+        (forward-line)
         (beginning-of-line)
         (forward-char 2)
         (when (not (looking-at-p ":include"))
@@ -4968,7 +4968,7 @@ These brackets can hold just about any kind of data."
             (concept-insert-include-dwim)
             (let ((q (point)))
               (goto-char p)
-              (next-line 2)
+              (forward-line 2)
               (beginning-of-line)
               (forward-char 2)
               (kill-ring-save (point) (line-end-position))
@@ -4983,7 +4983,7 @@ These brackets can hold just about any kind of data."
             (concept-insert-include-dwim)
             (let ((q (point)))
               (goto-char p)
-              (next-line 1)
+              (forward-line 1)
               (beginning-of-line)
               (forward-char 2)
               (kill-ring-save (point) (line-end-position))
@@ -5503,7 +5503,7 @@ See also `concept-get-attribute' which gives a single string and
 relationships.."
   (when (concept-on-attribute-line)
     (save-excursion
-      (next-line)
+      (forward-line)
       (let ((data '()))
         (while (and (not (eobp))
                     (concept-on-exposition-line))
@@ -5515,7 +5515,7 @@ relationships.."
   "Get all the child concepts under a relationship as a list of strings.
 See also `concept-get-attribute-data'."
   (save-excursion
-    (next-line)
+    (forward-line)
     (let ((data '()))
       (while (and (not (eobp))
                   (not (concept-on-relationship-line))
