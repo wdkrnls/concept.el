@@ -1445,12 +1445,13 @@ concept maps. It places ideas with similar names next to each other."
       (end-of-line))))
 
 (defun concept-map-toggle-automatic-network-updates ()
-  "Toggle automatic network updating."
+  "Toggle automatic network updating temporarily.
+Disable automatic network updating by turning off the minor mode."
   (interactive)
   (if concept-map-should-update-stale-network
       (progn
         (setq concept-map-should-update-stale-network nil)
-        (message "Automatic network updates disabled!"))
+        (message "Automatic network updates temporarily disabled!"))
     (progn
       (setq concept-map-should-update-stale-network t)
       (when (concept-map--relationship-block-changed-p)
