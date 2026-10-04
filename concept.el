@@ -859,10 +859,10 @@ network."
              (if (< n 0)
                  (with-current-buffer concept-map-snapshot-buffer
                    (concept--goto-line (abs n))
-                   (- (car (concept-find-relationship-block-extend))))
+                   (- (car (concept-find-relationship-block-extent))))
                (with-current-buffer concept-map-concept-buffer
                  (goto-line n)
-                 (car (concept-find-relationship-block-extend)))))
+                 (car (concept-find-relationship-block-extent)))))
            line-numbers)))
   
 (define-derived-mode concept-mode text-mode "CONCEPT"
