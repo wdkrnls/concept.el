@@ -2675,7 +2675,8 @@ Sort these names in order of usage frequency."
     (save-excursion
       (concept--goto-first-heading)
       (while (re-search-forward pattern nil t)
-        (unless (concept-on-blank-line)
+        (unless (or (concept-on-blank-line)
+                    (concept-current-line-empty-p))
           (let* ((line (concept-current-line))
                  (start 2)
                  (entry (string-trim-left (substring line start))))
