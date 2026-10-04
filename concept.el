@@ -1444,7 +1444,7 @@ concept maps. It places ideas with similar names next to each other."
       (concept--goto-line line)
       (end-of-line))))
 
-(defun concept-map-toggle-automatic-network-upates ()
+(defun concept-map-toggle-automatic-network-updates ()
   "Toggle automatic network updating."
   (interactive)
   (if concept-map-should-update-stale-network
@@ -9782,7 +9782,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "C-c M-h")     #'concept-map-find-network-hypernym)
 (define-key concept-mode-map (kbd "C-c C-h")     #'concept-map-find-network-hyponym)
 (define-key concept-mode-map (kbd "C-c M-d")     #'concept-map-diff-snapshot-and-source)
-(define-key concept-mode-map (kbd "C-c M-u")     #'concept-map-toggle-automatic-network-upates)
+(define-key concept-mode-map (kbd "C-c M-u")     #'concept-map-toggle-automatic-network-updates)
 (define-key concept-mode-map (kbd "C-c C-M-u")   #'concept-map-network-update-mode)
 (define-key concept-mode-map (kbd "C-c M-a")     #'concept-end-of-previous-subtree)
 (define-key concept-mode-map (kbd "C-c M-b")     #'concept-end-of-subtree)
