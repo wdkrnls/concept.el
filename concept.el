@@ -9054,16 +9054,20 @@ representation of the concept map.")
   (goto-char (point-min))
   (forward-line (1- N)))
 
-(defun concept-map-adjust-edge-counts-for-relationship-block (line-number change &optional relationship-regexp)
+(defun concept-map-adjust-edge-counts-for-relationship-block (line-number change &optional relationship-regexp on-line)
   "Adjust the edge counts by CHANGE for one relationship block at a time.
 
-By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relationship-regexp'."
+By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relationship-regexp'.
+
+You can optionally assert that you are on the right line number
+already. When you know that you don't have to incur another buffer scan."
   (save-excursion
     (when (null relationship-regexp)
       (setq relationship-regexp concept-map-network-relationship-regexp))
-    (concept--goto-line line-number)
+    (when (not on-line)
+      (concept--goto-line line-number))
     (when (concept-in-relationship-block)
-      (concept--goto-line (car (concept-find-relationship-block-extent)))
+      (concept-goto-current-focus)
       (concept-goto-next-concept)
       (while (concept-on-data-concept-line)
         (let ((relationship (concept-current-relationship)))
@@ -9101,8 +9105,8 @@ By default RELATIONSHIP-REGEXP follows the value of `concept-map-network-relatio
         (save-excursion
           (concept--goto-first-heading)
           (while (concept-on-focus-line)
-            (let ((line-number (line-number-at-pos (point))))
-              (concept-map-adjust-edge-counts-for-relationship-block line-number 1)
+            (let ((line-number (line-number-at-pos)))
+              (concept-map-adjust-edge-counts-for-relationship-block line-number 1 nil t)
               (concept-goto-next-focus)))))
     (error "We expect this to be called from the source buffer. Aborting!")))
 
