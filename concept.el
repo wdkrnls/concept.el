@@ -9669,7 +9669,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "C-.")         #'concept-insert-last-concept-as-new)
 (define-key concept-mode-map (kbd "M-i")         #'concept-insert-include-dwim)
 (define-key concept-mode-map (kbd "M-]")         #'concept-slurp-next-dwim)
-(define-key concept-mode-map (kbd "M-[")         #'concept-barf-current-concept)
+(define-key concept-mode-map (kbd "M-[")         #'concept-barf-next-dwim)
 (define-key concept-mode-map (kbd "C-M-<down>")  #'concept-goto-next-thing)
 (define-key concept-mode-map (kbd "C-M-<up>")    #'concept-goto-last-thing)
 (define-key concept-mode-map (kbd "C-<down>")    #'concept-go-one-group-down)
