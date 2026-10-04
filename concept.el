@@ -9462,31 +9462,33 @@ concept along with how much deeper it is than the starting CONCEPT."
                 (concept-current-concept)
               (concept-current-focus)))))
      (list concept)))
-  (let ((graph concept-map-network-graph)
-        (parents-of (make-hash-table :test 'equal))
-        (memo (make-hash-table :test 'equal))
-        (visiting (make-hash-table :test 'equal)))
-    ;; Build the reverse mapping: child -> parents.
-    (maphash
-     (lambda (parent children)
-       ;; Ensure PARENT is represented, including leaf nodes.
-       (unless (gethash parent parents-of)
-         (puthash parent nil parents-of))
-       (dolist (child children)
-         (puthash child
-                  (cons parent (gethash child parents-of))
-                  parents-of)))
-     graph)
-    ;; The helper returns (DISTANCE . ROOT).
-    (let ((result
-           (concept-map--find-root
-            concept
-            parents-of
-            memo
-            visiting)))
-      (when (called-interactively-p 'interactive)
-        (message "The root concept is `%s' which is %d levels deeper." (cdr result) (car result)))
-      (cdr result))))
+  (if (not (hash-table-p concept-map-network-graph))
+      (user-error "The network hash table has not be setup yet. Aborting!")
+    (let ((graph concept-map-network-graph)
+          (parents-of (make-hash-table :test 'equal))
+          (memo (make-hash-table :test 'equal))
+          (visiting (make-hash-table :test 'equal)))
+      ;; Build the reverse mapping: child -> parents.
+      (maphash
+       (lambda (parent children)
+         ;; Ensure PARENT is represented, including leaf nodes.
+         (unless (gethash parent parents-of)
+           (puthash parent nil parents-of))
+         (dolist (child children)
+           (puthash child
+                    (cons parent (gethash child parents-of))
+                    parents-of)))
+       graph)
+      ;; The helper returns (DISTANCE . ROOT).
+      (let ((result
+             (concept-map--find-root
+              concept
+              parents-of
+              memo
+              visiting)))
+        (when (called-interactively-p 'interactive)
+          (message "The root concept is `%s' which is %d levels deeper." (cdr result) (car result)))
+        (cdr result)))))
 
 (defun concept-map--help-find-hyponym (node graph memo visiting)
   "Return (DISTANCE . DESCENDANT) for NODE.
@@ -9529,19 +9531,21 @@ MEMO caches results, and VISITING detects dependency cycles."
                 (concept-current-concept)
               (concept-current-focus)))))
      (list concept)))
-  (let ((graph concept-map-network-graph)
-        (memo (make-hash-table :test 'equal))
-        (visiting (make-hash-table :test 'equal)))
-    ;; The helper returns (DISTANCE . DESCENDANT).
-    (let ((result
-           (concept-map--help-find-hyponym
-            concept graph memo visiting)))
-      (when (called-interactively-p 'interactive)
-        (if (equal 0 (car result))
-            (message "The hyponym of `%s' is itself. It has no descendants." concept)
-          (message "The hyponym of `%s' is `%s' which is %d levels shallower."
-                   concept (cdr result) (car result))))
-      (cdr result))))
+  (if (not (hash-table-p concept-map-network-graph))
+      (user-error "The network hash table has not be setup yet. Aborting!")
+    (let ((graph concept-map-network-graph)
+          (memo (make-hash-table :test 'equal))
+          (visiting (make-hash-table :test 'equal)))
+      ;; The helper returns (DISTANCE . DESCENDANT).
+      (let ((result
+             (concept-map--help-find-hyponym
+              concept graph memo visiting)))
+        (when (called-interactively-p 'interactive)
+          (if (equal 0 (car result))
+              (message "The hyponym of `%s' is itself. It has no descendants." concept)
+            (message "The hyponym of `%s' is `%s' which is %d levels shallower."
+                     concept (cdr result) (car result))))
+        (cdr result)))))
 
 (defvar-local concept-bar-overlays nil)
 
