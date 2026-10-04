@@ -832,8 +832,9 @@ It provides bindings for quickly navigating concepts and examples.")
      'keymap concept-mode-line-map)))
 
 (defun concept-find-relationship-block-extent (&optional positions)
-  "Compute the extent of the relationship block in the buffer.
-If LINES is supplied, give the line numbers corresponding"
+  "Find the line number pair which bounds the relationship block.
+If POSITIONS is supplied, give the character positions in the buffer
+rather than the line numbers."
   (let ((result
          (save-excursion
            (concept-goto-current-focus)
