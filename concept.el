@@ -2954,22 +2954,26 @@ by this command in practice."
 (defun concept-slurp-next-attribute ()
   "Consume the next resource and all its attributes and data into the current resource."
   (interactive)
-  (when (and (concept-on-exposition-line)
-             (not (concept-on-last-line-in-block-p))
-             (save-excursion
-               (forward-line)
-               (concept-on-attribute-line)))
-    (let ((resource (concept-current-resource-name))
-          (keyword (concept-current-attribute))
-          (line-move-visual nil))
-      (forward-line)
-      (let ((next-keyword (concept-current-attribute)))
-        (if (equal keyword next-keyword)
-            (progn
-              (kill-whole-line)
-              (end-of-line))
-          (previous-line)
-          (end-of-line))))))
+  (when (concept-on-exposition-line)
+    (cond ((concept-on-blank-exposition-line)
+           (concept-kill-dwim)
+           (end-of-line)
+           (backward-char))
+          ((and (not (concept-on-last-line-in-block-p))
+                (save-excursion
+                  (forward-line)
+                  (concept-on-attribute-line)))
+           (let ((resource (concept-current-resource-name))
+                 (keyword (concept-current-attribute))
+                 (line-move-visual nil))
+             (forward-line)
+             (let ((next-keyword (concept-current-attribute)))
+               (if (equal keyword next-keyword)
+                   (progn
+                     (kill-whole-line)
+                     (end-of-line))
+                 (previous-line)
+                 (end-of-line))))))))
 
 (defun concept-slurp-next-relationship-group ()
   "Consume the next relationship and all its attributes and data into the current relationship group."
