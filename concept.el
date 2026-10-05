@@ -2906,9 +2906,10 @@ by this command in practice."
              (kill-whole-line)
              (previous-line)
              (end-of-line))
-            ((save-excursion
-               (forward-line)
-               (concept-on-focus-line))
+            ((and (concept-on-data-concept-line)
+                  (save-excursion
+                    (forward-line)
+                    (concept-on-focus-line)))
              (forward-line)
              (kill-ring-save (line-beginning-position) (line-end-position))
              (when (<= (concept-relationship-count) 1)
@@ -2918,6 +2919,14 @@ by this command in practice."
                        (concept-on-relationship-line))
                  (forward-line)
                  (kill-whole-line))))
+            ((and (concept-on-relationship-line)
+                  (save-excursion
+                    (forward-line)
+                    (concept-on-focus-line)
+                    (eq 0 (concept-relationship-count))))
+             (forward-line)
+             (concept-toggle-focus-data)
+             (end-of-line))
             ((save-excursion
                (forward-line)
                (concept-on-data-line))
@@ -3009,9 +3018,10 @@ by this command in practice."
 (defun concept-slurp-next-dwim ()
   "Consume the next grouping and all its data into the current grouping."
   (interactive)
-  (cond ((and (concept-on-data-concept-line)
-              (or (concept-on-blank-line)
-                  (concept-on-last-line-in-block-p)))
+  (cond ((or (and (concept-on-data-concept-line)
+                  (or (concept-on-blank-line)
+                      (concept-on-last-line-in-block-p)))
+             (concept-on-relationship-line))
          (concept-slurp-next-concept))
         ((and (concept-on-exposition-line)
               (concept-on-last-line-in-block-p))
