@@ -97,7 +97,7 @@ The weird and completely miraculous thing is that in practice, we humans hold ma
 | :include
 | relationships-between-concepts
 ~ relationship-blocks
-| :capture
+| :hold
 | relationships-between-concepts
 ~ relationship-groups
 | :hold
@@ -119,18 +119,18 @@ The weird and completely miraculous thing is that in practice, we humans hold ma
 | pieces-of-intuition
 ~ pieces-of-knowledge
 | :include
-| abstract-pieces-of-knolwedge
-| concrete-pieces-of-knolwedge
+| abstract-pieces-of-knowledge
+| concrete-pieces-of-knowledge
 @ understanding
 | note:
 | {It's hard to comprehend abstract ideas without considering the many concrete examples which hint at them.}
-~ concrete-pieces-of-knolwedge
+~ concrete-pieces-of-knowledge
 | :include
-| relevant-concrete-pieces-of-knolwedge
-| irrelevant-concrete-pieces-of-knolwedge
+| relevant-concrete-pieces-of-knowledge
+| irrelevant-concrete-pieces-of-knowledge
 ~ attribute-groups
-| :capture
-| concrete-pieces-of-knolwedge
+| :hold
+| concrete-pieces-of-knowledge
 ~ concrete-pieces-of-knowledge
 | :include
 | facts
