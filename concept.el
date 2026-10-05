@@ -2935,7 +2935,8 @@ Choose the new concept from initially ordered list of all resources."
   "Consume the next grouping and all its data into the current grouping."
   (interactive)
   (cond ((and (concept-on-data-concept-line)
-              (concept-on-last-line-in-block-p))
+              (or (concept-on-blank-line)
+                  (concept-on-last-line-in-block-p)))
          (concept-slurp-next-concept))
         ((and (concept-on-exposition-line)
               (concept-on-last-line-in-block-p))
