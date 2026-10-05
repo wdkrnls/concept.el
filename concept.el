@@ -2307,6 +2307,19 @@ relationship has a colon at the beginning of the statement."
              (delete-char 1)
              (insert "|"))))))
 
+(defun concept-cycle-relationships ()
+  "Cycle between possible relationships."
+  (when (concept-on-relationship-line)
+    (let* ((relationships (concept-find-all-relationships))
+           (current       (concept-current-relationship))
+           (list-pos      (seq-position relationships current))
+           (N             (length relationships)))
+      (end-of-line)
+      (backward-sexp)
+      (kill-line)
+      (insert (nth (if (eq list-pos (1- N)) 0 (1+ list-pos)) relationships))
+      (end-of-line))))
+
 (defun concept-cycle-context ()
   "Rotate the sigil used to identify the meaning of the line in a concept map file."
   (interactive)
@@ -2334,6 +2347,8 @@ relationship has a colon at the beginning of the statement."
               (t
                (insert "|")
                (newline))))
+      (when (concept-on-relationship-line)
+        (concept-cycle-relationships))
       (when (concept-on-exposition-line)
         (concept-cycle-expression-brackets)))))
 
