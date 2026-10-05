@@ -1,6 +1,6 @@
 ~ attribute-groups
-| :capture
-| concrete-pieces-of-knolwedge
+| :hold
+| concrete-pieces-of-knowledge
 ~ concepts
 | :include
 | single-concepts
@@ -28,10 +28,10 @@
 | note:
 | {In english grammar, a simple sentence has a subject, a verb, and an object.}
 | {Here ideas correspond roughly to multiple related simple sentences.}
-~ concrete-pieces-of-knolwedge
+~ concrete-pieces-of-knowledge
 | :include
-| relevant-concrete-pieces-of-knolwedge
-| irrelevant-concrete-pieces-of-knolwedge
+| relevant-concrete-pieces-of-knowledge
+| irrelevant-concrete-pieces-of-knowledge
 ~ concrete-pieces-of-knowledge
 | :include
 | facts
@@ -51,8 +51,8 @@
 | pieces-of-intuition
 ~ pieces-of-knowledge
 | :include
-| abstract-pieces-of-knolwedge
-| concrete-pieces-of-knolwedge
+| abstract-pieces-of-knowledge
+| concrete-pieces-of-knowledge
 @ understanding
 | note:
 | {It's hard to comprehend abstract ideas without considering the many concrete examples which hint at them.}
@@ -60,8 +60,12 @@
 | :hold
 | relationship-groups
 ~ relationship-blocks
-| :capture
+| :hold
 | relationships-between-concepts
+~ relationships
+| :include
+| direct-relationships
+| indirect-relationships
 ~ relationship-groups
 | :hold
 | multiple-objects
