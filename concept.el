@@ -2352,6 +2352,45 @@ relationship has a colon at the beginning of the statement."
       (when (concept-on-exposition-line)
         (concept-cycle-expression-brackets)))))
 
+(defun concept--count-hyphens-per-string (strings)
+  "Return a list containing the number of hyphens in each string in STRINGS."
+  (seq-map
+   (lambda (string)
+     (seq-count
+      (lambda (character)
+        (eq character ?-))
+      string))
+   strings))
+
+(defun concept--max-words (list-of-strings)
+  (1+ (seq-max (concept--count-hyphens-per-string list-of-strings))))
+
+(defun concept-make-tempel-resource-template* (includes excludes)
+  "Generate the data needed to more quickly construct a resource template.
+It takes two lists of strings as argument INCLUDES and EXCLUDES. These
+are substring suffixes."
+  (let ((N (concept--max-words includes)))
+    (save-excursion
+      (concept-goto-last-relationship)
+      (mapconcat
+        (lambda (concept)
+          (format "| {%s}"
+                  (mapconcat #'identity
+                             (butlast (string-split concept "-") N)
+                             "-")))
+        (seq-filter
+         (lambda (x)
+           (and (not (seq-some
+                      (lambda (y)
+                        (string-suffix-p y x))
+                      excludes))
+                (seq-some
+                 (lambda (y)
+                   (string-suffix-p y x))
+                 includes)))
+         (nreverse (concept-get-child-concepts)))
+        "\n"))))
+
 (defun concept-cycle-expression-brackets ()
   "Rotate the brackets used to express the exposition."
   (interactive)
