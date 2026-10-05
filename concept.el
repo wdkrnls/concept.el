@@ -9708,7 +9708,10 @@ MEMO caches results, and VISITING detects dependency cycles."
          (face (cdr entry)))
     (when entry
       (let ((ov (make-overlay start end (current-buffer))))
-        (overlay-put ov 'display glyph)
+        (if (and (string= source "~")
+                 (eq (point) (1+ (point-min))))
+            (overlay-put ov 'display "┬")
+          (overlay-put ov 'display glyph))
         (overlay-put ov 'face face)
         (overlay-put ov 'evaporate t)
         (push ov concept-bar-overlays)))))
