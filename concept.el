@@ -2891,30 +2891,32 @@ Choose the new concept from initially ordered list of all resources."
         (insert "}")))))
 
 (defun concept-slurp-next-concept ()
-  "Convert the next focus concept into a data concept for the current focus."
+  "Convert the next focus concept into a data concept for the current focus.
+This also has the useful behavior of removing blank lines in
+relationship blocks. That behavior may be the most useful one provided
+by this command in practice."
   (interactive)
   (when (concept-on-data-line)
     (let ((is-blank (concept-on-blank-line))
           (line-move-visual nil))
-      (cond ((save-excursion
-               (next-line)
-               (concept-on-focus-line))
-             (when is-blank
-               (beginning-of-line)
-               (kill-line)
-               (kill-line)
-               (concept-toggle-focus-data)
-               (end-of-line))
-             (when (not is-blank)
-               (next-line)
-               (kill-ring-save (line-beginning-position) (line-end-position))
-               (when (<= (concept-relationship-count) 1)
-                 (concept-toggle-focus-data)
-                 (when (save-excursion (forward-line) (concept-on-relationship-line))
-                   (forward-line)
-                   (kill-whole-line)))))
+      (cond (is-blank
+             (kill-whole-line)
+             (previous-line)
+             (end-of-line))
             ((save-excursion
-               (next-line)
+               (forward-line)
+               (concept-on-focus-line))
+             (forward-line)
+             (kill-ring-save (line-beginning-position) (line-end-position))
+             (when (<= (concept-relationship-count) 1)
+               (concept-toggle-focus-data)
+               (when (save-excursion
+                       (forward-line)
+                       (concept-on-relationship-line))
+                 (forward-line)
+                 (kill-whole-line))))
+            ((save-excursion
+               (forward-line)
                (concept-on-data-line))
              (when is-blank
                (beginning-of-line)
