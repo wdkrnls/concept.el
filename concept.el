@@ -9960,7 +9960,7 @@ MEMO caches results, and VISITING detects dependency cycles."
 (define-key concept-mode-map (kbd "M-k")         #'concept-add-data)
 (define-key concept-mode-map (kbd "C-o")         #'concept-add-dwim)
 (define-key concept-mode-map (kbd "M-o")         #'concept-repeat-dwim)
-(define-key concept-mode-map (kbd "C-i")         #'concept-insert-map-element)
+(define-key concept-mode-map (kbd "C-M-e")       #'concept-insert-map-element)
 (define-key concept-mode-map (kbd "M-RET")       #'concept-add-new-data)
 (define-key concept-mode-map (kbd "<tab>")       #'concept-change-dwim)
 (define-key concept-mode-map (kbd "C-M-i")       #'concept-change-dwim)
