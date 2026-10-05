@@ -1999,6 +1999,9 @@ place."
          (kill-line))))
   
 (defun concept-kill-dwim ()
+  "Kill whole concept map elements.
+When you don't want to kill the whole concept map element, call
+`concept-kill-data-dwim' instead."
   (interactive)
   (cond ((concept-on-focus-line)
          (kill-region (line-beginning-position) (save-excursion (outline-end-of-subtree) (point)))
