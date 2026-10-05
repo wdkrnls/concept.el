@@ -2365,16 +2365,19 @@ relationship has a colon at the beginning of the statement."
 (defun concept--max-words (list-of-strings)
   (1+ (seq-max (concept--count-hyphens-per-string list-of-strings))))
 
-(defun concept-make-tempel-resource-template* (includes excludes)
+(defun concept-make-tempel-resource-template* (includes excludes &optional prefix)
   "Generate the data needed to more quickly construct a resource template.
 It takes two lists of strings as argument INCLUDES and EXCLUDES. These
 are substring suffixes."
+  (when (null prefix)
+    (setq prefix ""))
   (let ((N (concept--max-words includes)))
     (save-excursion
       (concept-goto-last-relationship)
       (mapconcat
         (lambda (concept)
-          (format "| {%s}"
+          (format "| {%s%s}"
+                  prefix
                   (mapconcat #'identity
                              (butlast (string-split concept "-") N)
                              "-")))
