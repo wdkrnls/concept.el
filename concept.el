@@ -9854,22 +9854,181 @@ MEMO caches results, and VISITING detects dependency cycles."
         ((concept-on-exposition-line)
          "Exposition")))
 
+(defun concept-map-is-empty ()
+  (save-excursion
+    (goto-char (point-min))
+    (skip-syntax-forward " ")
+    (= (point) (point-max))))
+
+(defun concept-map-has-only-focus-lines ()
+  (save-excursion
+    (goto-char (point-min))
+    (let ((valid t)
+          (has-focus-line nil))
+      (while (and valid (not (eobp)))
+        (cond
+         ;; Blank line, possibly containing spaces or tabs.
+         ((looking-at-p "^[ \t]*$")
+          nil)
+         ((looking-at-p "^~")
+          (setq has-focus-line t))
+         ;; Anything else makes the buffer invalid.
+         (t
+          (setq valid nil)))
+        (forward-line 1))
+      (and valid has-focus-line))))
+
+(defun concept-map-has-only-focus-and-relationship-lines ()
+  (save-excursion
+    (goto-char (point-min))
+    (let ((valid t)
+          (has-focus-line nil)
+          (has-relationship-line nil))
+      (while (and valid (not (eobp)))
+        (cond
+         ((looking-at-p "^[ \t]*$") nil)
+         ((looking-at-p "^~") (setq has-focus-line t))
+         ((and (looking-at-p "^| +:")
+               (save-excursion
+                 (previous-line)
+                 (looking-at-p "^~")))
+          (setq has-relationship-line t))
+         (t
+          (setq valid nil)))
+        (forward-line 1))
+      (and valid has-focus-line has-relationship-line))))
+
+(defun concept-map-has-a-full-relationship-block-but-no-resources ()
+  (save-excursion
+    (goto-char (point-min))
+    (let ((valid t)
+          (has-focus-line nil)
+          (has-relationship-line nil)
+          (has-data-concept-line nil)
+          (has-full-block nil)
+          (has-resource-line nil))
+      (while (and valid (not (eobp)))
+        (cond
+         ((looking-at-p "^[ \t]*$")
+          nil)
+         ((looking-at-p "^~")
+          (setq has-focus-line t))
+         ((and (looking-at-p "^| +:")
+               (save-excursion
+                 (previous-line)
+                 (or (looking-at-p "^~")
+                     (looking-at-p concept-object-line-regexp))))
+          (setq has-relationship-line t))
+         ((and (looking-at-p concept-object-line-regexp)
+               (save-excursion
+                 (previous-line)
+                 (and (looking-at-p "^| +:")
+                      (progn
+                        (previous-line)
+                        (looking-at-p "^~")))))
+          (setq has-full-block t
+                has-data-concept-line t))
+         ((and (looking-at-p concept-object-line-regexp)
+               (save-excursion
+                 (previous-line)
+                 (or (looking-at-p "^| +:")
+                     (looking-at-p concept-object-line-regexp))))
+          (setq has-data-concept-line t))
+         (t
+          (setq valid nil)))
+        (forward-line 1))
+      (and valid has-focus-line has-relationship-line
+           has-data-concept-line has-full-block
+           (not has-resource-line)))))
+
+(defun concept-map-has-a-full-relationship-block-and-a-resource-line-but-no-attributes ()
+  (save-excursion
+    (goto-char (point-min))
+    (let ((valid t)
+          (has-focus-line nil)
+          (has-relationship-line nil)
+          (has-data-concept-line nil)
+          (has-full-block nil)
+          (has-resource-line nil)
+          (has-attribute-line nil))
+      (while (and valid (not (eobp)))
+        (cond
+         ((looking-at-p "^[ \t]*$")
+          nil)
+         ((looking-at-p "^~")
+          (setq has-focus-line t))
+         ((and (looking-at-p "^| +:")
+               (save-excursion
+                 (previous-line)
+                 (or (looking-at-p "^~")
+                     (looking-at-p concept-object-line-regexp))))
+          (setq has-relationship-line t))
+         ((and (looking-at-p concept-object-line-regexp)
+               (save-excursion
+                 (previous-line)
+                 (and (looking-at-p "^| +:")
+                      (progn
+                        (previous-line)
+                        (looking-at-p "^~")))))
+          (setq has-full-block t
+                has-data-concept-line t))
+         ((and (looking-at-p concept-object-line-regexp)
+               (save-excursion
+                 (previous-line)
+                 (or (looking-at-p "^| +:")
+                     (looking-at-p concept-object-line-regexp))))
+          (setq has-data-concept-line t))
+         ((and (looking-at-p "^@")
+               (save-excursion
+                 (previous-line)
+                 (looking-at-p concept-object-line-regexp)))
+          (setq has-resource-line t))
+         ((looking-at-p concept-attribute-group-keyword-regexp)
+          (setq has-attribute-line t))
+         (t
+          (setq valid nil)))
+        (forward-line 1))
+      (and valid has-focus-line has-relationship-line
+           has-data-concept-line has-full-block has-resource-line
+           (not has-attribute-line)))))
+
 (defun concept-insert-map-element (choice)
-  "Insert a new concept map element before or after the current line."
+  "Insert a new concept map element before or after the current line.
+This can help new users create concept maps from scratch. All they have
+to do is type the keystrokes over and over."
   (interactive
-   (let* ((candidates (list "Focus Concept" "Data Concept" "Relationship" "Resource" "Attribute" "Exposition")) 
+   (let* ((candidates (cond ((concept-map-is-empty)
+                             (list "Focus Concept"))
+                            ((concept-map-has-only-focus-lines)
+                             (list "Focus Concept" "Relationship"))
+                            ((concept-map-has-only-focus-and-relationship-lines)
+                             (list "Focus Concept" "Relationship" "Data Concept"))
+                            ((concept-map-has-a-full-relationship-block-but-no-resources)
+                             (list "Focus Concept" "Relationship" "Data Concept" "Resource"))
+                            ((concept-map-has-a-full-relationship-block-and-a-resource-line-but-no-attributes)
+                             (list "Focus Concept" "Data Concept" "Relationship" "Resource" "Attribute"))
+                            (t
+                             (list "Focus Concept" "Data Concept" "Relationship" "Resource" "Attribute" "Exposition"))))
           (choice
            (completing-read
             "Insert Concept Map Element: "
             candidates nil t
-            (concept-map-current-element))))
+            (pcase (concept-map-current-element)
+              ("Focus Concept" "Relationship")
+              ("Relationship"  "Data Concept")
+              ("Data Concept"  "Resource")
+              ("Resource"      "Attribute")
+              ("Attribute"     "Exposition")))))
      (list choice)))
   (pcase choice
     ("Focus Concept"
-     (concept-goto-current-focus)
-     (concept-repeat-focus-concept)
-     (end-of-line)
-     (concept-kill-data-dwim))
+     (if (concept-map-is-empty)
+         (progn (beginning-of-line)
+                (insert "~ "))
+       (concept-goto-current-focus)
+       (concept-repeat-focus-concept)
+       (end-of-line)
+       (concept-kill-data-dwim)))
     ("Data Concept"
      (cond ((and (concept-on-focus-line)
                  (< 1 (concept-relationship-count)))
@@ -9887,6 +10046,11 @@ MEMO caches results, and VISITING detects dependency cycles."
     ("Relationship"
      (cond ((or (concept-on-focus-line)
                 (concept-on-data-concept-line))
+            (when (concept-on-last-line-p)
+              (progn
+                (end-of-line)
+                (newline)
+                (previous-line)))
             (concept-add-new-data)
             (insert ":"))
            ((and (concept-on-relationship-line)
@@ -9905,7 +10069,8 @@ MEMO caches results, and VISITING detects dependency cycles."
                        (end-of-line)
                        (concept-kill-data-dwim))
               (outline-end-of-subtree)
-              (newline)
+              (when (not (concept-current-line-empty-p))
+                (newline))
               (insert "@ ")))
            (t (concept-goto-current-resource)
               (concept-repeat-dwim 1)
@@ -9913,6 +10078,11 @@ MEMO caches results, and VISITING detects dependency cycles."
               (concept-kill-data-dwim))))
     ("Attribute"
      (cond ((concept-on-resource-line)
+            (when (concept-on-last-line-p)
+              (progn
+                (end-of-line)
+                (newline)
+                (previous-line)))
             (concept-add-new-data)
             (insert ":")
             (backward-char))
