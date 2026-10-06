@@ -733,6 +733,24 @@ The changes result should be `'((35) (35 38))`. With the heuristic we miss the 3
 
 There are two possibilities: the snapshot line could be ahead of the source line or behind it. By ahead, we mean that the corresponding line in the diff is placed after the addition. Similarly, by behind we mean that the snapshot line is placed before it. During a pure addition, we only care about the snapshot buffer when the position in the source buffer concerns a relationship block. Changes outside of a relationship block are of no concern to us. Then we add that position in the snapshot buffer to the list if it is not on the last line or the first line of the relationship block. I don't really understand why. Plausibly, the line in question is shared between both the source and the snapshot buffer.
 
+### Bootstrapping new users understanding from nothing
+
+I wrote the `concept-map-insert-element` command because I don't need to navigate to defuns in concept-mode buffers and I wanted a way to enter the concept map elements especially via a common keystroke. So, I bound it to `C-M-e` which has the memorable mnemonic of "Concept Map element".
+
+To create a concept map from a blank buffer I tied it into a bunch of helper functions so that a new user can construct a basic concept map just by pressing `C-M-e` over and over and filling out the data at each step.
+
+Combining this with enabling my eldoc integration and perhaps it will make getting started with concept mapping less of a hurdle. We'll see!
+
+Of course, right now it's quite fresh code and I am seeing problems with network updating on such small concept maps. This shouldn't be! Very small concept maps like this seem an excellent test case for validating the robustness of the network updating code.
+
+I shouldn't be seeing errors like this:
+
+```
+Error running timer ‘concept-map--run-scheduled-network-update’: (search-failed "^ ")
+```
+
+Network analysis tools should just work out of box once only one idea is available. The same goes for the search functionality.
+
 ### Tools for working with concepts themselves
 
 Thinking about names in a standard way would really help with merging two different concept maps as well. So, in the future we hope to provide tools for parsing concepts in terms of the `{classification|core|definition}` framework discussed earlier. One challenge we have frequently seen is that concept names start getting longer and longer the more we work with concept maps. Tasteful categorization can help, but, e.g., when dealing with documenting useful elisp functions, it become useful to make some shorthand summarizations for brevity. These can challenge the power of these tools, but there may be useful conventions which can support the development of tools to overcome these issues.
