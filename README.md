@@ -735,9 +735,9 @@ There are two possibilities: the snapshot line could be ahead of the source line
 
 ### Bootstrapping new users understanding from nothing
 
-I wrote the `concept-map-insert-element` command because I don't need to navigate to defuns in concept-mode buffers and I wanted a way to enter the concept map elements especially via a common keystroke. So, I bound it to `C-M-e` which has the memorable mnemonic of "Concept Map element".
+I wrote the `concept-map-insert-element` command because I wanted a way to enter the concept map elements especially via a keystroke. Of course, I can just type out new concept maps because I have an intuitive understanding of their syntax. However, others, for whom the idea of plain text concept maps is a new idea, will not yet possess that intuition. I don't need to navigate to defuns in concept-mode buffers and I So, I bound it to `C-M-e` which has the memorable mnemonic of "Concept Map element".
 
-To create a concept map from a blank buffer I tied it into a bunch of helper functions so that a new user can construct a basic concept map just by pressing `C-M-e` over and over and filling out the data at each step.
+To create a concept map from a blank buffer I tied it into a bunch of helper functions which test the complexity of nascent concept maps. The most basic concept map is a blank buffer. The next level of complexity is the buffer with only isolated focus lines. The next level is focus lines with a relationship. Next level is having atleast one minimal idea: a full relationship block without resources. Then you could have one with the start of a resource. Then you could have one with the start of a resource with an attribute but not expository data, and finally you can have a minimal idea with a complete minimal relationship block and a complete minimal resource block. I made all these helper functions so that a new user can construct a basic concept map just by pressing `C-M-e` over and over starting from a blank buffer. Filling out the data at each step, they are guided towards creating a minimal concept map with one relationship block and one resource block.
 
 Combining this with enabling my eldoc integration and perhaps it will make getting started with concept mapping less of a hurdle. We'll see!
 
