@@ -207,7 +207,15 @@ These are subject concepts. They were called focus concepts.")
 
 (defvar concept-object-line-regexp
   "^| +[^][{}‘’: ]+ *$"
-  "Regular expression to detect object lines.")
+  "Regular expression to detect object lines.
+The main thing to rule out are other data lines. Exposition lines are
+particularly tricky. `C-\[-key-strokes' is an interesting
+counterexample. This fails the current regular expression, but seems
+like it should be valid. I just don't want a recursive descent parser to
+be needed to determine whether this is a valid data concept or
+not. Perhaps, this could be replaced with the classifier used on the
+defun `concept-map-complexity-status'? It doesn't require a fancy parser
+and still works for this counterexample.")
 
 (defvar concept-resource-line-regexp
   "^@ +[^: ]+ *$"
