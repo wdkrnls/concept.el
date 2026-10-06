@@ -9992,6 +9992,86 @@ MEMO caches results, and VISITING detects dependency cycles."
            has-data-concept-line has-full-block has-resource-line
            (not has-attribute-line)))))
 
+(defun concept-map-complexity-status ()
+  "Return structural information about the current concept map.
+
+The result is a property list containing flags used to determine
+completion candidates."
+  (save-excursion
+    (goto-char (point-min))
+    (let ((valid t)
+          (nonblank nil)
+          (has-focus nil)
+          (has-relationship nil)
+          (has-data-concept nil)
+          (has-relationship-block nil)
+          (has-resource-block nil)
+          (has-resource nil)
+          (has-attribute nil)
+          (has-exposition nil)
+          (previous nil)
+          (previous-previous nil))
+      (while (and valid (not (eobp)))
+        (let ((current
+               (cond
+                ((looking-at-p "^[ \t]*$")                     'blank)
+                ((looking-at-p "^~")                           'focus)
+                ((looking-at-p "^| +:")                        'relationship)
+                ((looking-at-p "^| +[^[{‘: ][^ ]+[^]}‘: ] *$") 'data-concept)
+                ((looking-at-p "^@")                           'resource)
+                ((looking-at-p "^| +[[{‘]")                    'exposition)
+                ((looking-at-p "^| +[^[{‘: ]+: *$")            'attribute)
+                (t 'unknown))))
+          (unless (eq current 'blank)
+            (setq nonblank t))
+          (pcase current
+            ('blank nil)
+            ('focus (setq has-focus t))
+            ('relationship
+             (if (memq previous '(focus data-concept))
+                 (setq has-relationship t)
+               (setq valid nil)))
+            ('data-concept
+             (if (memq previous '(relationship data-concept))
+                 (progn
+                   (setq has-data-concept t)
+                   (when (and (eq previous-previous 'focus)
+                              (eq previous 'relationship))
+                     (setq has-relationship-block t)))
+               (setq valid nil)))
+            ('resource
+             (if (memq previous '(data-concept exposition))
+                 (setq has-resource t)
+               (setq valid nil)))
+            ('attribute
+             (if (memq previous '(resource exposition))
+                 (setq has-attribute t)
+               (setq valid nil)))
+            ('exposition
+             (if (memq previous '(exposition attribute))
+                 (progn
+                   (setq has-exposition t)
+                   (when (and (eq previous-previous 'resource)
+                              (eq previous 'attribute))
+                     (setq has-resource-block t)))
+               (setq valid nil)))
+            ('unknown
+             (debug)
+             (setq valid nil)))
+          (setq previous-previous previous
+                previous current)
+          (forward-line 1)))
+      (list :empty (not nonblank)
+            :valid valid
+            :focus has-focus
+            :relationship has-relationship
+            :data-concept has-data-concept
+            :relationship-block has-relationship-block
+            :resource-block has-resource-block
+            :resource has-resource
+            :attribute has-attribute
+            :exposition has-exposition))))
+
 (defun concept-insert-map-element (choice)
   "Insert a new concept map element before or after the current line.
 This can help new users create concept maps from scratch. All they have
