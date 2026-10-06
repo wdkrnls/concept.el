@@ -903,7 +903,7 @@ network."
 
 (defun concept--goto-first-heading ()
   "Go back to the first heading in the region."
-  (beginning-of-buffer)
+  (goto-char (point-min))
   (condition-case err
       (when (not (concept-on-focus-line))
         (concept-goto-next-concept-block-or-stay))
@@ -961,7 +961,7 @@ selected line then this will return nil.
 (defun concept-map-idea-count ()
   "Count the number of ideas in a concept map."
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (how-many "^~")))
 
 (defun concept-reverse-ideas ()
