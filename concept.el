@@ -4684,6 +4684,14 @@ can think of this as analogous to how C-. and M-. work."
         ((and (concept-on-data-concept-line)
               (save-excursion
                 (forward-line)
+                (concept-on-relationship-line)))
+         (let ((concept (concept-current-concept)))
+           (end-of-line)
+           (newline)
+           (insert (format "~ %s" concept))))
+        ((and (concept-on-data-concept-line)
+              (save-excursion
+                (forward-line)
                 (concept-on-data-concept-line)))
          (when (not (concept-on-blank-line))
            (let ((concept (concept-current-concept))
