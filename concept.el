@@ -3535,7 +3535,9 @@ adjacent exposition line."
               (progn
                 (forward-line)
                 (transpose-lines 1)
-                (previous-line)))))))))
+                (previous-line)))
+            (end-of-line)
+            (backward-char)))))))
 
 (defun concept-exchange-exposition-up (&optional times)
   "Exchange exposition with the previous one."
