@@ -2435,37 +2435,40 @@ are substring suffixes."
 
 (defun concept--prefix-before-include (string includes &optional offset)
   "Return the part of STRING before its first INCLUDE substring match.
-Optionally move the ending of the substring by a fixed offset."
+Optionally move the ending of the substring by a fixed OFFSET."
   (catch 'found
     (dolist (include includes)
       (when (string-match (regexp-quote include) string)
-        (throw 'found (substring string 0 (1- (match-beginning 0))))))))
+        (throw 'found (substring string 0 (+ offset (match-beginning 0))))))))
 
 (defun concept-make-tempel-resource-template** (includes excludes &optional prefix)
   "Generate the data needed to more quickly construct a resource template.
 It takes two lists of strings as argument INCLUDES and EXCLUDES. These
-define substrings which indicate the suffixes of core concepts."
+define substrings which indicate the suffixes of core concepts. Unlike
+`concept-make-tempel-resource-template*', this version removes any duplicate lines."
   (when (null prefix)
     (setq prefix ""))
   (let ((N (concept--max-words includes)))
     (save-excursion
       (concept-goto-last-relationship)
       (mapconcat
-       (lambda (concept)
-         (format "| {%s%s}"
-                 prefix
-                 (concept--prefix-before-include concept includes)))
-       (seq-filter
-        (lambda (x)
-          (and (not (seq-some
-                     (lambda (y)
-                       (string-match-p y x))
-                     excludes))
-               (seq-some
-                (lambda (y)
-                  (string-match-p y x))
-                includes)))
-        (nreverse (concept-get-child-concepts)))
+       (lambda (string)
+         (format "| {%s%s}" prefix string))
+       (delete-dups
+        (mapcar
+         (lambda (z)
+           (concept--prefix-before-include z includes -1))
+         (seq-filter
+          (lambda (x)
+            (and (not (seq-some
+                       (lambda (y)
+                         (string-match-p y x))
+                       excludes))
+                 (seq-some
+                  (lambda (y)
+                    (string-match-p y x))
+                  includes)))
+          (nreverse (concept-get-child-concepts)))))
        "\n"))))
 
 (defun concept-cycle-expression-brackets ()
