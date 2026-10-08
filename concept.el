@@ -7035,8 +7035,9 @@ modifying `mailcap-user-mime-data'."
            (re-search-forward "[^| ]" (line-end-position) t)
            (concept-follow-man
             (concept-get-expository-data))))
-        ((and (concept-on-exposition-line)
-              (string= "file-path" (concept-exposition-parent-key)))
+        ((let ((key (concept-exposition-parent-key)))
+           (and (concept-on-exposition-line)
+                (member key  '("file-path" "directory"))))
          (save-excursion
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
