@@ -2979,7 +2979,16 @@ by this command in practice."
   (when (concept-on-data-line)
     (let ((is-blank (concept-on-blank-line))
           (line-move-visual nil))
-      (cond (is-blank
+      (cond ((and is-blank
+                  (null (concept-get-child-concepts))
+                  (save-excursion
+                    (forward-line)
+                    (and (concept-on-focus-line)
+                         (eq 0 (concept-relationship-count)))))
+             (kill-whole-line)
+             (concept-toggle-focus-data)
+             (end-of-line))
+            (is-blank
              (kill-whole-line)
              (previous-line)
              (end-of-line))
