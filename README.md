@@ -159,7 +159,7 @@ These editing tools include:
 * an automatically synchronized network graph representation of the concept map holding all the conceptual relationships stored in the relationship block portions of the buffer
 * a suite of network analysis tools useful for exporing and refining concept maps to make them more consistent and comprehensive
 * Several `tabulated-list` buffer interfaces for exploring different statistical aspects of your concept map
-* optional integration with many built-in and external Emacs libraries and packages include `calendar`, `osm`, `dictionary.el`, `eww`, and `elpher`
+* optional integration with many built-in and external Emacs libraries and packages including `calendar`, `osm`, `dictionary`, `eww`, and `elpher`
 * convenient interfaces for calling arbitrary emacs lisp expressions and shell commands; the former via a special-mode buffer which separates out return values, messages and text streams; the later via a wrapper around `compile`
 * extensive support for sorting and randomizing concept map elements, with a particular emphasis on supporting tailor-made canonical sorting algorithms so that git can make meaningful diffs for when research teams collaborate on developing concept maps together
 
