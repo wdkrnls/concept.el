@@ -2404,35 +2404,6 @@ relationship has a colon at the beginning of the statement."
 (defun concept--max-words (list-of-strings)
   (1+ (seq-max (concept--count-hyphens-per-string list-of-strings))))
 
-(defun concept-make-tempel-resource-template* (includes excludes &optional prefix)
-  "Generate the data needed to more quickly construct a resource template.
-It takes two lists of strings as argument INCLUDES and EXCLUDES. These
-are substring suffixes."
-  (when (null prefix)
-    (setq prefix ""))
-  (let ((N (concept--max-words includes)))
-    (save-excursion
-      (concept-goto-last-relationship)
-      (mapconcat
-        (lambda (concept)
-          (format "| {%s%s}"
-                  prefix
-                  (mapconcat #'identity
-                             (butlast (string-split concept "-") N)
-                             "-")))
-        (seq-filter
-         (lambda (x)
-           (and (not (seq-some
-                      (lambda (y)
-                        (string-suffix-p y x))
-                      excludes))
-                (seq-some
-                 (lambda (y)
-                   (string-suffix-p y x))
-                 includes)))
-         (nreverse (concept-get-child-concepts)))
-        "\n"))))
-
 (defun concept--prefix-before-include (string includes &optional offset)
   "Return the part of STRING before its first INCLUDE substring match.
 Optionally move the ending of the substring by a fixed OFFSET."
@@ -2441,7 +2412,7 @@ Optionally move the ending of the substring by a fixed OFFSET."
       (when (string-match (regexp-quote include) string)
         (throw 'found (substring string 0 (+ offset (match-beginning 0))))))))
 
-(defun concept-make-tempel-resource-template** (includes excludes &optional prefix)
+(defun concept-make-tempel-resource-template* (includes excludes &optional prefix)
   "Generate the data needed to more quickly construct a resource template.
 It takes two lists of strings as argument INCLUDES and EXCLUDES. These
 define substrings which indicate the suffixes of core concepts. Unlike
