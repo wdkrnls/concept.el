@@ -6647,7 +6647,7 @@ States: MM/DD/YYYY and YYYY-MM-DD."
 (defun concept-open-calendar (date &optional diary)
   (let ((date (concept-parse-date date)))
     (calendar)
-    (setq-local diary-file diary) ; TODO: I'm not convince this works in Emacs
+    (setq-local diary-file diary)
     (calendar-goto-date date)))
 
 (defun concept-search-duckduckgo (query)
