@@ -3936,6 +3936,7 @@ See also `concept-current-delimiter'."
 (defvar concept-show-followable-keywords
   '(("file" . link)
     ("url"  . link)
+    ("search" . box)
     ("info" . link)
     ("man"  . link)
     ("emacs-symbol" . link)
@@ -6649,6 +6650,13 @@ States: MM/DD/YYYY and YYYY-MM-DD."
     (setq-local diary-file diary) ; TODO: I'm not convince this works in Emacs
     (calendar-goto-date date)))
 
+(defun concept-search-duckduckgo (query)
+  "Search the web for QUERY."
+  (interactive "sSearch the web: ")
+  (let ((browse-url-browser-function 'concept-browse-url)
+        (eww-search-prefix "https://lite.duckduckgo.com/html/?q="))
+    (browse-url query)))
+
 (defun concept-browse-url (url &optional new-window)
   "Ask the EWW browser to load URL but return the buffer.
 
@@ -7149,6 +7157,13 @@ modifying `mailcap-user-mime-data'."
            (re-search-forward "[^| ]" (line-end-position) t)
            (let ((browse-url-browser-function 'concept-browse-url))
              (browse-url (concept-current-exposition)))))
+        ((and (concept-on-exposition-line)
+              (string= "search" (concept-exposition-parent-key)))
+         (save-excursion
+           (beginning-of-line)
+           (re-search-forward "[^| ]" (line-end-position) t)
+           (let ((browse-url-browser-function 'concept-browse-url))
+             (concept-search-duckduckgo (concept-current-exposition)))))
         ((and (concept-on-exposition-line)
               (let ((key (concept-exposition-parent-key)))
                 (or (string= "wikipedia" key)
