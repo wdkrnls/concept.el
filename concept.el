@@ -2410,13 +2410,17 @@ Optionally move the ending of the substring by a fixed OFFSET."
   (catch 'found
     (dolist (include includes)
       (when (string-match (regexp-quote include) string)
-        (throw 'found (substring string 0 (+ offset (match-beginning 0))))))))
+        (let ((beg (match-beginning 0)))
+          (when (< 0 beg)
+            (throw 'found (substring string 0 (+ offset (match-beginning 0))))))))))
 
-(defun concept-make-tempel-resource-template* (includes excludes &optional prefix)
+(defun concept-make-tempel-resource-template* (includes &optional excludes prefix focus)
   "Generate the data needed to more quickly construct a resource template.
 It takes two lists of strings as argument INCLUDES and EXCLUDES. These
-define substrings which indicate the suffixes of core concepts. Unlike
-`concept-make-tempel-resource-template*', this version removes any duplicate lines."
+define substrings which indicate the suffixes of core concepts. When
+FOCUS is non-nil, the focus concept is included in the consideration of
+possible exposition lines added to the resulting resource block. This
+command automatically removes any duplicate lines."
   (when (null prefix)
     (setq prefix ""))
   (let ((N (concept--max-words includes)))
@@ -2439,7 +2443,13 @@ define substrings which indicate the suffixes of core concepts. Unlike
                   (lambda (y)
                     (string-match-p y x))
                   includes)))
-          (nreverse (concept-get-child-concepts)))))
+          (append
+           (when (and focus
+                      (not (member
+                            focus
+                            (append includes excludes))))
+               (list (concept-current-focus)))
+           (nreverse (concept-get-child-concepts))))))
        "\n"))))
 
 (defun concept-cycle-expression-brackets ()
