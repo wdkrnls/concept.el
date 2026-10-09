@@ -10255,7 +10255,8 @@ to do is type the keystrokes over and over."
   (interactive)
   (concept-goto-current-focus)
   (outline-end-of-subtree)
-  (newline))
+  (when (not (concept-current-line-empty-p))
+    (newline)))
 
 (defun concept-end-of-subtree ()
   (interactive)
