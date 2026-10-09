@@ -2182,7 +2182,8 @@ This largely operates below the current line."
                    ((and (string= "file-name" key)
                          (not (member "emacs-package" keys)))
                     (concept-insert-keyword-block-after* "emacs-package"))
-                   ((string= "file-name" key)
+                   ((and (not (member "search-phrase" keys))
+                         (member key (list "man" "file-name" "info")))
                     (concept-insert-keyword-block-after* "search-phrase"))
                    (t
                     (concept-insert-keyword-block-after* "note")))))
