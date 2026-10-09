@@ -10152,7 +10152,7 @@ to do is type the keystrokes over and over."
                             ((concept-map-has-a-full-relationship-block-and-a-resource-line-but-no-attributes)
                              (list "Focus Concept" "Data Concept" "Relationship" "Resource" "Attribute"))
                             (t
-                             (list "Focus Concept" "Data Concept" "Relationship" "Resource" "Attribute" "Exposition"))))
+                             (list "Focus Concept" "Data Concept" "Relationship" "Resource" "Attribute" "Exposition" "Template"))))
           (choice
            (completing-read
             "Insert Concept Map Element: "
@@ -10247,7 +10247,16 @@ to do is type the keystrokes over and over."
     ("Exposition"
      (when (or (concept-on-exposition-line)
                (concept-on-attribute-line))
-       (concept-insert-include-dwim)))))
+       (concept-insert-include-dwim)))
+    ("Template"
+     (concept-enter-new-tempel-template))))
+
+(defun concept-enter-new-tempel-template ()
+  "Enter a new template at the end of the current idea."
+  (interactive)
+  (concept-goto-current-focus)
+  (outline-end-of-subtree)
+  (newline))
 
 (defun concept-end-of-subtree ()
   (interactive)
@@ -10340,6 +10349,6 @@ to do is type the keystrokes over and over."
 (define-key concept-mode-map (kbd "C-c M-b")     #'concept-end-of-subtree)
 (define-key concept-mode-map (kbd "C-c M-\\")    #'concept-bar-display-mode)
 (define-key concept-mode-map (kbd "C-c M-f")     #'concept-show-followable-mode)
-
+(define-key concept-mode-map (kbd "C-c M-t")     #'concept-enter-new-tempel-template)
 (provide 'concept)
 ;;; concept.el ends here
