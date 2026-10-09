@@ -9088,10 +9088,12 @@ This variable is stored in `concept-map-network-graph'."
     (cancel-timer concept-map--network-update-timer))
   (setq concept-map--network-update-timer nil))
 
-(defun concept-map--kill-snapshot-buffer ()
+(defun concept-map--kill-snapshot-and-diff-buffer ()
   "Also Kill the snapshot buffer when it's concept map is killed."
   (when (buffer-live-p concept-map-snapshot-buffer)
-    (kill-buffer concept-map-snapshot-buffer)))
+    (kill-buffer concept-map-snapshot-buffer))
+  (when (buffer-live-p concept-map-snapshot-diff-buffer)
+    (kill-buffer concept-map-snapshot-diff-buffer)))
 
 (defun concept-map--setup-network-updating-hooks ()
   (add-hook 'after-change-functions
@@ -9111,7 +9113,7 @@ This variable is stored in `concept-map-network-graph'."
             nil
             t)
   (add-hook 'kill-buffer-hook
-            #'concept-map--kill-snapshot-buffer
+            #'concept-map--kill-snapshot-and-diff-buffer
             nil
             t)
   (add-hook 'kill-buffer-hook
@@ -9140,7 +9142,7 @@ This variable is stored in `concept-map-network-graph'."
                #'concept-map--cancel-network-update-timer
                t)
   (remove-hook 'kill-buffer-hook
-               #'concept-map--kill-snapshot-buffer
+               #'concept-map--kill-snapshot-and-diff-buffer
                t)
   (remove-hook 'kill-buffer-hook
                #'concept-map--cancel-network-update-after-long-idle-timer
