@@ -6802,8 +6802,11 @@ instead of `browse-url-new-window-flag'."
 
 (defun concept-describe-symbol-follow (symbol)
   "Follow *Help* buffers documenting Emacs symbols."
-  (describe-symbol (intern symbol))
-  (display-buffer (get-buffer "*Help*")))
+  (let ((sym (intern-soft symbol)))
+    (unless (or (boundp sym) (fboundp sym) (facep sym))
+      (user-error "Emacs doesn't know anything about this symbol: %s" symbol))
+    (describe-symbol sym)
+    (display-buffer (get-buffer "*Help*"))))
 
 (defun concept-describe-package-follow (package)
   "Follow *Help* buffers documenting Emacs symbols."
