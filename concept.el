@@ -4666,11 +4666,27 @@ Place each relationship into its own block."
              (newline)
              (insert "| :")
              (insert relationship))))
-        ((concept-on-attribute-line)
-         (let (resource (concept-current-resource))
-           (beginning-of-line)
-           (open-line 1)
-           (insert "@ " resource)))))
+        ((and (or (concept-on-attribute-line)
+                  (concept-on-exposition-line))
+              (< 1 (concept-resource-keyword-count)))
+         (let (line-data)
+           (when (concept-on-exposition-line)
+             (setq line-data (concept-get-expository-data))
+             (concept-goto-last-attribute))
+           (let ((resource (concept-current-resource-name))
+                 (on-first (concept-on-first-attribute-line)))
+             (when on-first
+               (concept-goto-next-attribute))
+             (beginning-of-line)
+             (open-line 1)
+             (insert (format "@ %s" resource))
+             (when (not on-first)
+               (concept-goto-next-attribute))
+             (when on-first
+               (concept-goto-previous-attribute-boundary)
+               (end-of-line))
+             (when line-data
+               (search-forward line-data)))))))
 
 (defun concept-isolate-each-concept-in-relationship-group ()
   "Isolate each concept in a relationship group."
