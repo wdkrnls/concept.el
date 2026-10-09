@@ -6660,9 +6660,11 @@ enough for now."
     (let ((url (concat "gemini://gemi.dev/cgi-bin/wp.cgi/view?"
                        (url-hexify-string term)))
           (elpher-buffer-name (concat "*Gemipedia*<" term ">")))
-      (if (bufferp (get-buffer elpher-buffer-name))
-          (switch-to-buffer elpher-buffer-name)
-        (elpher-go url)))
+      (progn
+        (require 'elpher)
+        (if (bufferp (get-buffer elpher-buffer-name))
+            (switch-to-buffer elpher-buffer-name)
+          (elpher-go url))))
     (message "You do not have 'elpher install. Please install it!")))
 
 (defun concept-parse-date (string)
