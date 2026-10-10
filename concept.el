@@ -7048,7 +7048,19 @@ Whether this works depends on if the dictionary.el package is installed."
            (delete-other-windows))
     (message "The dictionary.el interface to rfc2229 dictionaries is not yet installed. Run (package-install 'dictionary) to install it!")))
 
-(defun concept-play-video (path &optional start-time stop-time loop speed subtitles debug)
+(defvar concept-playback-process-name-prefix
+  "concept-media-playback"
+  "The name of the playback process.")
+
+(defun concept-stop-playback ()
+  "Stop all media playback associated with concept maps."
+  (interactive)
+  (dolist (proc (process-list))
+    (when (and (process-live-p proc)
+               (string-prefix-p concept-playback-process-name-prefix (process-name proc)))
+      (delete-process proc))))
+
+(defun concept-play-audio-or-video (path &optional start-time stop-time loop speed subtitles no-window debug)
   "Wrapper around mpv to perform video playback on file at PATH.
 Optionally start playback from START-TIME and end it and STOP-TIME. If
 LENGTH is non-nil, treat STOP-TIME as total playback time. Otherwise,
@@ -7058,7 +7070,7 @@ number, then adjust the playback speed of the video accordingly."
   (unless (file-exists-p path)
     (user-error "The supplied file does not exist: %s" path))
   (if (executable-find "mpv")
-      (let ((debug-buffer (when debug (get-buffer-create "concept-video-debug")))
+      (let ((debug-buffer (when debug (get-buffer-create "concept-mpv-debug")))
             (args (append
                    (delq nil
                          (list
@@ -7067,13 +7079,22 @@ number, then adjust the playback speed of the video accordingly."
                           (when start-time (format "--start=%s" start-time))
                           (when stop-time (format "--end=%s" stop-time))
                           (when speed (format "--speed=%s" (number-to-string speed)))
-                          (if subtitles "--sub=yes" "--sub=no")))
+                          (if subtitles
+                              (format "--sub=%s"
+                                      (let ((is-number (and (not (booleanp subtitles))
+                                                            (string-match-p "^[0-9]+$" subtitles))))
+                                        (cond ((or (eq t subtitles) (not is-number)) "1")
+                                              ((member subtitles '("auto" "no"))     subtitles)
+                                              (is-number (number-to-string subtitles))
+                                              (t (error "Invalid input was passed somehow! %s" subtitles)))))
+                            "--sub=no")))
                    (when loop
                      (if (and (null start-time) (null stop-time))
                          (list "--loop-file=inf")
-                       (list (format "--ab-loop-a=%s" (or start-time "0%"))
-                             (format "--ab-loop-b=%s" (or stop-time "100%"))
+                       (list (format "--input-commands=set ab-loop-a %s,set ab-loop-b %s"
+                                     (or start-time "0") (or stop-time "${=duration}"))
                              "--ab-loop-count=inf")))
+                   (list (if no-window "--no-video" "--force-window"))
                    (list path))))
         (when debug
           (with-current-buffer debug-buffer
@@ -7081,7 +7102,7 @@ number, then adjust the playback speed of the video accordingly."
             (insert (format "mpv command: %S\n" (cons "mpv" args)))))
         (apply #'start-process
                (append
-                (list "concept-video-playback"
+                (list concept-playback-process-name-prefix
                       debug-buffer
                       "mpv")
                 args)))
@@ -7393,7 +7414,7 @@ modifying `mailcap-user-mime-data'."
              (concept-open-calendar (concept-current-exposition) diary-file)))
           ((and (concept-on-exposition-line)
                 (string= "file" (concept-exposition-parent-key))
-                (member (concept-current-resource-name) '("video")))
+                (member (concept-current-resource-name) '("video" "audio" "media")))
            (let* ((keys (concept-resource-block-keys))
                   (file (concept-current-exposition))
                   (start-time (when (member "start-time" keys)
@@ -7412,8 +7433,13 @@ modifying `mailcap-user-mime-data'."
                              (concept-goto-key-in-resource-block "playback-speed")
                              (forward-line)
                              (string-to-number (concept-current-exposition)))))
-                  (subtitles (member "subtitle" keys)))
-           (concept-play-video file start-time stop-time loop speed subtitles)))
+                  (subtitles (when (member "subtitles" keys)
+                               (save-excursion
+                                 (concept-goto-key-in-resource-block "subtitles")
+                                 (forward-line)
+                                 (concept-current-exposition))))
+                  (no-window (member "hide-window" keys)))
+           (concept-play-audio-or-video file start-time stop-time loop speed subtitles no-window)))
           ((and (concept-on-exposition-line)
                 (string= "file" (concept-exposition-parent-key)))
            (save-excursion
