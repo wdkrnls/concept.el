@@ -7231,6 +7231,12 @@ modifying `mailcap-user-mime-data'."
              (re-search-forward "[^| ]" (line-end-position) t)
              (concept-describe-package-follow (thing-at-point 'sexp t))))
           ((and (concept-on-exposition-line)
+                (string= "emacs-library" (concept-exposition-parent-key)))
+           (save-excursion
+             (beginning-of-line)
+             (re-search-forward "[^| ]" (line-end-position) t)
+             (apropos-library (thing-at-point 'sexp t))))
+          ((and (concept-on-exposition-line)
                 (or (string= "M-x" (concept-exposition-parent-key))
                     (string= "emacs-command" (concept-exposition-parent-key))))
            (save-excursion
