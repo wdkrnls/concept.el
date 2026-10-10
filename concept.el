@@ -7069,6 +7069,8 @@ then run the video in an infinite loop until dismissed. If speed is a
 number, then adjust the playback speed of the video accordingly."
   (unless (file-exists-p path)
     (user-error "The supplied file does not exist: %s" path))
+  (when (and subtitles no-window)
+    (user-error "subtitles and no-window options are mutually exclusive. Aborting!"))
   (if (executable-find "mpv")
       (let ((debug-buffer (when debug (get-buffer-create "concept-mpv-debug")))
             (args (append
