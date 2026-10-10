@@ -2415,7 +2415,25 @@ Optionally move the ending of the substring by a fixed OFFSET."
           (when (< 0 beg)
             (throw 'found (substring string 0 (+ offset (match-beginning 0))))))))))
 
-(defun concept-make-tempel-resource-template* (includes &optional excludes prefix focus)
+(defun concept-make-tempel-pdf-resource-template (path)
+  "Generate the data needed to quickly construct a resource template for PDF files.
+Given the file PATH it finds the buffer associated with that file, grabs
+the page number, and constructs the resource block."
+  (unless (bufferp (get-file-buffer path))
+    (user-error "No existing buffer is visiting that file: %s" path))
+  (insert "@ document\n")
+  (insert "| file:\n")
+  (insert (format "| {%s}\n" path))
+  (insert "| pdf-page:\n")
+  (let ((cmbuf (current-buffer)))
+    (switch-to-buffer
+     (or (get-file-buffer path)
+         (find-file path)))
+    (let ((page (pdf-view-current-page)))
+      (switch-to-buffer cmbuf)
+      (insert (format "| {%d}" page)))))
+
+(defun concept-make-tempel-list-resource-template* (includes &optional excludes prefix focus)
   "Generate the data needed to more quickly construct a resource template.
 It takes two lists of strings as argument INCLUDES and EXCLUDES. These
 define substrings which indicate the suffixes of core concepts. When
