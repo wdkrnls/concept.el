@@ -7048,6 +7048,45 @@ Whether this works depends on if the dictionary.el package is installed."
            (delete-other-windows))
     (message "The dictionary.el interface to rfc2229 dictionaries is not yet installed. Run (package-install 'dictionary) to install it!")))
 
+(defun concept-play-video (path &optional start-time stop-time loop speed subtitles debug)
+  "Wrapper around mpv to perform video playback on file at PATH.
+Optionally start playback from START-TIME and end it and STOP-TIME. If
+LENGTH is non-nil, treat STOP-TIME as total playback time. Otherwise,
+treat is as an absolute time stamp in the file.  If LOOP is non-nil,
+then run the video in an infinite loop until dismissed. If speed is a
+number, then adjust the playback speed of the video accordingly."
+  (unless (file-exists-p path)
+    (user-error "The supplied file does not exist: %s" path))
+  (if (executable-find "mpv")
+      (let ((debug-buffer (when debug (get-buffer-create "concept-video-debug")))
+            (args (append
+                   (delq nil
+                         (list
+                          (unless debug "--no-terminal")
+                          (when debug "--msg-color=no")
+                          (when start-time (format "--start=%s" start-time))
+                          (when stop-time (format "--end=%s" stop-time))
+                          (when speed (format "--speed=%s" (number-to-string speed)))
+                          (if subtitles "--sub=yes" "--sub=no")))
+                   (when loop
+                     (if (and (null start-time) (null stop-time))
+                         (list "--loop-file=inf")
+                       (list (format "--ab-loop-a=%s" (or start-time "0%"))
+                             (format "--ab-loop-b=%s" (or stop-time "100%"))
+                             "--ab-loop-count=inf")))
+                   (list path))))
+        (when debug
+          (with-current-buffer debug-buffer
+            (erase-buffer)
+            (insert (format "mpv command: %S\n" (cons "mpv" args)))))
+        (apply #'start-process
+               (append
+                (list "concept-video-playback"
+                      debug-buffer
+                      "mpv")
+                args)))
+    (message "mpv has not been installed in this environment. Please install it and try again!")))
+
 (defun concept-follow-dwim ()
   "Follow the link if it recognizes the attribute group keyword and the file type.
 If the keyword is `file' but the file is not one of the recognized types
@@ -7352,6 +7391,29 @@ modifying `mailcap-user-mime-data'."
                           (expand-file-name (concept-get-expository-data))))
                       diary-file)))
              (concept-open-calendar (concept-current-exposition) diary-file)))
+          ((and (concept-on-exposition-line)
+                (string= "file" (concept-exposition-parent-key))
+                (member (concept-current-resource-name) '("video")))
+           (let* ((keys (concept-resource-block-keys))
+                  (file (concept-current-exposition))
+                  (start-time (when (member "start-time" keys)
+                                (save-excursion
+                                  (concept-goto-key-in-resource-block "start-time")
+                                  (forward-line)
+                                  (concept-current-exposition))))
+                  (stop-time (when (member "stop-time" keys)
+                               (save-excursion
+                                 (concept-goto-key-in-resource-block "stop-time")
+                                 (forward-line)
+                                 (concept-current-exposition))))
+                  (loop (member "loop-playback" keys))
+                  (speed (when (member "playback-speed" keys)
+                           (save-excursion
+                             (concept-goto-key-in-resource-block "playback-speed")
+                             (forward-line)
+                             (string-to-number (concept-current-exposition)))))
+                  (subtitles (member "subtitle" keys)))
+           (concept-play-video file start-time stop-time loop speed subtitles)))
           ((and (concept-on-exposition-line)
                 (string= "file" (concept-exposition-parent-key)))
            (save-excursion
