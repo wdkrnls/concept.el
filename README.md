@@ -605,6 +605,18 @@ There are still some bugs to clear up with the query language. In particular, it
 
 In the future it would be nice if this dependency on `consult.el` could be made optional. The problem is that I just don't see how to effectively explore a large concept map without it's interactive preview features. The next level nature of editing capability consult provides over the core Emacs features is very impressive! The closest thing I've found to it is the "Auto Occurrence Display" feature in M-x `occur`. However, to be equivalent occur would need an interface which swaps out the search interface.
 
+### Defining what is a valid concept name
+
+I believe a valid concept name should be pretty flexible. I ask that it not start with a colon or one of the exposition line delimiters. Further, I ask that it not start with common beginning punctuation like parentheses (brackets are already covered!). I ask that it contain no spaces. I ask that it not end with common ending punctuation like parentheses, periods, semicolons, or colons. Further, I ask that it not end with any exposition line delimiters. That's it. Everything else should be a valid concept. This allows concepts to be readily inserted in lots of places including inside of exposition blocks and temporary template configuration blocks. What about `|`? I'm leaning on banning that and the beginning and the end as well. Obviously, it cannot contain newlines or tabs either.
+
+This criterion gives the following regular expression:
+
+```
+"[^[({‘|:\n\t ][^ \n\t]+[^])}‘|:;.\n\t ]"
+```
+
+Let's make sure we are using that!
+
 ### Efficiently entering and reusing resources
 
 Our working philosophy for working with resources is to be as verbose as needed to make the `follow` interface work. This has involved reusing the same kinds of resource blocks over and over. We have tools for that already, but they are mainly useful for copying existing resource blocks.
