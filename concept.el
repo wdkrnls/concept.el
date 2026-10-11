@@ -10533,12 +10533,22 @@ to do is type the keystrokes over and over."
   "Enter a new template at the end of the current idea."
   (interactive "P")
   (concept-goto-current-focus)
-  (when (and arg (not (concept-on-first-line-p)))
-    (previous-line)
-    (beginning-of-line))
-  (outline-end-of-subtree)
-  (when (not (concept-current-line-empty-p))
-    (newline)))
+  (if arg
+      (let ((on-first (concept-on-first-line-p)))
+        (unless (concept-on-focus-line)
+          (user-error "The first line should be a focus line. Aborting!"))
+        (if on-first
+            (progn
+              (beginning-of-line)
+              (open-line 1))
+          (previous-line)
+          (beginning-of-line)
+          (outline-end-of-subtree)
+          (when (not (concept-current-line-empty-p))
+            (newline))))
+    (outline-end-of-subtree)
+    (when (not (concept-current-line-empty-p))
+      (newline))))
 
 (defun concept-end-of-subtree ()
   (interactive)
