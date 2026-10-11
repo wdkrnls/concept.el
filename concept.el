@@ -2990,7 +2990,7 @@ Sort these names in order of usage frequency."
 (defun concept-change-concept ()
   "Replace the current concept with another one.
 
-Choose the new concept from initially ordered list of all resources."
+Choose the new concept from initially ordered list of all concepts."
   (interactive)
   (when (concept-on-concept-line)
     (let* ((choices (concept-find-all-concepts))
