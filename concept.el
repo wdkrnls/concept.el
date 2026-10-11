@@ -3308,7 +3308,12 @@ by this command in practice."
     (let ((keyword  (concept-current-attribute))
           (resource (concept-current-resource-name))
           (data     (concept-get-attribute-data)))
-      (concept-kill-dwim)
+      (kill-region
+       (line-beginning-position)
+       (save-excursion
+         (concept-goto-next-attribute-boundary)
+         (point)))
+      (end-of-line)
       (when (or (concept-on-resource-line)
                 (concept-on-focus-line))
         (previous-line)
