@@ -803,6 +803,40 @@ Maybe to make that more reliable, it would also prompt to confirm the different 
 
 Note that we have basic handling for some combinatorial ideas already via M-x `concept-expand-combinatorial-relationship-block`. This would be the basis for a more powerful interactive version of that heuristic procedure.
 
+### Killing whole conceptual elements
+
+I want to be more thoughtful about how these kills end. With killing resources, for example, I would like to end with a blank line at the cursor. This would facilitate the insertion of another resource block if desired. For exposition lines, I would like to end up on the previous line rather than the next line. That would facilitate entering a new exposition line within the same attribute data group.
+
+My main concern that keeps me from tackling this immediately, is that I use these tools programmatically at the moment, so I would need to consider carefully what changes modifying their behavior would entail.
+
+### Templates for resource blocks and relationship blocks
+
+I have made some progress recently on fleshing out two helpful templates for resource blocks. I would like to extend that streak with making a template for a relationship block. Most of my relationship blocks are binary relationship blocks: one focus concept leads to two data concepts. I identified two variations which seem pretty common. They are illustrated by:
+
+A:
+
+```
+| things
+| :include
+| single-things
+| multiple-things
+```
+
+B:
+
+```
+~ documents
+| :include
+| single-page-documents
+| multiple-page-documents
+```
+
+I have constructed templates which make these sorts of relationship blocks very quick to enter. They work by adding a configuration line of text above the proposed relationship block. They allow the user to interactively play with the configuration line until they like it. Then they trigger the template insertion to be done just as they would with any other tempel insertion. Then they just delete the configuration line, leaving the buffer with a new relationship block.
+
+The challenge is to look through my existing concept map data sets to identify which relationship blocks don't the currently supported patterns, and consider adding them if they are ubiquitous enough.
+
+I also need to document these tools to explain how they can be used to make real clearly useful tempel templates.
+
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
 <!-- End: -->
