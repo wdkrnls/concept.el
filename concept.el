@@ -2980,7 +2980,7 @@ Choose the new concept from initially ordered list of all resources."
                    (lambda (a b)
                      (< (string-distance a current)
                         (string-distance b current))))
-                  nil t nil)))
+                  nil t current)))
       (when (< 0 (length pick))
         (beginning-of-line)
         (forward-char 1)
