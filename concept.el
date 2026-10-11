@@ -3405,8 +3405,22 @@ This is a wrapper convenience function."
   (interactive)
   (when (concept-on-concept-line)
     (concept-change-concept))
+  (when (not
+         (or (concept-in-relationship-block)
+             (concept-in-resource-block)))
+    (concept-change-concept-at-point))
   (when (concept-on-resource-line)
     (concept-change-resource)))
+
+(defun concept-change-concept-at-point-dwim ()
+  "Change the concept at point on exposition lines."
+  (interactive)
+  (when (and (concept-on-exposition-line)
+             (concept-inside-delimiters-p))
+    (concept-change-concept-at-point))
+  (when (not (or (concept-in-relationship-block)
+                 (concept-in-resource-block)))
+    (concept-change-concept-at-point)))
 
 (defun concept-change-attribute-or-relationship ()
   "Replace the current attribute or relationship with another one.
