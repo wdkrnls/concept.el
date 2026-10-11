@@ -2416,6 +2416,54 @@ Optionally move the ending of the substring by a fixed OFFSET."
           (when (< 0 beg)
             (throw 'found (substring string 0 (+ offset (match-beginning 0))))))))))
 
+(defun concept--insert-into (list pos element)
+  "Insert ELEMENT into LIST at zero-based POS."
+  (if (= pos 0)
+      (cons element list)
+    (let ((prev (nthcdr (1- pos) list)))
+      (unless prev
+        (error "Position out of range"))
+      (setcdr prev (cons element (cdr prev)))
+      list)))
+
+(defun concept-make-tempel-solo-relationship-template (core-def X)
+  (format "~ %s\n| :include\n| %s-%s"
+          core-def X core-def))
+
+(defun concept-make-tempel-inner-solo-relationship-template (core-def X &optional pos)
+  (when (null pos)
+    (setq pos 0))
+  (when (stringp pos)
+    (setq pos (string-to-number pos)))
+  (let* ((parts (string-split core-def "-"))
+         (new-def (mapconcat #'identity (concept--insert-into parts pos X) "-")))
+    (format "~ %s\n| :include\n| %s"
+            core-def new-def)))
+
+(defun concept--make-singular (name)
+  (if (string-suffix-p "s" name)
+      (substring name 0 (1- (length name)))
+    name))
+
+(defun concept-make-tempel-singular-relationship-template (concept prop &optional rel)
+  (when (null rel)
+    (setq rel "have"))
+  (let* ((singular (concept--make-singular concept)))
+    (format "~ %s\n| :%s\n| %s-%s"
+            concept rel singular prop)))
+
+(defun concept-make-tempel-pair-relationship-template (core-def A B)
+  (format "~ %s\n| :include\n| %s-%s\n| %s-%s"
+          core-def A core-def B core-def))
+
+(defun concept-make-tempel-inner-pair-relationship-template (core-def A B X)
+  (format "~ %s\n| :include\n| %s-%s-%s\n| %s-%s-%s"
+          core-def X A core-def X B core-def))
+
+(defun concept-make-tempel-extended-pair-relationship-template (core-def A B X)
+  (format "~ %s\n| :include\n| %s-%s-%s\n| %s-%s-%s"
+          core-def A X core-def B X core-def))
+
 (defun concept-make-tempel-pdf-resource-template (path)
   "Generate the data needed to quickly construct a resource template for PDF files.
 Given the file PATH it finds the buffer associated with that file, grabs
