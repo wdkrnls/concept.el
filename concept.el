@@ -10344,6 +10344,8 @@ completion candidates."
                 ((looking-at-p "^~")                           'focus)
                 ((looking-at-p "^| +:")                        'relationship)
                 ((looking-at-p "^| +[^[{‘: ][^ ]+[^]}‘: ] *$") 'data-concept)
+                ;; TODO: Are concept names beginning with ( or . or ; valid?
+                ;;       Are concept names ending with ) or ; or . valid?
                 ((looking-at-p "^@")                           'resource)
                 ((looking-at-p "^| +[[{‘]")                    'exposition)
                 ((looking-at-p "^| +[^[{‘: ]+: *$")            'attribute)
