@@ -3187,7 +3187,14 @@ by this command in practice."
             (and (concept-on-blank-line)
                  (concept-in-resource-block)))
     (cond ((concept-on-blank-exposition-line)
-           (concept-kill-dwim)
+           (kill-whole-line)
+           (if (save-excursion
+                   (previous-line)
+                   (concept-on-attribute-line))
+               (progn
+                 (previous-line)
+                 (kill-whole-line))
+             (previous-line))
            (end-of-line)
            (when (concept-on-exposition-line)
              (backward-char)))
