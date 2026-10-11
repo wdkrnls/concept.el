@@ -10582,6 +10582,7 @@ to do is type the keystrokes over and over."
 (define-key concept-mode-map (kbd "C-M-i")       #'concept-change-dwim)
 (define-key concept-mode-map (kbd "C-<tab>")     #'concept-add-concept-as-new)
 (define-key concept-mode-map (kbd "M-<tab>")     #'concept-change-dwim)
+(define-key concept-mode-map (kbd "C-M-<tab>")   #'concept-change-concept-at-point-dwim)
 (define-key concept-mode-map (kbd "M-r")         #'concept-cycle-context)
 (define-key concept-mode-map (kbd "C-M-y")       #'concept-repeat-current-block)
 (define-key concept-mode-map (kbd "M-.")         #'concept-insert-focus-as-new)
