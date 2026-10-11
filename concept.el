@@ -3016,8 +3016,60 @@ Choose the new concept from initially ordered list of all concepts."
           (insert "\n"))
         (delete-horizontal-space)))))
 
+(defun concept-kill-concept-at-point ()
+  (interactive)
+  (when (and (concept-on-exposition-line)
+             (concept-inside-delimiters-p))
+    (let* ((opening (concept-current-delimiter))
+           (closing (concept-closing-delimiter opening))
+           (separator
+            (concat "\\(?:[ \t]\\|"
+                    (regexp-quote opening) "\\|"
+                    (regexp-quote closing) "\\)"))
+           (line-beg (line-beginning-position))
+           (line-end (line-end-position))
+           (start (point))
+           beg end)
+      (save-excursion
+        (setq beg (if (re-search-backward separator line-beg t)
+                      (match-end 0)
+                    line-beg))
+        (goto-char beg)
+        (skip-chars-forward "(" end)
+        (setq beg (point))
+        (goto-char start)
+        (setq end (if (re-search-forward separator line-end t)
+                      (match-beginning 0)
+                    line-end))
+        (goto-char end)
+        (skip-chars-backward ".:);," beg)
+        (setq end (point)))
+      (when (< beg end)
+        (kill-region beg end)))))
+
+(defun concept-change-concept-at-point ()
+  "Replace the current concept at point with another one.
+
+Choose the new concept from initially ordered list of all concepts."
+  (interactive)
+  (let* ((choices (concept-find-all-concepts))
+         (current (or (thing-at-point 'symbol t) ""))
+         (vertico-sort-function nil)
+         (pick (completing-read
+                "Concept: "
+                (sort
+                 choices
+                 (lambda (a b)
+                   (< (string-distance a current)
+                      (string-distance b current))))
+                nil t current)))
+    (when (< 0 (length pick))
+      (when (not (string-empty-p current))
+        (concept-kill-concept-at-point))
+      (insert pick))))
+
 (defun concept-change-exposition ()
-  "Replace the current exposition data with another having the same attribute elsewhere in the file"
+  "Replace the current data with other data with the same attribute elsewhere."
   (interactive)
   (when (concept-on-exposition-line)
     (let* ((attrib (concept-current-attribute))
