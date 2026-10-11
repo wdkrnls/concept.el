@@ -3348,7 +3348,9 @@ by this command in practice."
       (insert (format "| :%s" relationship))
       (dolist (line data)
         (newline)
-        (insert (format "| %s" line))))))
+        (insert (format "| %s" line)))
+      (search-backward (format ":%s" relationship))
+      (end-of-line))))
 
 (defun concept-barf-next-dwim ()
   (interactive)
