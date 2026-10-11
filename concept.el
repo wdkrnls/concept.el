@@ -2037,6 +2037,14 @@ When you don't want to kill the whole concept map element, call
                 (re-search-forward "[^| ]" (line-end-position) t))
                (t
                 (end-of-line))))
+        ((not (or (concept-in-relationship-block)
+                  (concept-in-resource-block)))
+         (while (not (or (concept-in-relationship-block)
+                         (concept-in-resource-block)))
+           (kill-whole-line)
+           (previous-line))
+         (forward-line)
+         (end-of-line))
         (t (kill-whole-line)
            (end-of-line))))
 
