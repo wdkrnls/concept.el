@@ -10389,10 +10389,13 @@ to do is type the keystrokes over and over."
     ("Template"
      (concept-enter-new-tempel-template))))
 
-(defun concept-enter-new-tempel-template ()
+(defun concept-enter-new-tempel-template (arg)
   "Enter a new template at the end of the current idea."
-  (interactive)
+  (interactive "P")
   (concept-goto-current-focus)
+  (when (and arg (not (concept-on-first-line-p)))
+    (previous-line)
+    (beginning-of-line))
   (outline-end-of-subtree)
   (when (not (concept-current-line-empty-p))
     (newline)))
