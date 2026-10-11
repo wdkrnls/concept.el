@@ -2445,12 +2445,19 @@ Optionally move the ending of the substring by a fixed OFFSET."
       (substring name 0 (1- (length name)))
     name))
 
-(defun concept-make-tempel-singular-relationship-template (concept prop &optional rel)
-  (when (null rel)
-    (setq rel "have"))
+(defun concept-make-tempel-singular-relationship-template (concept rel &optional count)
+  (when (null count)
+    (setq count 1))
+  (when (< count 1)
+    (message "Supplied count reset to minimum value: 1.")
+    (setq count 1))
   (let* ((singular (concept--make-singular concept)))
-    (format "~ %s\n| :%s\n| %s-%s"
-            concept rel singular prop)))
+    (concat (format "~ %s\n| :%s\n| %s-"
+                    concept rel singular)
+            (string-join
+             (make-list
+              (1- count)
+              (format "\n| %s-" singular))))))
 
 (defun concept-make-tempel-pair-relationship-template (core-def A B)
   (format "~ %s\n| :include\n| %s-%s\n| %s-%s"
