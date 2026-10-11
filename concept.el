@@ -2037,7 +2037,8 @@ When you don't want to kill the whole concept map element, call
                 (re-search-forward "[^| ]" (line-end-position) t))
                (t
                 (end-of-line))))
-        (t (error "Should not have made it here!"))))
+        (t (kill-whole-line)
+           (end-of-line))))
 
 (defun concept-relationship-block-has-blank-lines ()
   "Test whether the current relationship block has any blank lines."
