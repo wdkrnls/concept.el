@@ -3203,6 +3203,9 @@ by this command in practice."
            (end-of-line)
            (when (concept-on-exposition-line)
              (backward-char)))
+          ((concept-on-last-line-in-block-p)
+           (end-of-line)
+           (backward-char))
           ((and (not (concept-on-last-line-in-block-p))
                 (save-excursion
                   (forward-line)
@@ -3217,7 +3220,9 @@ by this command in practice."
                      (kill-whole-line)
                      (end-of-line))
                  (previous-line)
-                 (end-of-line))))))))
+                 (end-of-line)
+                 (when (concept-on-exposition-line)
+                   (backward-char)))))))))
 
 (defun concept-slurp-next-relationship-group ()
   "Consume the next relationship and all its attributes and data into the current relationship group."
