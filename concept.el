@@ -3176,7 +3176,9 @@ by this command in practice."
                        (kill-whole-line))
                      (end-of-line))
                  (previous-line)
-                 (end-of-line))))))))
+                 (end-of-line)
+                 (when (concept-on-exposition-line)
+                   (backward-char)))))))))
 
 (defun concept-slurp-next-attribute ()
   "Consume the next resource and all its attributes and data into the current resource."
