@@ -2635,9 +2635,11 @@ combinations.")
   #'concept-is-valid-combination-p
   "Inclusion predicate function for keeping meaningful combinatorial pairs.")
 
-(defun concept-expand-combinatorial-relationships (concept degree less-than &rest categories)
+(defun concept-expand-combinatorial-relationships (concept degree less-than final-prefix &rest categories)
   "Expand DEGREE-sized combinations of CATEGORIES for CONCEPT.
-Sort categories using LESS-THAN before generating combinations."
+Sort categories using LESS-THAN before generating combinations. A
+FINAL-PREFIX if supplied can be used to express logical combinations
+like A, B, or C versus A, B, and C. Otherwise, nil suppresses these."
   (when (stringp degree)
     (setq degree (string-to-number degree)))
   (when (stringp less-than)
@@ -2682,10 +2684,21 @@ Sort categories using LESS-THAN before generating combinations."
                (concat
                 (format "~ %s\n| :include\n" concept)
                 (mapconcat
-                 (lambda (combination)
-                   (format "| %s-%s"
-                           (mapconcat #'identity combination "-")
-                           concept))
+                 (if (null final-prefix)
+                     (lambda (combination)
+                       (format "| %s-%s"
+                               (mapconcat #'identity combination "-")
+                               concept))
+                   (lambda (combination)
+                     (format "| %s-%s"
+                             (mapconcat
+                              #'identity
+                              (concept--insert-into
+                               combination
+                               (1- k)
+                               final-prefix)
+                              "-")
+                             concept)))
                  combinations
                  "\n"))))
               (number-sequence 1 degree)
