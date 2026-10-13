@@ -10949,7 +10949,8 @@ numeric). Multi-word strings must use delimiters. These default to `{',
 and `}', but can be changed by the user with any single character string
 in the OPENING and CLOSING arguments. Not every function can be called
 with this, but functions useful for quickly generating relationship and
-resource block templates fit nicely into this regime."
+resource block templates fit nicely into this regime.
+When you want to enter a nil value, type NIL in capital letters."
   (let* ((open  (or opening "{"))
          (close (or closing "}"))
          (arglist (help-function-arglist function))
@@ -11003,9 +11004,10 @@ resource block templates fit nicely into this regime."
       (setq positional-args (nreverse positional-args)))
     (let ((parse-val
            (lambda (s)
-             (if (string-match-p "\\`-?[0-9]+\\(?:\\.[0-9]+\\)?\\'" s)
-                 (string-to-number s)
-               s))))
+             (cond ((string= s "NIL") nil)
+                   ((string-match-p "\\`-?[0-9]+\\(?:\\.[0-9]+\\)?\\'" s)
+                    (string-to-number s))
+                   (t s)))))
       (let ((final-args '())
             (pos-iter positional-args)
             (parsing-mode :required))
