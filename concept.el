@@ -9855,10 +9855,10 @@ already. When you know that you don't have to incur another buffer scan."
 (defun concept-map-inspect-edge-counts-hash-table ()
   "Display the hash table keys and values in a temporary tabulated-list buffer."
   (interactive)
-  (let ((buffer (get-buffer-create "*Edge Counts*"))
+  (let ((table-buffer (get-buffer-create "*Edge Counts*"))
         (table concept-map-network-edge-counts)
         (inhibit-read-only t))
-    (with-current-buffer buffer
+    (with-current-buffer table-buffer
       (erase-buffer)
       (tabulated-list-mode)
       ;; Define the columns: title and width.
@@ -9880,7 +9880,7 @@ already. When you know that you don't have to incur another buffer scan."
               entries))
       (tabulated-list-init-header)
       (tabulated-list-print))
-    (pop-to-buffer buffer)))
+    (pop-to-buffer table-buffer)))
 
 (defun concept-format-list (items)
   "Format ITEMS as an english list."
