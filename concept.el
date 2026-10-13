@@ -10581,7 +10581,9 @@ to do is type the keystrokes over and over."
      (concept-enter-new-tempel-template))))
 
 (defun concept-enter-new-tempel-template (arg)
-  "Enter a new template at the end of the current idea."
+  "Enter a new template at the end of the current idea.
+Alternatively, move to the existing temporary template configuration
+data if it already exists."
   (interactive "P")
   (concept-goto-current-focus)
   (if arg
@@ -10594,11 +10596,14 @@ to do is type the keystrokes over and over."
               (open-line 1))
           (previous-line)
           (beginning-of-line)
-          (outline-end-of-subtree)
-          (when (not (concept-current-line-empty-p))
-            (newline))))
+          (unless (concept-in-temporary-block)
+            (outline-end-of-subtree)
+            (when (not (concept-current-line-empty-p))
+              (newline)))
+          (end-of-line)))
     (outline-end-of-subtree)
-    (when (not (concept-current-line-empty-p))
+    (when (and (not (concept-current-line-empty-p))
+               (not (concept-in-temporary-block)))
       (newline))))
 
 (defun concept-end-of-subtree ()
