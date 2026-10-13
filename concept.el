@@ -1350,10 +1350,15 @@ reordering resource blocks alphabetically."
 (defun concept-goto-last-line-in-relationship-block ()
   "Navigate to the last data concept in a relationship block."
   (when (concept-in-relationship-block)
-    (while (concept-on-data-line)
-      (forward-line))
-    (previous-line)
-    (end-of-line)))
+    (let ((n (concept-relationship-count)))
+      (when (and (concept-on-focus-line)
+                 (< 0 n))
+        (forward-line))
+      (while (concept-on-data-line)
+        (forward-line))
+      (when (< 0 n)
+        (previous-line))
+    (end-of-line))))
 
 (defun concept-goto-first-data-concept-in-relationship-group ()
   "Navigate back to the first data concept in the group."
