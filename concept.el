@@ -11119,6 +11119,8 @@ resource block templates fit nicely into this regime."
       (end-of-line))))
 
 (defun concept-goto-last-line-in-resource-block ()
+  "Move point to the last line in a resource block.
+This only works if called within a resource block."
   (when (concept-in-resource-block)
     (outline-end-of-subtree)
     (when (concept-in-temporary-block)
@@ -11126,6 +11128,8 @@ resource block templates fit nicely into this regime."
       (end-of-line))))
 
 (defun concept-goto-last-line-in-temporary-block ()
+  "Move point to the last line of a temporary block.
+This only works if inside a temporary configuration block already."
   (when-let ((reg (concept-get-temporary-block-region)))
     (goto-char (cdr reg))))
 
