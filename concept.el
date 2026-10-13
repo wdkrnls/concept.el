@@ -11100,6 +11100,24 @@ resource block templates fit nicely into this regime."
         (kill-region beg (1+ end)))
       (end-of-line))))
 
+(defun concept-kill-temporary-block-region ()
+  "Kill the whole temporary block region at or before point."
+  (when (derived-mode-p 'concept-mode)
+    (when-let* ((reg (concept-get-temporary-block-region)))
+      (let ((beg (car reg))
+            (end (cdr reg)))
+        (kill-region beg (1+ end)))
+      (end-of-line))))
+
+(defun concept-kill-temporary-block-region-before-current-line ()
+  "Kill the part of temporary block region above the current point."
+  (when (derived-mode-p 'concept-mode)
+    (when-let* ((reg (concept-get-temporary-block-region-before-current-line)))
+      (let ((beg (car reg))
+            (end (cdr reg)))
+        (kill-region beg (1+ end)))
+      (end-of-line))))
+
 (defun concept-goto-last-line-in-resource-block ()
   (when (concept-in-resource-block)
     (outline-end-of-subtree)
@@ -11151,6 +11169,14 @@ resource block templates fit nicely into this regime."
   "Get the text for the whole temporary block at point.
 This is useful in conjunction with `concept-funcall-with-string-args'."
   (when-let* ((reg (concept-get-temporary-block-region)))
+    (let ((beg (car reg))
+          (end (cdr reg)))
+      (buffer-substring-no-properties beg end))))
+
+(defun concept-get-temporary-block-string-before-current-line ()
+  "Get the text for the whole temporary block at point minus the current line.
+This is useful in conjunction with `concept-funcall-with-string-args'."
+  (when-let* ((reg (concept-get-temporary-block-region-before-current-line)))
     (let ((beg (car reg))
           (end (cdr reg)))
       (buffer-substring-no-properties beg end))))
