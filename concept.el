@@ -2611,18 +2611,12 @@ combinations.")
 
 (defun concept--shares-only-one-element-from-each-group-p (items groups)
   "Return non-nil if ITEMS has at most one member of each group in GROUPS."
-  (let ((keep t))
-    (while (and groups keep)
-      (let ((count 0)
-            (items-left items))
-        (while (and items-left (<= count 1))
-          (when (member (car items-left) (car groups))
-            (setq count (1+ count)))
-          (setq items-left (cdr items-left)))
-        (when (< 1 count)
-          (setq keep nil)))
-      (setq groups (cdr groups)))
-    keep))
+  (not
+   (seq-some
+    (lambda (group)
+      (< 1 (seq-count (lambda (item) (member item group)) items)))
+    groups)))
+
 
 (defun concept-is-valid-combination-p (combination)
   "Test if COMBINATION is valid according to the contents of
