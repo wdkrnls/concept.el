@@ -2533,6 +2533,85 @@ Compare this with `concept-expand-categorized-inner-relationships'."
     categories
     "\n| ")))
 
+(defun concept--combinations (items n)
+  "Return all combinations of N items from ITEMS, preserving their order."
+  (cond
+   ((= n 0) (list nil))
+   ((or (< n 0) (< (length items) n)) nil)
+   (t
+    (append
+     (mapcar (lambda (combination)
+               (cons (car items) combination))
+             (concept--combinations (cdr items) (1- n)))
+     (concept--combinations (cdr items) n)))))
+
+(defun concept--first-duplicate (strings)
+  "Return the first string in STRINGS that appears more than once, or nil."
+  (let ((seen (make-hash-table :test #'equal))
+        duplicate)
+    (while (and strings (not duplicate))
+      (let ((string (pop strings)))
+        (if (gethash string seen)
+            (setq duplicate string)
+          (puthash string t seen))))
+    duplicate))
+
+(defun concept-expand-combinatorial-relationships (concept degree less-than &rest categories)
+  "Expand DEGREE-sized combinations of CATEGORIES for CONCEPT.
+Sort categories using LESS-THAN before generating combinations."
+  (when (stringp degree)
+    (setq degree (string-to-number degree)))
+  (when (stringp less-than)
+    (setq less-than (intern less-than)))
+  (unless (and (integerp degree) (< 0 degree))
+    (user-error "DEGREE must be a positive integer"))
+  (unless (functionp less-than)
+    (user-error "LESS-THAN must name a function"))
+  (let (bad-category result)
+    (setq result
+          (seq-every-p
+           (lambda (category)
+             (let ((result
+                    (and (not (string-empty-p category))
+                         (if (eq 1 (length category))
+                             (string-match-p "[^][:{}() -]" category)
+                           (string-match-p "^[^][:{}() \n\t-][^ \n\t]*[^][ {}()\n\t-]$" category)))))
+               (when (null result)
+                 (setq bad-category category))
+               result))
+           categories))
+    (unless result
+      (user-error "Atleast one invalid category was found: %s Please fix and try-again." bad-category)))
+  (let ((n (length categories))
+        (copy (copy-sequence categories)))
+    (unless (eq n (length (delete-dups copy)))
+      (user-error "There was a duplicate category: %s"
+                  (concept--first-duplicate categories)))
+    (catch 'result
+      (cond ((= n 0)
+             (throw 'result (format "~ %s" concept)))
+            ((= n 1)
+             (throw 'result (format "~ %s\n| :include\n| %s-%s" concept (car category) concept)))
+            (t
+             (mapconcat
+              (lambda (k)
+                (let* ((sorted-categories
+                        (sort (copy-sequence categories) less-than))
+                       (combinations
+                        (concept--combinations sorted-categories k)))
+               (concat
+                (format "~ %s\n| :include\n" concept)
+                (mapconcat
+                 (lambda (combination)
+                   (format "| %s-%s"
+                           (mapconcat #'identity combination "-")
+                           concept))
+                 combinations
+                 "\n"))))
+              (number-sequence 1 degree)
+              "\n"))))))
+
+(defun concept-expand-extended-pair-relationship-template (core-def A B X)
   (format "~ %s\n| :include\n| %s-%s-%s\n| %s-%s-%s"
           core-def A X core-def B X core-def))
 
