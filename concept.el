@@ -2595,6 +2595,46 @@ Compare this with `concept-expand-categorized-inner-relationships'."
           (puthash string t seen))))
     duplicate))
 
+(defvar-local concept-combinatorial-groups-list
+    nil
+  "List of lists of strings from the same combinatorial group.
+For example, hot and cold are from the same group of temperature
+qualities. Likewise, still and running are qualities of liquid water.
+In this example, a valid value for this variable would be:
+
+   `(list (list \"hot\" \"cold\") (list \"still\" \"running\"))'
+
+Then when you call `concept-expand-combinatorial-relationships' with
+these categories it will automatically exclude cold-hot relationship
+categories leaving you with only the intuitively reasonable
+combinations.")
+
+(defun concept--shares-only-one-element-from-each-group-p (items groups)
+  "Return non-nil if ITEMS has at most one member of each group in GROUPS."
+  (let ((keep t))
+    (while (and groups keep)
+      (let ((count 0)
+            (items-left items))
+        (while (and items-left (<= count 1))
+          (when (member (car items-left) (car groups))
+            (setq count (1+ count)))
+          (setq items-left (cdr items-left)))
+        (when (< 1 count)
+          (setq keep nil)))
+      (setq groups (cdr groups)))
+    keep))
+
+(defun concept-is-valid-combination-p (combination)
+  "Test if COMBINATION is valid according to the contents of
+`concept-combinatorial-groups-list'."
+  (concept--shares-only-one-element-from-each-group-p
+   combination
+   concept-combinatorial-groups-list))
+
+(defvar-local concept-combinatorial-inclusion-predicate
+  #'concept-is-valid-combination-p
+  "Inclusion predicate function for keeping meaningful combinatorial pairs.")
+
 (defun concept-expand-combinatorial-relationships (concept degree less-than &rest categories)
   "Expand DEGREE-sized combinations of CATEGORIES for CONCEPT.
 Sort categories using LESS-THAN before generating combinations."
@@ -2637,7 +2677,8 @@ Sort categories using LESS-THAN before generating combinations."
                 (let* ((sorted-categories
                         (sort (copy-sequence categories) less-than))
                        (combinations
-                        (concept--combinations sorted-categories k)))
+                        (seq-filter concept-combinatorial-inclusion-predicate
+                                    (concept--combinations sorted-categories k))))
                (concat
                 (format "~ %s\n| :include\n" concept)
                 (mapconcat
