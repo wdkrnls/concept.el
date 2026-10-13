@@ -2609,6 +2609,15 @@ these categories it will automatically exclude cold-hot relationship
 categories leaving you with only the intuitively reasonable
 combinations.")
 
+(defvar-local concept-combinatorial-exclusions-list
+    nil
+  "List of lists of strings which hold explicitly disallowed combinations.
+For example, while cold, still, and murky are all in different
+combinatorial groups, the combination of all three together can be
+explicitly disallowed (since in this case cold still water is less
+likely to be murky because the silt and sediment have ample time to
+settle.")
+
 (defun concept--shares-only-one-element-from-each-group-p (items groups)
   "Return non-nil if ITEMS has at most one member of each group in GROUPS."
   (not
@@ -2628,9 +2637,14 @@ combinations.")
 (defun concept-is-valid-combination-p (combination)
   "Test if COMBINATION is valid according to the contents of
 `concept-combinatorial-groups-list'."
-  (concept--shares-only-one-element-from-each-group-p
-   combination
-   concept-combinatorial-groups-list))
+  (and
+   (concept--shares-only-one-element-from-each-group-p
+    combination
+    concept-combinatorial-groups-list)
+   (not
+    (concept--shares-all-elements-of-any-group-p
+     combination
+     concept-combinatorial-exclusions-list))))
 
 (defvar-local concept-combinatorial-inclusion-predicate
   #'concept-is-valid-combination-p
