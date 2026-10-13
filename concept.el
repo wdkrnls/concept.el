@@ -2641,10 +2641,9 @@ settle.")
    (concept--shares-only-one-element-from-each-group-p
     combination
     concept-combinatorial-groups-list)
-   (not
-    (concept--shares-all-elements-of-any-group-p
-     combination
-     concept-combinatorial-exclusions-list))))
+   (concept--does-not-share-all-elements-of-any-group-p
+    combination
+    concept-combinatorial-exclusions-list)))
 
 (defvar-local concept-combinatorial-inclusion-predicate
   #'concept-is-valid-combination-p
