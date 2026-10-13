@@ -11058,9 +11058,30 @@ resource block templates fit nicely into this regime."
         (setq end (point)))
       (cons beg end))))
 
+(defun concept-get-temporary-block-region-before-current-line ()
+  "Push back by a line the current temporary block region."
+  (when-let ((reg (concept-get-temporary-block-region)))
+    (let ((beg (car reg))
+          (end (cdr reg)))
+    (save-excursion
+      (goto-char end)
+      (previous-line)
+      (when (concept-in-temporary-block)
+        (end-of-line)
+        (cons beg (point)))))))
+
 (defun concept-activate-temporary-block-region ()
   "Activate the whole temporary block region at point."
   (when-let* ((reg (concept-get-temporary-block-region)))
+    (let ((beg (car reg))
+          (end (cdr reg)))
+      (goto-char beg)
+      (set-mark end)
+      (activate-mark))))
+
+(defun concept-activate-temporary-block-region-before-current-line ()
+  "Activate the whole temporary block region at point."
+  (when-let* ((reg (concept-get-temporary-block-region-before-current-line)))
     (let ((beg (car reg))
           (end (cdr reg)))
       (goto-char beg)
