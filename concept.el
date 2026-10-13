@@ -2617,6 +2617,13 @@ combinations.")
       (< 1 (seq-count (lambda (item) (member item group)) items)))
     groups)))
 
+(defun concept--does-not-share-all-elements-of-any-group-p (items groups)
+  "Return non-nil if ITEMS does not contain every member of any group in GROUPS."
+  (not
+   (seq-some
+    (lambda (group)
+      (seq-every-p (lambda (item) (member item items)) group))
+    groups)))
 
 (defun concept-is-valid-combination-p (combination)
   "Test if COMBINATION is valid according to the contents of
