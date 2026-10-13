@@ -10831,6 +10831,109 @@ resource block templates fit nicely into this regime."
                  ((eq parsing-mode :optional)
                   (push (if is-list (eval default-expr t) nil) final-args))))))))
         (apply function (nreverse final-args))))))
+
+(defun concept-in-temporary-block ()
+  (not (or (concept-in-relationship-block)
+           (concept-in-resource-block))))
+
+(defun concept-get-temporary-block-region ()
+  "Get the region boundaries of the current temporary block."
+  (when (and (derived-mode-p 'concept-mode)
+             (concept-in-temporary-block))
+    (let ((start (point))
+          beg end)
+      (save-excursion
+        (beginning-of-line)
+        (while (and (not (bobp)) (concept-in-temporary-block))
+          (previous-line))
+        (unless (concept-in-temporary-block)
+          (forward-line))
+        (setq beg (point))
+        (goto-char start)
+        (while (or (eobp) (concept-in-temporary-block))
+          (forward-line))
+        (unless (concept-in-temporary-block)
+          (previous-line))
+        (end-of-line)
+        (setq end (point)))
+      (cons beg end))))
+
+(defun concept-activate-temporary-block-region ()
+  "Activate the whole temporary block region at point."
+  (when-let* ((reg (concept-get-temporary-block-region)))
+    (let ((beg (car reg))
+          (end (cdr reg)))
+      (goto-char beg)
+      (set-mark end)
+      (activate-mark))))
+
+(defun concept-kill-last-temporary-block-region ()
+  "Kill the whole temporary block region at or before point."
+  (when (derived-mode-p 'concept-mode)
+    (unless (concept-in-temporary-block)
+      (concept-goto-current-focus)
+      (previous-line))
+    (when-let* ((reg (concept-get-temporary-block-region)))
+      (let ((beg (car reg))
+            (end (cdr reg)))
+        (kill-region beg (1+ end)))
+      (end-of-line))))
+
+(defun concept-goto-last-line-in-resource-block ()
+  (when (concept-in-resource-block)
+    (outline-end-of-subtree)
+    (when (concept-in-temporary-block)
+      (re-search-backward "^|" nil t)
+      (end-of-line))))
+
+(defun concept-goto-last-line-in-temporary-block ()
+  (when-let ((reg (concept-get-temporary-block-region)))
+    (goto-char (cdr reg))))
+
+(defun concept-goto-last-line-in-block ()
+  "Navigate to the last line in the block."
+  (cond ((concept-in-relationship-block)
+         (concept-goto-last-line-in-relationship-block))
+        ((concept-in-resource-block)
+         (concept-goto-last-line-in-resource-block))
+        (t
+         (concept-goto-last-line-in-temporary-block))))
+
+(defun concept-goto-next-block-boundary ()
+  "Navigate to the next boundary between relationship, resource, or temporary blocks."
+  (if (concept-in-temporary-block)
+      (when-let ((reg (concept-get-temporary-block-region)))
+        (goto-char (1+ (cdr reg))))
+    (if (concept-on-last-line-in-block-p)
+        (if (looking-at " *$")
+            (forward-char)
+          (end-of-line)
+          (forward-char))
+      (concept-goto-last-line-in-block)
+      (end-of-line)
+      (forward-char))))
+
+(defun concept-kill-next-temporary-block-region ()
+  "Kill the whole temporary block region at or before point."
+  (when (derived-mode-p 'concept-mode)
+    (unless (concept-in-temporary-block)
+      (concept-goto-current-focus)
+      (outline-end-of-subtree))
+    (when-let* ((reg (concept-get-temporary-block-region)))
+      (let ((beg (car reg))
+            (end (cdr reg)))
+        (kill-region beg (1+ end)))
+      (previous-line)
+      (end-of-line))))
+
+(defun concept-get-temporary-block-string ()
+  "Get the text for the whole temporary block at point.
+This is useful in conjunction with `concept-funcall-with-string-args'."
+  (when-let* ((reg (concept-get-temporary-block-region)))
+    (let ((beg (car reg))
+          (end (cdr reg)))
+      (buffer-substring-no-properties beg end))))
+
 (defun concept-do-nothing ()
   (interactive)
   (message "Nothing was do because upcasing all the text in a concept map is a bad idea.")
