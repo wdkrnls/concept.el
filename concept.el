@@ -2658,6 +2658,8 @@ like A, B, or C versus A, B, and C. Otherwise, nil suppresses these."
     (setq degree (string-to-number degree)))
   (when (stringp less-than)
     (setq less-than (intern less-than)))
+  (when (null less-than)
+    (setq less-than (intern "string-lessp")))
   (unless (and (integerp degree) (< 0 degree))
     (user-error "DEGREE must be a positive integer"))
   (unless (functionp less-than)
@@ -2698,7 +2700,8 @@ like A, B, or C versus A, B, and C. Otherwise, nil suppresses these."
                (concat
                 (format "~ %s\n| :include\n" concept)
                 (mapconcat
-                 (if (null final-prefix)
+                 (if (or (null final-prefix)
+                         (eq k 1))
                      (lambda (combination)
                        (format "| %s-%s"
                                (mapconcat #'identity combination "-")
