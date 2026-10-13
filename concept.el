@@ -2483,15 +2483,18 @@ Optionally move the ending of the substring by a fixed OFFSET."
       (substring name 0 (1- (length name)))
     name))
 
-(defun concept-expand-list-of-things (&rest list)
-  "Expand a list of things into a relationship block."
-  (concat "~ things"
-          "\n| :include"
+(defun concept-expand-list-relationships (subject relationship &rest objects)
+  "Expand a list of things into a relationship block.
+These are general not obviously related concepts where you just
+enumerate the relationships."
+  (concat (format "~ %s" subject)
+          (format "\n| :%s" relationship)
           "\n| "
           (mapconcat
-           (lambda (x)
-             (string-replace " " "-" x))
-           list "\n| ")))
+           (lambda (object)
+             (string-replace " " "-" object))
+           objects
+           "\n| ")))
 
 (defun concept-expand-feature-relationships (concept relationship &rest features)
   "Construct a relationship block with FEATURES of a CONCEPT.
@@ -2506,6 +2509,18 @@ relationships like `cat-furr' and `cat-claws'."
                        features
                        "\n| "))))
 
+(defun concept-expand-sibling-relationships (parent subject relationship &rest objects)
+  "Construct a relationship block with shared PARENT and RELATIONSHIP, a
+primary SUBJECT, and one or more OBJECTS."
+  (concat (format "~ %s-%s\n| :%s"
+                  parent subject relationship)
+          "\n| "
+          (mapconcat
+           (lambda (object)
+             (format "%s-%s" parent object))
+           objects
+           "\n| ")))
+
 (defun concept-expand-categorized-relationships (concept relationship &rest categories)
   "Construct a relationship block with outer defined classes.
 Compare this with `concept-expand-categorized-inner-relationships'."
@@ -2519,10 +2534,21 @@ Compare this with `concept-expand-categorized-inner-relationships'."
     categories
     "\n| ")))
 
-(defun concept-expand-categorized-relationships-with-extensions (concept relationship extension &rest categories)
+(defun concept-expand-defined-relationships (concept relationship preposition feature &rest attributes)
+  ""
+  (concat
+   (format "~ %s\n| :%s"
+           concept relationship)
+   "\n| "
+   (mapconcat
+    (lambda (attribute)
+      (format "%s-%s-%s-%s"
+              concept preposition attribute feature))
+    attributes
+    "\n| ")))
+
+(defun concept-expand-related-relationships (concept relationship category &rest qualification)
   "Construct a relationship block with inner defined classes."
-  ;; TODO: extension might not be the right word. Maybe the right word is
-  ;; category, while the rest might be qualifier. Think about it.
   (concat
    (format "~ %s\n| :%s"
            concept relationship)
@@ -2531,6 +2557,19 @@ Compare this with `concept-expand-categorized-inner-relationships'."
     (lambda (category)
       (format "%s-%s-%s" category extension concept))
     categories
+    "\n| ")))
+
+(defun concept-expand-qualified-relationships (subject relationship object category &rest qualifiers)
+  "Expand qualified relationship blocks."
+  (concat
+   (format "~ %s\n| :%s\n"
+           subject relationship)
+   "| "
+   (mapconcat
+    (lambda (qualifier)
+      (format "%s-%s-%s"
+              qualifier category object))
+    qualifiers
     "\n| ")))
 
 (defun concept--combinations (items n)
@@ -2611,11 +2650,7 @@ Sort categories using LESS-THAN before generating combinations."
               (number-sequence 1 degree)
               "\n"))))))
 
-(defun concept-expand-extended-pair-relationship-template (core-def A B X)
-  (format "~ %s\n| :include\n| %s-%s-%s\n| %s-%s-%s"
-          core-def A X core-def B X core-def))
-
-(defun concept-expand-pdf-resource-template (path)
+(defun concept-expand-pdf-resources (path)
   "Generate the data needed to quickly construct a resource template for PDF files.
 Given the file PATH it finds the buffer associated with that file, grabs
 the page number, and constructs the resource block."
@@ -2633,7 +2668,7 @@ the page number, and constructs the resource block."
       (switch-to-buffer cmbuf)
       (insert (format "| {%d}" page)))))
 
-(defun concept-expand-list-resource-template* (includes &optional excludes prefix focus)
+(defun concept-expand-list-resources (includes &optional excludes prefix focus)
   "Generate the data needed to more quickly construct a resource template.
 It takes two lists of strings as argument INCLUDES and EXCLUDES. These
 define substrings which indicate the suffixes of core concepts. When
