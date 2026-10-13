@@ -10204,10 +10204,12 @@ MEMO caches results, and VISITING detects dependency cycles."
                  (if (match-beginning 2)
                      2
                    3)))
-            (concept-bar-add-overlay
-             (match-beginning group)
-             (match-end group)
-             source)))))))
+            (unless (and (eq group 3)
+                         (not (concept-on-exposition-line)))
+              (concept-bar-add-overlay
+               (match-beginning group)
+               (match-end group)
+               source))))))))
 
 (define-minor-mode concept-bar-display-mode
   "Display ASCII diagram characters as Unicode box-drawing glyphs."
