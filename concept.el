@@ -2753,13 +2753,14 @@ An exposition line is a line in a resource block where expository text
 is added to give an illustrated example. Practically, it consists of a
 line that starts with open and closing squiggly brackets, usually. It
 can also start with square brackets, or maybe unicode quotes: ‘’."
-  (let ((line (concept-current-line)))
-    (or
-     (string-match-p "^| +{[^}]*} *$" line)
-     (string-match-p "| +‘[^‘]*’ *$" line)
-     (and
-      (string-match-p "^|[ ]*\\[" line)
-      (string-match-p "\\][ ]*$" line)))))
+  (save-match-data
+    (let ((line (concept-current-line)))
+      (or
+       (string-match-p "^| +{[^}]*} *$" line)
+       (string-match-p "| +‘[^‘]*’ *$" line)
+       (and
+        (string-match-p "^|[ ]*\\[" line)
+        (string-match-p "\\][ ]*$" line))))))
 
 (defun concept-insert-note-block ()
   "Insert a note block.
