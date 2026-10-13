@@ -10740,6 +10740,97 @@ data if it already exists."
              (search-backward " ")
              (forward-char))))))
 
+(defun concept-funcall-with-string-args (function string &optional opening closing)
+  "Invoke FUNCTION with arguments parsed from STRING.
+Arguments are treated as strings by default (or numbers if
+numeric). Multi-word strings must use delimiters. These default to `{',
+and `}', but can be changed by the user with any single character string
+in the OPENING and CLOSING arguments. Not every function can be called
+with this, but functions useful for quickly generating relationship and
+resource block templates fit nicely into this regime."
+  (let* ((open  (or opening "{"))
+         (close (or closing "}"))
+         (arglist (help-function-arglist function))
+         (open-char (and (= 1 (length open))
+                         (string-to-char open)))
+         (close-char (and (= 1 (length close))
+                          (string-to-char close)))
+         (tokens (let ((i 0)
+                       (len (length string))
+                       (toks '()))
+                   (while (< i len)
+                     (while (and (< i len)
+                                 (string-match-p "[[:space:]]"
+                                                 (char-to-string (aref string i))))
+                       (setq i (1+ i)))
+                     (when (< i len)
+                       (let ((first-char (aref string i)))
+                         (if (and open-char (= first-char open-char))
+                             (progn
+                               (setq i (1+ i))
+                               (let ((tok-start i))
+                                 (while (and (< i len)
+                                             (/= (aref string i) close-char))
+                                   (setq i (1+ i)))
+                                 (push (substring string tok-start i) toks)
+                                 (when (< i len)
+                                   (setq i (1+ i)))))
+                           (let ((tok-start i))
+                             (while (and (< i len)
+                                         (not (string-match-p "[[:space:]]"
+                                                              (char-to-string (aref string i)))))
+                               (setq i (1+ i)))
+                             (push (substring string tok-start i) toks))))))
+                   (nreverse toks)))
+         (provided-args (make-hash-table :test 'equal))
+         (positional-args '()))
+    (let ((i 0)
+          (len (length tokens)))
+      (while (< i len)
+        (let ((token (nth i tokens)))
+          (if (string-suffix-p ":" token)
+              (let* ((kw-name (substring token 0 -1))
+                     (val (nth (1+ i) tokens)))
+                (if val
+                    (progn
+                      (puthash kw-name val provided-args)
+                      (setq i (+ i 2)))
+                  (error "Missing value for keyword argument: %s" token)))
+            (push token positional-args)
+            (setq i (1+ i)))))
+      (setq positional-args (nreverse positional-args)))
+    (let ((parse-val
+           (lambda (s)
+             (if (string-match-p "\\`-?[0-9]+\\(?:\\.[0-9]+\\)?\\'" s)
+                 (string-to-number s)
+               s))))
+      (let ((final-args '())
+            (pos-iter positional-args)
+            (parsing-mode :required))
+        (dolist (arg arglist)
+          (cond
+           ((eq arg '&optional) (setq parsing-mode :optional))
+           ((eq arg '&rest)     (setq parsing-mode :rest))
+           ((eq parsing-mode :rest)
+            (when pos-iter
+              (dolist (p pos-iter)
+                (push (funcall parse-val p) final-args))
+              (setq pos-iter nil)))
+           (t
+            (let* ((is-list (listp arg))
+                   (arg-sym (if is-list (car arg) arg))
+                   (default-expr (if is-list (cadr arg) nil))
+                   (arg-str (symbol-name arg-sym))
+                   (val-str (or (gethash arg-str provided-args)
+                                (pop pos-iter))))
+              (if val-str
+                  (push (funcall parse-val val-str) final-args)
+                (cond
+                 ((eq parsing-mode :required)
+                  (error "Missing required argument: %s" arg-sym))
+                 ((eq parsing-mode :optional)
+                  (push (if is-list (eval default-expr t) nil) final-args))))))))
+        (apply function (nreverse final-args))))))
 (defun concept-do-nothing ()
   (interactive)
   (message "Nothing was do because upcasing all the text in a concept map is a bad idea.")
