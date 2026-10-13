@@ -2483,6 +2483,16 @@ Optionally move the ending of the substring by a fixed OFFSET."
       (substring name 0 (1- (length name)))
     name))
 
+(defun concept-expand-list-of-things (&rest list)
+  "Expand a list of things into a relationship block."
+  (concat "~ things"
+          "\n| :include"
+          "\n| "
+          (mapconcat
+           (lambda (x)
+             (string-replace " " "-" x))
+           list "\n| ")))
+
 (defun concept-make-tempel-singular-relationship-template (concept rel &optional count)
   (when (null count)
     (setq count 1))
