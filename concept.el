@@ -2649,21 +2649,312 @@ settle.")
   #'concept-is-valid-combination-p
   "Inclusion predicate function for keeping meaningful combinatorial pairs.")
 
-(defun concept-expand-combinatorial-relationships (concept degree less-than final-prefix &rest categories)
-  "Expand DEGREE-sized combinations of CATEGORIES for CONCEPT.
-Sort categories using LESS-THAN before generating combinations. A
-FINAL-PREFIX if supplied can be used to express logical combinations
-like A, B, or C versus A, B, and C. Otherwise, nil suppresses these."
+(defvar-local concept-combinatorial-less-than-p
+    #'string-lessp
+  "Default string ordering comparison function for defining the ordering of combinations.")
+
+(defun concept--list-of-nonempty-string-lists-p (x)
+  "Return `t' if VALUE is a list of lists of strings."
+  (and (not (null x))
+       (listp x)
+       (seq-every-p
+        (lambda (y)
+          (and (listp y)
+               (< 0 (length y))
+               (seq-every-p #'stringp y)))
+        x)))
+
+(define-derived-mode concept-string-group-view-mode tabulated-list-mode
+  "String Group Lists"
+  "View lists of lists of strings as a table."
+  (setq tabulated-list-format
+        [("Group" 8 t)
+         ("List" 0 nil)])
+  (setq tabulated-list-padding 2)
+  (tabulated-list-init-header))
+
+(defun concept-view-combinatorial-groups-list ()
+  "Display `concept-combinatorial-groups-list' in a tabulated-list buffer."
+  (interactive)
+  (let ((table-buffer (get-buffer-create "*Combinatorial Groupings*"))
+        (table concept-combinatorial-groups-list)
+        (group 0)
+        (map-buffer (current-buffer)))
+    (with-current-buffer table-buffer
+      (concept-string-group-view-mode)
+      (setq tabulated-list-entries
+            (mapcar
+             (lambda (entries)
+               (setq group (1+ group))
+               (list group
+                     (vector (number-to-string group)
+                             (mapconcat #'identity entries " "))))
+             table))
+      (tabulated-list-print t))
+    (pop-to-buffer table-buffer)))
+
+(defun concept--edit-groups-list-helper (variable-symbol table-buffer-name overwrite)
+  "Helper function for constructing string groups list editors.
+VARIABLE-SYMBOL is the symbol of the variable holding the list of group strings.
+TABLE-BUFFER-NAME is a string naming the tabulated-list buffer.
+OVERWRITE is a boolean whether to start from scratch with the variable values."
+  ;; XXX - Finish this and then use it to implement both combinatorial inclusion
+  ;; and exclusion groups
+  (unless (symbolp variable-symbol)
+    (user-error "Please supply the name of the variable. Not the variable itself."))
+  (unless (boundp variable-symbol)
+    (user-error "The supplied variable name is undefined: %s" variable-symbol))
+  t)
+
+(defun concept--remove-at (pos list)
+  "Return a new LIST with the element removed at POS."
+  (append (seq-take list pos)
+          (seq-drop list (1+ pos))))
+
+(defvar concept-message-long-wait-time
+  5
+  "Give the user time (in seconds) to process the displayed message before continuing.")
+
+(defvar concept-message-short-wait-time
+  1
+  "Give the user time (in seconds) to process the displayed message before continuing.")
+
+(defun concept-edit-combinatorial-groups-list (overwrite)
+  "Edit `concept-combinatorial-groups-list'.
+Without a prefix argument, start with its current groups.
+With a prefix argument, start with an empty list."
+  (interactive "P")
+  (unless (concept--list-of-nonempty-string-lists-p
+           concept-combinatorial-groups-list)
+    (let ((warning "The underlying variable has been corrupted! Look at the data and save it elsewhere if valuable.")
+          (dismiss "(Press ANY KEY to dismiss)"))
+      (if (not overwrite)
+          (user-error warning)
+        (message (concat warning " " dismiss))
+        (sit-for concept-message-long-wait-time)
+        (let ((confirm (yes-or-no-p "Delete corrupted data?:")))
+          (if confirm
+              (progn
+                (message (concat "The variable has been reset to a pristine state!" " " dismiss))
+                (setq concept-combinatorial-groups-list nil))
+            (user-error "Deletion aborted! But the variable is still corrupted.")))))
+    (sit-for concept-message-short-wait-time))
+  (let* ((groups (if overwrite
+                     nil
+                   (copy-tree concept-combinatorial-groups-list)))
+         (changes nil)
+         (edit "Edit existing group")
+         (remove "Remove an existing group")
+         (add "Add new group")
+         (save "Write changes")
+         (abort (if changes "Quit and discard edits" "Quit"))
+         action)
+    (setq action
+          (completing-read
+           "Action: "
+           (cond ((and groups changes)
+                  (list edit add remove save abort))
+                 (groups
+                  (list edit add remove abort))
+                 (t
+                  (list add abort)))
+           nil t))
+    (while (not (member action (list save abort)))
+      (cond
+       ((equal action add)
+        (let ((group
+               (condition-case nil
+                   (completing-read-multiple
+                    "Words/phrases for the new group: "
+                    nil nil nil nil nil nil "[[:space:]]+")
+                 (quit nil))))
+          (when group
+            (setq groups (append groups (list group)))
+            (setq changes (not (equal groups concept-combinatorial-groups-list))))))
+       ((equal action remove)
+        (let* ((choices
+                (if groups
+                    (mapcar
+                     (lambda (pos)
+                       (concat
+                        (number-to-string (1+ pos))
+                        " = "
+                        (mapconcat #'identity (nth pos groups) " ")))
+                     (number-sequence 0 (1- (length groups))))
+                  nil))
+               ((choice
+                 (completing-read
+                  "Group to remove: "
+                  (append choices (list "Finished deletions")) nil t))))
+          (when choice
+            (unless (string= choice "Finished deletions")
+              (let* ((index (1- (string-to-number (substring choice 0 (string-match " " choice))))))
+                (setq groups (concept--remove-at index groups))
+                (setq changes (not (equal groups concept-combinatorial-groups-list))))))))
+       ((equal action edit)
+        (let* ((choices
+                (if groups
+                    (mapcar
+                     (lambda (pos)
+                       (concat
+                        (number-to-string (1+ pos))
+                        " = "
+                        (mapconcat #'identity (nth pos groups) " ")))
+                     (number-sequence 0 (1- (length groups))))
+                  nil))
+               (choice (completing-read "Group to edit: "
+                                        (append choices (list "Finished editing")) nil t)))
+          (unless (string= choice "Finished editing")
+            (let* ((index (1- (string-to-number (substring choice 0 (string-match " " choice)))))
+                   (replacement
+                    (completing-read-multiple
+                     "Replacement words/phrases: "
+                     nil nil nil (mapconcat #'identity (nth index groups) " ") nil nil "[[:space:]]+")))
+              (when replacement
+                (if (not (or (string-empty-p replacement) (string-blank-p replacement)))
+                    (setf (nth index groups) replacement)
+                  (message "Group deleted because all its elements have been removed!")
+                  (setq groups (concept-remove-at index groups))
+                  (setq changes (not (equal groups concept-combinatorial-groups-list))))))))))
+      (setq abort
+            (if changes "Quit and discard edits" "Quit"))
+      (setq action
+            (completing-read
+             "Action: "
+             (cond ((and groups changes)
+                    (list edit add remove save abort))
+                   (groups
+                    (list edit add remove abort))
+                   (t
+                    (list add abort)))
+             nil t)))
+    (let ((emptied (null groups)))
+      (if (or overwrite changes)
+          (if (string= action save)
+              (if emptied
+                  (message "`concept-combinatorial-groups-list' has been cleared as requested!")
+                (message "`concept-combinatorial-groups-list' has been edited!")
+                (setq concept-combinatorial-groups-list groups))
+            (message "Editing session explicity aborted. `concept-combinatorial-groups-list' left unchanged!"))
+        (message "No edits were made. `concept-combinatorial-groups-list' left unchanged!")))))
+
+(defun concept--expand-combinatorial-helper (concept degree final-prefix item-type left-constructor right-constructor items)
+  "Reusable parts of the combinatorial relationship block generation logic.
+There are three types of combinatorial expansion: categorical, core, and
+definitional. This tries to support all three."
   (when (stringp degree)
     (setq degree (string-to-number degree)))
-  (when (stringp less-than)
-    (setq less-than (intern less-than)))
-  (when (null less-than)
-    (setq less-than (intern "string-lessp")))
+  (when (stringp left-constructor)
+    (setq left-constructor (intern left-constructor)))
+  (when (and (symbolp left-constructor)
+             (fboundp left-constructor))
+    (setq left-constructor (symbol-function left-constructor)))
+  (when (stringp right-constructor)
+    (setq right-constructor (intern right-constructor)))
+  (when (and (symbolp right-constructor)
+             (fboundp right-constructor))
+    (setq right-constructor (symbol-function right-constructor)))
   (unless (and (integerp degree) (< 0 degree))
     (user-error "DEGREE must be a positive integer"))
-  (unless (functionp less-than)
-    (user-error "LESS-THAN must name a function"))
+  (unless (functionp (symbol-function concept-combinatorial-less-than-p))
+    (user-error "`concept-combinatorial-less-than-p' must name a valid predicate function: %s"
+                (symbol-name concept-combinatorial-less-than-p)))
+  (unless (functionp left-constructor)
+    (user-error "%s must name a function" (symbol-name left-constructor)))
+  (unless (functionp right-constructor)
+    (user-error "%s must name a function" (symbol-name right-constructor)))
+  (let (bad-item result)
+    (setq result
+          (seq-every-p
+           (lambda (item)
+             (let ((result
+                    (and (not (string-empty-p item))
+                         (if (eq 1 (length item))
+                             (string-match-p "[^][:{}() -]" item)
+                           (string-match-p "^[^][:{}() \n\t-][^ \n\t]*[^][ {}()\n\t-]$" item)))))
+               (when (null result)
+                 (setq bad-item item))
+               result))
+           items))
+    (unless result
+      (user-error "Atleast one invalid %s was found: %s Please fix and try-again." item-type bad-item)))
+  (let ((n (length items))
+        (copy (copy-sequence items)))
+    (unless (eq n (length (delete-dups copy)))
+      (user-error "There was a duplicate %s: %s"
+                  item-type
+                  (concept--first-duplicate items)))
+    (catch 'result
+      (cond ((= n 0)
+             (throw 'result (format "~ %s" concept)))
+            ((= n 1)
+             (throw 'result (concat
+                             (format "~ %s\n| :include\n" concept)
+                             (format "| %s-%s"
+                                     (funcall left-constructor concept items)
+                                     (funcall right-constructor concept items)))))
+            (t
+             (mapconcat
+              (lambda (k)
+                (let* ((sorted-items
+                        (sort (copy-sequence items)
+                              (symbol-function concept-combinatorial-less-than-p)))
+                       (combinations
+                        (seq-filter concept-combinatorial-inclusion-predicate
+                                    (concept--combinations sorted-items k))))
+               (concat
+                (format "~ %s\n| :include\n" concept)
+                (mapconcat
+                 (if (or (null final-prefix)
+                         (eq k 1))
+                     (lambda (combination)
+                       (format "| %s-%s"
+                               (funcall left-constructor concept combination)
+                               (funcall right-constructor concept combination)))
+                   (lambda (combination)
+                     (let ((prefixed-combination
+                            (concept--insert-into combination (1- k) final-prefix)))
+                       (format "| %s-%s"
+                               (funcall left-constructor concept prefixed-combination)
+                               (funcall right-constructor concept prefixed-combination)))))
+                 combinations
+                 "\n"))))
+              (number-sequence 1 degree)
+              "\n"))))))
+
+(defun concept-expand-combinatorial-relationships-by-definition (concept preposition final-prefix degree &rest attributes)
+  "Expand human-beings with blond-hair blue-eyes to human-beings-with-blond-hair-and-blue-eyes.
+Pass in the CONCEPT (like `human-beings') along with the definition
+PREPOSITION (like `with') an optional FINAL-PREFIX string (or `nil') an
+integer larger than `0' DEGREE, followed by a list of ATTRIBUTES."
+  (let ((left-constructor
+         (lambda (concept _combination)
+           (format "%s-%s" concept preposition)))
+        (right-constructor
+         (lambda (_left combination)
+           (mapconcat #'identity combination "-"))))
+    (concept--expand-combinatorial-helper
+     concept
+     degree
+     final-prefix
+     "attribute"
+     left-constructor
+     right-constructor
+     attributes)))
+
+(defun concept-expand-combinatorial-relationships-by-category (concept degree final-prefix &rest categories)
+  "Expand combinations to DEGREE of CATEGORIES for CONCEPT.
+Sort CATEGORIES using `concept-combinatorial-less-than-p' before
+generating combinations. A FINAL-PREFIX if supplied can be used to
+express logical combinations like: `A', `B', or `C' versus `A', `B', and
+`C'. Otherwise, `nil' suppresses these."
+  (when (stringp degree)
+    (setq degree (string-to-number degree)))
+  (unless (and (integerp degree) (< 0 degree))
+    (user-error "DEGREE must be a positive integer"))
+  (unless (functionp concept-combinatorial-less-than-p)
+    (user-error "LESS-THAN predicate must name a valid defined predicate function: %s"
+                (symbol-name concept-combinatorial-less-than-p)))
   (let (bad-category result)
     (setq result
           (seq-every-p
@@ -2693,7 +2984,8 @@ like A, B, or C versus A, B, and C. Otherwise, nil suppresses these."
              (mapconcat
               (lambda (k)
                 (let* ((sorted-categories
-                        (sort (copy-sequence categories) less-than))
+                        (sort (copy-sequence categories)
+                              (symbol-function concept-combinatorial-less-than-p)))
                        (combinations
                         (seq-filter concept-combinatorial-inclusion-predicate
                                     (concept--combinations sorted-categories k))))
