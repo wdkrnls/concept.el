@@ -823,7 +823,9 @@ My main concern that keeps me from tackling this immediately, is that I use thes
 
 ### Templates for resource blocks and relationship blocks
 
-I have made some progress recently on fleshing out two helpful templates for resource blocks. I would like to extend that streak with making a template for a relationship block. Most of my relationship blocks are binary relationship blocks: one focus concept leads to two data concepts. I identified two variations which seem pretty common. They are illustrated by:
+I have made some progress recently on fleshing out two helpful templates for resource blocks. In particular `concept-expand-list-resources` is quite useful for automatically generating resources from relationship blocks pertaining to computationally available information. I have used them to generate templates for notes on PDF as well as accessing computationally available information given that the concepts are named following strict and consistent conventions.
+
+I have further extended this streak by making several template expansion helpers for relationship blocks. Many relationship blocks in my concept map files are binary relationship blocks: one focus concept leads to two data concepts. However, these patterns are not at all limited to binary comparisons. Relationship blocks of arbitrary size are also feasible following the visible patterns. I identified several variations which seem pretty common in my existing maps and developed template expansions for them. To make things concrete, we can give two examples:
 
 A:
 
@@ -843,11 +845,21 @@ B:
 | multiple-page-documents
 ```
 
-I have constructed templates which make these sorts of relationship blocks very quick to enter. They work by adding a configuration line of text above the proposed relationship block. They allow the user to interactively play with the configuration line until they like it. Then they trigger the template insertion to be done just as they would with any other tempel insertion. Then they just delete the configuration line, leaving the buffer with a new relationship block.
+I had already experimented with constructing templates using basic helper functions which make these sorts of binary relationship blocks very quick to enter. They work by adding a configuration line of text above the proposed relationship block. They allow the user to interactively play with the configuration line until they like it. Then they trigger the template insertion to be done just as they would with any other tempel insertion. Then they just delete the configuration line, leaving the buffer with a new relationship block.
+
+I really like this approach to make automatic insertions and edits to concept maps. I am particularly impressed by the underlying computational plumbing. More on that later.
+
+The idea of a temporary block supports this whole approach, and it may be useful elsewhere as well. For example, nearly empty lines holding only START or END could be used to facilitate automated processing of multiple ideas at the same time.
+
+I also thought it would be a good idea to write functions which support converting these temporary configuration blocks back and forth to metadata resources, so that the concept map stays in a valid grammatical state. This should be too much of an issue as long as I can figure out how to move them up above their applicable idea from a metadata resource block contained within.
 
 The challenge is to look through my existing concept map data sets to identify which relationship blocks don't the currently supported patterns, and consider adding them if they are ubiquitous enough.
 
 I also need to document these tools to explain how they can be used to make real clearly useful tempel templates.
+
+### Exploratory Data Analysis
+
+There are a lot of opportunities for exploratory analysis of concepts along with the `-subconcepts-` which compose them, the ideas that hold them, and their relative placement within the buffer. Make a couple of tables around those ideas so that so these can be a source of data for the `conceptuel` R package to read from.
 
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
