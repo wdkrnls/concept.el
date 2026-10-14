@@ -2724,8 +2724,10 @@ OVERWRITE is a boolean whether to start from scratch with the variable values."
 Without a prefix argument, start with its current groups.
 With a prefix argument, start with an empty list."
   (interactive "P")
-  (unless (concept--list-of-nonempty-string-lists-p
-           concept-combinatorial-groups-list)
+  (unless (or
+           (concept--list-of-nonempty-string-lists-p
+            concept-combinatorial-groups-list)
+           (null concept-combinatorial-groups-list))
     (let ((warning "The underlying variable has been corrupted! Look at the data and save it elsewhere if valuable.")
           (dismiss "(Press ANY KEY to dismiss)"))
       (if (not overwrite)
@@ -2746,7 +2748,7 @@ With a prefix argument, start with an empty list."
          (edit "Edit existing group")
          (remove "Remove an existing group")
          (add "Add new group")
-         (save "Write changes")
+         (save "Save changes")
          (abort (if changes "Quit and discard edits" "Quit"))
          action)
     (setq action
@@ -2782,10 +2784,11 @@ With a prefix argument, start with an empty list."
                         (mapconcat #'identity (nth pos groups) " ")))
                      (number-sequence 0 (1- (length groups))))
                   nil))
-               ((choice
+               (available-options (append choices (list "Finished deletions")))
+               (choice
                  (completing-read
                   "Group to remove: "
-                  (append choices (list "Finished deletions")) nil t))))
+                  available-options nil t)))
           (when choice
             (unless (string= choice "Finished deletions")
               (let* ((index (1- (string-to-number (substring choice 0 (string-match " " choice))))))
@@ -2806,16 +2809,18 @@ With a prefix argument, start with an empty list."
                                         (append choices (list "Finished editing")) nil t)))
           (unless (string= choice "Finished editing")
             (let* ((index (1- (string-to-number (substring choice 0 (string-match " " choice)))))
+                   (group (nth index groups))
                    (replacement
                     (completing-read-multiple
                      "Replacement words/phrases: "
-                     nil nil nil (mapconcat #'identity (nth index groups) " ") nil nil "[[:space:]]+")))
-              (when replacement
-                (if (not (or (string-empty-p replacement) (string-blank-p replacement)))
+                     nil nil nil (mapconcat #'identity group " ") nil nil "[[:space:]]+")))
+              (if (and replacement (not (seq-some #'string-blank-p replacement)))
+                  (when (not (equal group replacement))
                     (setf (nth index groups) replacement)
-                  (message "Group deleted because all its elements have been removed!")
-                  (setq groups (concept-remove-at index groups))
-                  (setq changes (not (equal groups concept-combinatorial-groups-list))))))))))
+                    (setq changes (not (equal groups concept-combinatorial-groups-list))))
+                (message "Group deleted because all its elements have been removed!")
+                (setq groups (concept--remove-at index groups))
+                (setq changes (not (equal groups concept-combinatorial-groups-list)))))))))
       (setq abort
             (if changes "Quit and discard edits" "Quit"))
       (setq action
@@ -2833,9 +2838,9 @@ With a prefix argument, start with an empty list."
           (if (string= action save)
               (if emptied
                   (message "`concept-combinatorial-groups-list' has been cleared as requested!")
-                (message "`concept-combinatorial-groups-list' has been edited!")
+                (message "Changes to `concept-combinatorial-groups-list' have been saved!")
                 (setq concept-combinatorial-groups-list groups))
-            (message "Editing session explicity aborted. `concept-combinatorial-groups-list' left unchanged!"))
+            (message "Editing session aborted. `concept-combinatorial-groups-list' left unchanged!"))
         (message "No edits were made. `concept-combinatorial-groups-list' left unchanged!")))))
 
 (defun concept--expand-combinatorial-helper (concept degree final-prefix item-type left-constructor right-constructor items)
