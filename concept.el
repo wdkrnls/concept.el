@@ -4323,11 +4323,15 @@ adjacent exposition line."
 (defun concept-goto-next-attribute-boundary ()
   "Move to the next keyword, concept header, or block marker."
   (interactive)
+  (when (concept-in-temporary-block)
+    (concept-goto-last-line-in-temporary-block))
   (end-of-line)
   (when (re-search-forward
        (concat concept-attribute-group-line-regexp
                "\\|"
                concept-subject-line-regexp
+               "\\|"
+               concept-temporary-line-regexp
                "\\|"
                concept-resource-line-regexp
                "\\|"
@@ -4339,19 +4343,23 @@ adjacent exposition line."
 (defun concept-goto-next-relationship-boundary ()
   "Move to the next relationship boundary.
 This could be another relationship group, a new idea which starts with a
-focus concept creating a new relationship block, or a new resource
-block."
+focus concept creating a new relationship block, a temporary block, or a
+new resource block."
   (interactive)
   (end-of-line)
+  (when (concept-in-temporary-block)
+    (concept-goto-last-line-in-temporary-block))
   (when (re-search-forward
-       (concat concept-relationship-group-line-regexp
-               "\\|"
-               concept-subject-line-regexp
-               "\\|"
-               concept-resource-line-regexp
-               "\\|"
-               "^[ \t]*$")
-       nil t)
+         (concat concept-temporary-line-regexp
+                 "\\|"
+                 concept-subject-line-regexp
+                 "\\|"
+                 concept-relationship-group-line-regexp
+                 "\\|"
+                 concept-resource-line-regexp
+                 "\\|"
+                 "^[ \t]*$")
+         nil t)
     (beginning-of-line)
     (point)))
 
@@ -4364,10 +4372,14 @@ block."
                  "\\|"
                  concept-subject-line-regexp
                  "\\|"
+                 concept-temporary-line-regexp
+                 "\\|"
                  concept-resource-line-regexp
                  "\\|"
                  "^[ \t]*$")
          nil t)
+    (when (concept-in-temporary-block)
+      (concept-goto-first-line-in-temporary-block))
     (beginning-of-line)
     (point)))
 
@@ -4376,7 +4388,9 @@ block."
   (interactive)
   (beginning-of-line)
   (when (re-search-backward
-         (concat concept-relationship-group-line-regexp
+         (concat concept-temporary-line-regexp
+                 "\\|"
+                 concept-relationship-group-line-regexp
                  "\\|"
                  concept-subject-line-regexp
                  "\\|"
@@ -4384,6 +4398,8 @@ block."
                  "\\|"
                  "^[ \t]*$")
          nil t)
+    (when (concept-in-temporary-block)
+      (concept-goto-first-line-in-temporary-block))
     (beginning-of-line)
     (point)))
 
