@@ -2766,9 +2766,11 @@ With a prefix argument, start with an empty list."
           (completing-read
            "Action: "
            (cond ((and groups changes)
-                  (list edit add remove save abort))
+                  (list add edit remove kill save abort))
+                 (changes
+                  (list add save abort))
                  (groups
-                  (list edit add remove abort))
+                  (list add edit remove kill abort))
                  (t
                   (list add abort)))
            nil t))
