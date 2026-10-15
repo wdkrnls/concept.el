@@ -2750,9 +2750,14 @@ With a prefix argument, start with an empty list."
   (let* ((groups (if overwrite
                      nil
                    (copy-tree concept-combinatorial-groups-list)))
-         (changes nil)
+         (completion-sort-function nil)
+         (completion-cycle-threshold most-positive-fixnum)
+         (completion-styles '(basic))
+         (vertico-sort-function nil)
+         (changes overwrite)
          (edit "Edit existing group")
          (remove "Remove an existing group")
+         (kill "Remove all existing groups")
          (add "Add new group")
          (save "Save changes")
          (abort (if changes "Quit and discard edits" "Quit"))
