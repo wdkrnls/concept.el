@@ -3118,11 +3118,18 @@ command automatically removes any duplicate lines."
           (replace-regexp-in-region "’ *$" "}" (line-beginning-position) (line-end-position)))))))
 
 (defun concept-insert-include-line ()
-  "Insert an include line.
+  "Insert an :include relationship on a new line.
 Such lines go inside a relationship block."
   (when (concept-in-relationship-block)
     (concept-add-new-data)
     (insert ":include")))
+
+(defun concept-insert-have-line ()
+  "Insert a :have relationship on a new line.
+Such lines go inside a relationship block."
+  (when (concept-in-relationship-block)
+    (concept-add-new-data)
+    (insert ":have")))
 
 (defun concept-insert-include-group ()
   "Insert an include group.
@@ -3131,6 +3138,15 @@ Such lines go inside a relationship block."
     (concept-goto-next-relationship-boundary)
     (backward-char)
     (concept-insert-include-line)
+    (concept-add-new-data)))
+
+(defun concept-insert-have-group ()
+  "Insert an include group.
+Such lines go inside a relationship block."
+  (when (concept-in-relationship-block)
+    (concept-goto-next-relationship-boundary)
+    (backward-char)
+    (concept-insert-have-line)
     (concept-add-new-data)))
 
 (defun concept-insert-relationship-line (relationship)
@@ -5616,15 +5632,19 @@ can think of this as analogous to how C-. and M-. work."
       (newline)
       (insert data)))))
 
-(defun concept-insert-include-dwim (&optional prompt)
+(defun concept-insert-dwim (&optional relationship)
   "Do thing action which makes the most sense in the given concept editing situation.
 If on a focused concept, then insert an :include line. Otherwise insert a blank data line."
   (interactive "P")
-  (let ((relationship
-         (if prompt
-             (string-trim (read-string "Relationship: " "" t "include"))
-           "include"))
-        (line-move-visual nil))
+  (cond ((null relationship)
+         (setq relationship "include"))
+        ((eq relationship t)
+         (setq relationship "have"))
+        (t
+         (unless (and (stringp relationship) (not (string-blank-p relationship)))
+           (setq relationship
+                 (string-trim (read-string "Relationship: " "" t "include"))))))
+  (let ((line-move-visual nil))
     (cond ((concept-on-resource-line)
            (concept-insert-note-block))
           ((concept-on-attribute-line)
@@ -5668,7 +5688,14 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
            (when (not (save-excursion
                         (forward-line)
                         (concept-on-relationship-line)))
-             (concept-insert-include-line)
+             (cond ((null relationship)
+                    (concept-insert-include-line))
+                   ((eq relationship t)
+                    (concept-insert-have-line))
+                   ((stringp relationship)
+                    (concept-insert-relationship-line relationship))
+                   (t
+                    (concept-insert-include-line)))
              (newline)
              (insert "| "))
            (when (save-excursion
@@ -5717,6 +5744,10 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
                      (forward-line)
                      (not (concept-on-data-line)))
                (concept-add-new-data)))))))
+
+(defun concept-insert-have-dwim ()
+  (interactive)
+  (concept-insert-dwim "have"))
 
 (defun concept-find-all-concept-words ()
   "Find all unique words in the concept map."
@@ -5909,7 +5940,7 @@ These brackets can hold just about any kind of data."
           (forward-char 2)
           (let ((p (point)))
             (concept-repeat-dwim)
-            (concept-insert-include-dwim)
+            (concept-insert-dwim)
             (let ((q (point)))
               (goto-char p)
               (forward-line 2)
@@ -5924,7 +5955,7 @@ These brackets can hold just about any kind of data."
           (forward-char 2)
           (let ((p (point)))
             (concept-repeat-dwim)
-            (concept-insert-include-dwim)
+            (concept-insert-dwim)
             (let ((q (point)))
               (goto-char p)
               (forward-line 1)
@@ -11058,13 +11089,13 @@ to do is type the keystrokes over and over."
             (concept-add-dwim))
            ((concept-on-focus-line)
             (end-of-line)
-            (concept-insert-include-dwim))
+            (concept-insert-dwim))
            ((or (concept-on-relationship-line)
                 (concept-on-data-concept-line))
-            (concept-insert-include-dwim))
+            (concept-insert-dwim))
            ((concept-in-resource-block)
             (concept-goto-last-concept)
-            (concept-insert-include-dwim))))
+            (concept-insert-dwim))))
     ("Relationship"
      (cond ((or (concept-on-focus-line)
                 (concept-on-data-concept-line))
@@ -11125,7 +11156,7 @@ to do is type the keystrokes over and over."
     ("Exposition"
      (when (or (concept-on-exposition-line)
                (concept-on-attribute-line))
-       (concept-insert-include-dwim)))
+       (concept-insert-dwim)))
     ("Template"
      (concept-enter-new-tempel-template))))
 
@@ -11663,7 +11694,8 @@ This is useful in conjunction with `concept-funcall-with-string-args'."
 (define-key concept-mode-map (kbd "M-.")         #'concept-insert-focus-as-new)
 (define-key concept-mode-map (kbd "C-M-.")       #'concept-insert-concept-dwim)
 (define-key concept-mode-map (kbd "C-.")         #'concept-insert-last-concept-as-new)
-(define-key concept-mode-map (kbd "M-i")         #'concept-insert-include-dwim)
+(define-key concept-mode-map (kbd "M-i")         #'concept-insert-dwim)
+(define-key concept-mode-map (kbd "M-h")         #'concept-insert-have-dwim)
 (define-key concept-mode-map (kbd "M-]")         #'concept-slurp-next-dwim)
 (define-key concept-mode-map (kbd "M-[")         #'concept-barf-next-dwim)
 (define-key concept-mode-map (kbd "C-M-<down>")  #'concept-goto-next-thing)
