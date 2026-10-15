@@ -2724,10 +2724,9 @@ OVERWRITE is a boolean whether to start from scratch with the variable values."
 Without a prefix argument, start with its current groups.
 With a prefix argument, start with an empty list."
   (interactive "P")
-  (unless (or
-           (concept--list-of-nonempty-string-lists-p
-            concept-combinatorial-groups-list)
-           (null concept-combinatorial-groups-list))
+  (unless (or (null concept-combinatorial-groups-list)
+              (concept--list-of-nonempty-string-lists-p
+               concept-combinatorial-groups-list))
     (let ((warning "The underlying variable has been corrupted! Look at the data and save it elsewhere if valuable.")
           (dismiss "(Press ANY KEY to dismiss)"))
       (if (not overwrite)
