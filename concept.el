@@ -2693,18 +2693,141 @@ settle.")
       (tabulated-list-print t))
     (pop-to-buffer table-buffer)))
 
-(defun concept--edit-groups-list-helper (variable-symbol table-buffer-name overwrite)
-  "Helper function for constructing string groups list editors.
-VARIABLE-SYMBOL is the symbol of the variable holding the list of group strings.
-TABLE-BUFFER-NAME is a string naming the tabulated-list buffer.
-OVERWRITE is a boolean whether to start from scratch with the variable values."
-  ;; XXX - Finish this and then use it to implement both combinatorial inclusion
-  ;; and exclusion groups
+(defun concept--edit-groups-list-helper (variable-symbol overwrite)
+  "Edit a list‑of‑list‑of‑strings stored in VARIABLE‑SYMBOL.
+TABLE‑BUFFER‑NAME is the name of the temporary tabulated‑list buffer.
+If OVERWRITE is non‑nil, start from an empty list; otherwise start from the
+current value of the variable.
+The function returns the new value (or nil if the edit was aborted)."
   (unless (symbolp variable-symbol)
-    (user-error "Please supply the name of the variable. Not the variable itself."))
+    (user-error "Please supply the name of the variable, not its value"))
   (unless (boundp variable-symbol)
-    (user-error "The supplied variable name is undefined: %s" variable-symbol))
-  t)
+    (user-error "Variable %s is not defined" variable-symbol))
+  (let* ((current-value (symbol-value variable-symbol))
+         (corrupt-p
+          (and (not (null current-value))
+               (not (concept--list-of-nonempty-string-lists-p current-value))))
+         (warning "The underlying variable has been corrupted!  Save its contents elsewhere if you need them.")
+         (dismiss "(Press ANY KEY to dismiss)")
+         (groups
+          (cond
+           (corrupt-p
+            (if overwrite
+                (progn
+                  (message (concat warning " " dismiss))
+                  (sit-for concept-message-long-wait-time)
+                  (when (y-or-n-p "Delete corrupted data? ")
+                    (setq overwrite t)
+                    nil))
+              (user-error warning)))
+           (t
+            (if overwrite
+                nil
+              (copy-tree current-value)))))
+         (completion-sort-function nil)
+         (completion-cycle-threshold most-positive-fixnum)
+         (completion-styles '(basic))
+         (vertico-sort-function nil)
+         (changes overwrite)
+         (add "Add new group")
+         (edit "Edit existing group")
+         (remove "Remove an existing group")
+         (kill "Remove all existing groups")
+         (save "Save changes")
+         (abort (if changes "Quit and discard edits" "Quit"))
+         (action nil))
+    (setq action
+          (completing-read
+           "Action: "
+           (cond
+            ((and groups changes)
+             (list add edit remove kill save abort))
+            (changes
+             (list add save abort))
+            (groups
+             (list add edit remove kill abort))
+            (t
+             (list add abort)))
+           nil t))
+    (while (not (member action (list save abort)))
+      (cond
+       ((string= action add)
+        (let ((group
+               (condition-case nil
+                   (completing-read-multiple
+                    "Words/phrases for the new group: "
+                    nil nil nil nil nil nil "[[:space:]]+")
+                 (quit nil))))
+          (when group
+            (setq groups (append groups (list group))))))
+       ((string= action remove)
+        (let* ((choices (when groups
+                         (mapcar (lambda (pos)
+                                   (format "%d = %s"
+                                           (1+ pos)
+                                           (mapconcat #'identity (nth pos groups) " ")))
+                                 (number-sequence 0 (1- (length groups))))))
+               (choice (completing-read
+                        "Group to remove: "
+                        (append choices (list "Finished deletions")) nil t)))
+          (unless (string= choice "Finished deletions")
+            (let* ((idx (1- (string-to-number (car (split-string choice)))))
+                   (new (concept--remove-at idx groups)))
+              (setq groups new)))))
+       ((string= action kill)
+        (when (y-or-n-p "Remove all groups? ")
+          (message "All groups have been removed! %s" dismiss)
+          (setq groups nil)
+          (sit-for concept-message-short-wait-time)))
+       ((string= action edit)
+        (let* ((choices (when groups
+                         (mapcar (lambda (pos)
+                                   (format "%d = %s"
+                                           (1+ pos)
+                                           (mapconcat #'identity (nth pos groups) " ")))
+                                 (number-sequence 0 (1- (length groups))))))
+               (choice (completing-read
+                        "Group to edit: "
+                        (append choices (list "Finished editing")) nil t)))
+          (unless (string= choice "Finished editing")
+            (let* ((idx (1- (string-to-number (car (split-string choice)))))
+                   (old-group (nth idx groups))
+                   (replacement (completing-read-multiple
+                                 "Replacement words/phrases: "
+                                 nil nil nil (mapconcat #'identity old-group " ") nil nil "[[:space:]]+")))
+              (if (and replacement (seq-some (lambda (s) (not (string-blank-p s))) replacement))
+                  (progn
+                    (setf (nth idx groups) replacement)
+                    (setq changes (not (equal groups (symbol-value variable-symbol)))))
+                (message "Group deleted because all its elements have been removed!")
+                (setq groups (concept--remove-at idx groups))))))))
+      (setq changes (not (equal groups (symbol-value variable-symbol))))
+      (setq abort (if changes "Quit and discard edits" "Quit"))
+      (setq action
+            (completing-read
+             "Action: "
+             (cond
+              ((and groups changes)
+               (list add edit remove kill save abort))
+              (changes
+               (list add save abort))
+              (groups
+               (list add edit remove kill abort))
+              (t
+               (list add abort)))
+             nil t)))
+    (let ((emptied (null groups)))
+      (cond
+       ((string= action save)
+        (set variable-symbol groups)
+        (if emptied
+            (message "`%s' has been cleared as requested!" variable-symbol)
+          (message "Changes to `%s' have been saved!" variable-symbol)))
+       ((string= action abort)
+        (if changes
+            (message "Session aborted – changes discarded. `%s' unchanged." variable-symbol)
+          (message "Session aborted – no edits were made. `%s' unchanged." variable-symbol)))))
+    (if (string= action save) groups nil)))
 
 (defun concept--remove-at (pos list)
   "Return a new LIST with the element removed at POS."
@@ -2721,151 +2844,20 @@ OVERWRITE is a boolean whether to start from scratch with the variable values."
 
 (defun concept-edit-combinatorial-groups-list (overwrite)
   "Edit `concept-combinatorial-groups-list'.
-Without a prefix argument, start with its current groups.
-With a prefix argument, start with an empty list."
+With a prefix argument (OVERWRITE non‑nil) start from an empty list."
   (interactive "P")
-  (unless (or (null concept-combinatorial-groups-list)
-              (concept--list-of-nonempty-string-lists-p
-               concept-combinatorial-groups-list))
-    (let ((warning "The underlying variable has been corrupted! Look at the data and save it elsewhere if valuable.")
-          (dismiss "(Press ANY KEY to dismiss)"))
-      (if (not overwrite)
-          (user-error warning)
-        (message (format "%s %s" warning dismiss))
-        (sit-for concept-message-long-wait-time)
-        (let ((confirm (y-or-n-p "Delete corrupted data?:")))
-          (if confirm
-              (progn
-                (message (concat "The variable has been reset to a pristine state!" " " dismiss))
-                (setq concept-combinatorial-groups-list nil))
-            (user-error "Deletion aborted! But the variable is still corrupted.")))))
-    (sit-for concept-message-short-wait-time))
-  (when (and overwrite (not (null concept-combinatorial-groups-list)))
-    (let ((confirm (y-or-n-p "Overwrite existing data?:")))
-      (if confirm
-          (progn
-            (message (concat "The variable has been reset to a pristine state!" " " dismiss))
-            (setq concept-combinatorial-groups-list nil))
-        (message "Overwrite aborted!"))))
-  (let* ((groups (if overwrite
-                     nil
-                   (copy-tree concept-combinatorial-groups-list)))
-         (completion-sort-function nil)
-         (completion-cycle-threshold most-positive-fixnum)
-         (completion-styles '(basic))
-         (vertico-sort-function nil)
-         (changes overwrite)
-         (edit "Edit existing group")
-         (remove "Remove an existing group")
-         (kill "Remove all existing groups")
-         (add "Add new group")
-         (save "Save changes")
-         (abort (if changes "Quit and discard edits" "Quit"))
-         action)
-    (setq action
-          (completing-read
-           "Action: "
-           (cond ((and groups changes)
-                  (list add edit remove kill save abort))
-                 (changes
-                  (list add save abort))
-                 (groups
-                  (list add edit remove kill abort))
-                 (t
-                  (list add abort)))
-           nil t))
-    (while (not (member action (list save abort)))
-      (cond
-       ((equal action add)
-        (let ((group
-               (condition-case nil
-                   (completing-read-multiple
-                    "Words/phrases for the new group: "
-                    nil nil nil nil nil nil "[[:space:]]+")
-                 (quit nil))))
-          (when group
-            (setq groups (append groups (list group))))))
-       ((equal action remove)
-        (let* ((choices
-                (if groups
-                    (mapcar
-                     (lambda (pos)
-                       (concat
-                        (number-to-string (1+ pos))
-                        " = "
-                        (mapconcat #'identity (nth pos groups) " ")))
-                     (number-sequence 0 (1- (length groups))))
-                  nil))
-               (available-options (append choices (list "Finished deletions")))
-               (choice
-                 (completing-read
-                  "Group to remove: "
-                  available-options nil t)))
-          (when choice
-            (unless (string= choice "Finished deletions")
-              (let* ((index (1- (string-to-number (substring choice 0 (string-match " " choice))))))
-                (setq groups (concept--remove-at index groups)))))))
-       ((equal action kill)
-        (let ((confirm (y-or-n-p "Remove all groups?:"))
-              (dismiss "(Press ANY KEY to dismiss)"))
-          (if confirm
-              (progn
-                (message "All groups have been removed! %s" dismiss)
-                (setq groups nil)
-                (sit-for concept-message-short-wait-time))
-            (message "Group state left unchanged!"))))
-       ((equal action edit)
-        (let* ((choices
-                (if groups
-                    (mapcar
-                     (lambda (pos)
-                       (concat
-                        (number-to-string (1+ pos))
-                        " = "
-                        (mapconcat #'identity (nth pos groups) " ")))
-                     (number-sequence 0 (1- (length groups))))
-                  nil))
-               (choice (completing-read "Group to edit: "
-                                        (append choices (list "Finished editing")) nil t)))
-          (unless (string= choice "Finished editing")
-            (let* ((index (1- (string-to-number (substring choice 0 (string-match " " choice)))))
-                   (group (nth index groups))
-                   (replacement
-                    (completing-read-multiple
-                     "Replacement words/phrases: "
-                     nil nil nil (mapconcat #'identity group " ") nil nil "[[:space:]]+")))
-              (if (and replacement (not (seq-some #'string-blank-p replacement)))
-                  (when (not (equal group replacement))
-                    (setf (nth index groups) replacement)
-                    (setq changes (not (equal groups concept-combinatorial-groups-list))))
-                (message "Group deleted because all its elements have been removed!")
-                (setq groups (concept--remove-at index groups))))))))
-      (setq changes (not (equal groups concept-combinatorial-groups-list)))
-      (setq abort
-            (if changes "Quit and discard edits" "Quit"))
-      (setq action
-            (completing-read
-             "Action: "
-             (cond ((and groups changes)
-                    (list add edit remove kill save abort))
-                   (changes
-                    (list add save abort))
-                   (groups
-                    (list add edit remove kill abort))
-                   (t
-                    (list add abort)))
-             nil t)))
-    (let ((emptied (null groups)))
-      (cond
-       ((string= action save)
-        (setq concept-combinatorial-groups-list groups)
-        (if emptied
-            (message "`concept-combinatorial-groups-list' has been cleared as requested!")
-          (message "Changes to `concept-combinatorial-groups-list' have been saved!")))
-       ((string= action abort)
-        (if changes
-            (message "Session aborted and changes were discarded. `concept-combinatorial-groups-list' left unchanged!")
-          (message "Session aborted and no edits were made. `concept-combinatorial-groups-list' left unchanged!")))))))
+  (concept--edit-groups-list-helper
+   'concept-combinatorial-groups-list
+   overwrite))
+
+(defun concept-edit-combinatorial-exclusions-list (overwrite)
+  "Interactively edit the `concept-exclusion-groups-list' variable.
+This variable is used when expanding combinatorial templates. See
+`concept-expand-combinatorial-relationships-by-category' for details."
+  (interactive "P")
+  (concept--edit-groups-list-helper
+   'concept-combinatorial-exclusions-list
+   overwrite))
 
 (defun concept--expand-combinatorial-helper (concept degree final-prefix item-type left-constructor right-constructor items)
   "Reusable parts of the combinatorial relationship block generation logic.
