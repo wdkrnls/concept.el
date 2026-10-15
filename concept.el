@@ -2731,7 +2731,7 @@ With a prefix argument, start with an empty list."
           (dismiss "(Press ANY KEY to dismiss)"))
       (if (not overwrite)
           (user-error warning)
-        (message (concat warning " " dismiss))
+        (message (format "%s %s" warning dismiss))
         (sit-for concept-message-long-wait-time)
         (let ((confirm (yes-or-no-p "Delete corrupted data?:")))
           (if confirm
