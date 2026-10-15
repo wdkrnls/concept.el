@@ -11355,6 +11355,63 @@ want to enter a literal `t' value, type TRUE in capital letters."
                   (push (if is-list (eval default-expr t) nil) final-args))))))))
         (apply function (nreverse final-args))))))
 
+(defun concept-serialize-temporary-block-at-point ()
+  "Serialize a temporary block by turning it into a metadata resource."
+  (interactive)
+  (when-let* ((reg (concept-get-temporary-block-region)))
+    (let ((text (concept-get-temporary-block-string)))
+      (goto-char (car reg))
+      (open-line 1)
+      (insert "@ metadata")
+      (newline)
+      (insert "| temporary-block:")
+      (dolist (line (string-split text "\n"))
+        (insert (format "\n| %s" (concept-pick-needed-data-delimiters line)))
+        (backward-char)
+        (insert line)
+        (end-of-line))
+      (forward-line)
+      (concept-kill-temporary-block-region)
+      (previous-line)
+      (end-of-line)
+      (backward-char))))
+
+(defun concept-deserialize-temporary-block-resource-at-point ()
+  "Deserialize a metadata resource into a temporary block."
+  (interactive)
+  (when (concept-in-resource-block)
+    (when-let* ((resource (concept-current-resource-name))
+                (keys (concept-resource-block-keys))
+                (has-temp-block (member "temporary-block" keys)))
+      (concept-goto-key-in-resource-block "temporary-block")
+      (let ((data (concept-get-attribute-data)))
+        (concept-goto-current-resource)
+        (let ((beg (line-beginning-position)))
+          (let ((end (save-excursion
+                       (outline-end-of-subtree)
+                       (when (concept-in-temporary-block)
+                         (re-search-backward "^|" beg t))
+                       (point))))
+            (kill-region beg end)))
+        (dolist (line data)
+          (insert (format "%s\n" line)))
+        (kill-line)
+        (previous-line)
+        (end-of-line)))))
+
+(defun concept-serialize-all-temporary-blocks-below ()
+  "Serialize all remaining temporary blocks in the buffer."
+  (when (concept-in-temporary-block)
+    (concept-serialize-temporary-block-at-point))
+  (when (concept-map-has-more-temporary-blocks)
+    (concept-goto-next-temporary-block)
+    (concept-serialize-all-temporary-blocks-below)))
+
+(defun concept-serialize-all-temporary-blocks ()
+  "Serialize all temporary blocks in the buffer."
+  (goto-char (point-min))
+  (concept-serialize-all-temporary-blocks-below))
+
 (defun concept-in-temporary-block ()
   (not (or (concept-in-relationship-block)
            (concept-in-resource-block))))
@@ -11456,6 +11513,12 @@ This only works if inside a temporary configuration block already."
   (when-let ((reg (concept-get-temporary-block-region)))
     (goto-char (cdr reg))))
 
+(defun concept-goto-first-line-in-temporary-block ()
+  "Move point to the first line of a temporary block.
+This only works if inside a temporary configuration block already."
+  (when-let ((reg (concept-get-temporary-block-region)))
+    (goto-char (car reg))))
+
 (defun concept-goto-last-line-in-block ()
   "Navigate to the last line in the block."
   (cond ((concept-in-relationship-block)
@@ -11467,6 +11530,7 @@ This only works if inside a temporary configuration block already."
 
 (defun concept-goto-next-block-boundary ()
   "Navigate to the next boundary between relationship, resource, or temporary blocks."
+  ;; TODO: this might now be obsolete.
   (if (concept-in-temporary-block)
       (when-let ((reg (concept-get-temporary-block-region)))
         (goto-char (1+ (cdr reg))))
@@ -11491,6 +11555,54 @@ This only works if inside a temporary configuration block already."
         (kill-region beg (1+ end)))
       (previous-line)
       (end-of-line))))
+
+(defun concept-map-has-more-temporary-blocks (&optional direction)
+  "Test whether there are more temporary blocks in the buffer."
+  (when (null direction)
+    (setq direction 1))
+  (unless (and (integerp direction) (not (eq direction 0)))
+    (user-error "Expand either positive or negative integers."))
+  (save-excursion
+    (let ((re "^[^@|~]"))
+      (if (< 0 direction)
+          (re-search-forward re nil t)
+        (re-search-backward re nil t)))))
+
+(defun concept-map-has-temporary-blocks ()
+  "Test whether there are more temporary blocks in the buffer."
+  (save-excursion
+    (goto-char (point-min))
+    (re-search-forward "^[^@|~]" nil t)))
+
+(defun concept-goto-next-temporary-block ()
+  "Move cursor to the next temporary block in the buffer."
+  (when (derived-mode-p 'concept-mode)
+    (if (concept-in-temporary-block)
+        (progn
+          (concept-goto-last-line-in-temporary-block)
+          (forward-line))
+      (when (concept-map-has-more-temporary-blocks)
+        (if (concept-in-relationship-block)
+            (concept-goto-current-focus)
+          (concept-goto-current-resource))
+        (outline-end-of-subtree)
+        (unless (concept-in-temporary-block)
+          (forward-line)
+          (concept-goto-next-temporary-block))))))
+
+(defun concept-goto-previous-temporary-block ()
+  "Move cursor to the previous temporary block in the buffer."
+  (when (derived-mode-p 'concept-mode)
+    (if (concept-in-temporary-block)
+        (progn
+          (concept-goto-first-line-in-temporary-block)
+          (previous-line))
+      (when (concept-map-has-more-temporary-blocks -1)
+        (concept-goto-current-focus)
+        (previous-line)
+        (unless (concept-in-temporary-block)
+          (forward-line)
+          (concept-goto-next-temporary-block))))))
 
 (defun concept-get-temporary-block-string ()
   "Get the text for the whole temporary block at point.
