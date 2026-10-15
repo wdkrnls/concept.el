@@ -3043,7 +3043,7 @@ express logical combinations like: `A', `B', or `C' versus `A', `B', and
               "\n"))))))
 
 (defun concept-expand-pdf-resources (path)
-  "Generate the data needed to quickly construct a resource template for PDF files.
+  "Generate a resource template for PDF files.
 Given the file PATH it finds the buffer associated with that file, grabs
 the page number, and constructs the resource block."
   (unless (bufferp (get-file-buffer path))
@@ -3158,8 +3158,8 @@ Such lines go inside a relationship block."
 
 (defun concept-insert-keyword-line (name)
   "Insert a keyword attribute.
-An attribute ends with a colon and is only appropriate when
-inside a resource block."
+An attribute ends with a colon and is only appropriate when inside a
+resource block."
   (when (concept-in-resource-block)
     (unless (string-match-p concept-group-name-regexp name)
       (user-error "%s is not a valid keyword name!" name))
@@ -3168,8 +3168,8 @@ inside a resource block."
 
 (defun concept-insert-note-line ()
   "Insert a note attribute.
-An attribute ends with a colon and is only appropriate when
-inside a resource block."
+An attribute ends with a colon and is only appropriate when inside a
+resource block."
   (when (concept-in-resource-block)
     (concept-add-new-data)
     (insert "note:")))
@@ -3322,8 +3322,8 @@ syntax to flesh out details on an exposition line."
 
 (defun concept-insert-keyword-block (name)
   "Insert a keyword block with NAME.
-A keyword block has an open and closing bracket. It is the characteristic
-syntax to flesh out details on an exposition line."
+A keyword block has an open and closing bracket. It is the
+characteristic syntax to flesh out details on an exposition line."
   (concept-insert-keyword-line name)
   (concept-add-new-data)
   (insert "{}")
@@ -3364,7 +3364,6 @@ distinct behaviors."
 
 (defun concept-find-all-relationships ()
   "Find all relationship names in a file.
-
 Sort this relationship in order of usage frequency."
   (let ((pattern ":[^:~ ]+$")
         (relationships (make-hash-table :test 'equal)))
@@ -3385,7 +3384,6 @@ Sort this relationship in order of usage frequency."
 
 (defun concept-find-all-attributes ()
   "Find all attribute names in a file.
-
 Sort these attributes in order of usage frequency."
   (let ((pattern "[^ ]+:")
         (attributes (make-hash-table :test 'equal)))
@@ -3407,7 +3405,6 @@ Sort these attributes in order of usage frequency."
 
 (defun concept-find-all-resources ()
   "Find all resource names in a file.
-
 Sort these names in order of usage frequency."
   (let ((pattern "^@")
         (resources (make-hash-table :test 'equal)))
@@ -3428,7 +3425,6 @@ Sort these names in order of usage frequency."
 
 (defun concept-find-all-expositions (attribute)
   "Find all expositions for a specific attribute in a concept file.
-
 Sort these names in order of usage frequency."
   (let ((expositions (make-hash-table :test 'equal)))
     (save-excursion
@@ -3561,7 +3557,6 @@ Sort these names in order of usage frequency."
 
 (defun concept-change-concept ()
   "Replace the current concept with another one.
-
 Choose the new concept from initially ordered list of all concepts."
   (interactive)
   (when (concept-on-concept-line)
