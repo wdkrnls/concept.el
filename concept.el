@@ -3821,6 +3821,17 @@ by this command in practice."
         ((and (concept-on-exposition-line)
               (concept-on-last-line-in-block-p))
          (concept-slurp-next-resource))
+        ((and (concept-on-exposition-line)
+              (concept-on-blank-exposition-line)
+              (save-excursion
+                (forward-line) (concept-on-exposition-line)))
+         (kill-whole-line)
+         (if (concept-on-attribute-line)
+             (progn
+               (previous-line)
+               (end-of-line))
+           (end-of-line)
+           (backward-char)))
         ((or (concept-on-exposition-line)
              (and (concept-in-resource-block)
                   (concept-on-data-line)))
