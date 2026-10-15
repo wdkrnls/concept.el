@@ -2740,6 +2740,13 @@ With a prefix argument, start with an empty list."
                 (setq concept-combinatorial-groups-list nil))
             (user-error "Deletion aborted! But the variable is still corrupted.")))))
     (sit-for concept-message-short-wait-time))
+  (when (and overwrite (not (null concept-combinatorial-groups-list)))
+    (let ((confirm (y-or-n-p "Overwrite existing data?:")))
+      (if confirm
+          (progn
+            (message (concat "The variable has been reset to a pristine state!" " " dismiss))
+            (setq concept-combinatorial-groups-list nil))
+        (message "Overwrite aborted!"))))
   (let* ((groups (if overwrite
                      nil
                    (copy-tree concept-combinatorial-groups-list)))
