@@ -2733,7 +2733,7 @@ With a prefix argument, start with an empty list."
           (user-error warning)
         (message (format "%s %s" warning dismiss))
         (sit-for concept-message-long-wait-time)
-        (let ((confirm (yes-or-no-p "Delete corrupted data?:")))
+        (let ((confirm (y-or-n-p "Delete corrupted data?:")))
           (if confirm
               (progn
                 (message (concat "The variable has been reset to a pristine state!" " " dismiss))
