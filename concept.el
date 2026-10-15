@@ -3306,10 +3306,10 @@ can also start with square brackets, or maybe unicode quotes: ‘’."
     (let ((line (concept-current-line)))
       (or
        (string-match-p "^| +{[^}]*} *$" line)
-       (string-match-p "| +‘[^‘]*’ *$" line)
+       (string-match-p "| +‘[^‘]*’ *$"  line)
        (and
         (string-match-p "^|[ ]*\\[" line)
-        (string-match-p "\\][ ]*$" line))))))
+        (string-match-p "\\][ ]*$"  line))))))
 
 (defun concept-insert-note-block ()
   "Insert a note block.
