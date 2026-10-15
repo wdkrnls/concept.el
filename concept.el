@@ -221,6 +221,10 @@ and still works for this counterexample.")
   "^@ +[^: ]+ *$"
   "Regular expression for detecting what looks like resource lines.")
 
+(defvar concept-temporary-line-regexp
+  "^[^@|~].*[^ \t\n].*$"
+  "Regular expression for detecting temporary block lines.")
+
 (defvar concept-relationship-name-regexp
   "^| +:\\([^:~ ]+\\) *$"
   "Regular expression for extracting relationship names.")
