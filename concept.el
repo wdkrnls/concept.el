@@ -2784,8 +2784,7 @@ With a prefix argument, start with an empty list."
                     nil nil nil nil nil nil "[[:space:]]+")
                  (quit nil))))
           (when group
-            (setq groups (append groups (list group)))
-            (setq changes (not (equal groups concept-combinatorial-groups-list))))))
+            (setq groups (append groups (list group))))))
        ((equal action remove)
         (let* ((choices
                 (if groups
@@ -2805,8 +2804,16 @@ With a prefix argument, start with an empty list."
           (when choice
             (unless (string= choice "Finished deletions")
               (let* ((index (1- (string-to-number (substring choice 0 (string-match " " choice))))))
-                (setq groups (concept--remove-at index groups))
-                (setq changes (not (equal groups concept-combinatorial-groups-list))))))))
+                (setq groups (concept--remove-at index groups)))))))
+       ((equal action kill)
+        (let ((confirm (y-or-n-p "Remove all groups?:"))
+              (dismiss "(Press ANY KEY to dismiss)"))
+          (if confirm
+              (progn
+                (message "All groups have been removed! %s" dismiss)
+                (setq groups nil)
+                (sit-for concept-message-short-wait-time))
+            (message "Group state left unchanged!"))))
        ((equal action edit)
         (let* ((choices
                 (if groups
@@ -2832,29 +2839,33 @@ With a prefix argument, start with an empty list."
                     (setf (nth index groups) replacement)
                     (setq changes (not (equal groups concept-combinatorial-groups-list))))
                 (message "Group deleted because all its elements have been removed!")
-                (setq groups (concept--remove-at index groups))
-                (setq changes (not (equal groups concept-combinatorial-groups-list)))))))))
+                (setq groups (concept--remove-at index groups))))))))
+      (setq changes (not (equal groups concept-combinatorial-groups-list)))
       (setq abort
             (if changes "Quit and discard edits" "Quit"))
       (setq action
             (completing-read
              "Action: "
              (cond ((and groups changes)
-                    (list edit add remove save abort))
+                    (list add edit remove kill save abort))
+                   (changes
+                    (list add save abort))
                    (groups
-                    (list edit add remove abort))
+                    (list add edit remove kill abort))
                    (t
                     (list add abort)))
              nil t)))
     (let ((emptied (null groups)))
-      (if (or overwrite changes)
-          (if (string= action save)
-              (if emptied
-                  (message "`concept-combinatorial-groups-list' has been cleared as requested!")
-                (message "Changes to `concept-combinatorial-groups-list' have been saved!")
-                (setq concept-combinatorial-groups-list groups))
-            (message "Editing session aborted. `concept-combinatorial-groups-list' left unchanged!"))
-        (message "No edits were made. `concept-combinatorial-groups-list' left unchanged!")))))
+      (cond
+       ((string= action save)
+        (setq concept-combinatorial-groups-list groups)
+        (if emptied
+            (message "`concept-combinatorial-groups-list' has been cleared as requested!")
+          (message "Changes to `concept-combinatorial-groups-list' have been saved!")))
+       ((string= action abort)
+        (if changes
+            (message "Session aborted and changes were discarded. `concept-combinatorial-groups-list' left unchanged!")
+          (message "Session aborted and no edits were made. `concept-combinatorial-groups-list' left unchanged!")))))))
 
 (defun concept--expand-combinatorial-helper (concept degree final-prefix item-type left-constructor right-constructor items)
   "Reusable parts of the combinatorial relationship block generation logic.
