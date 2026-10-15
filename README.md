@@ -857,6 +857,251 @@ The challenge is to look through my existing concept map data sets to identify w
 
 I also need to document these tools to explain how they can be used to make real clearly useful tempel templates.
 
+### Expanding combinatorial relationships
+
+There are three types of combinatorial expansions which can be done in the context of the philosophy of concept.el:
+
+* expansions by category
+* expansions by definition
+* core expansions
+
+The first two cases can be handled by a shared helper function, making their maintenance and future extension potentially relatively easier to handle. Yet, there are a few cases to consider with regards to the final prefix as well as the defining property.
+
+Consider the basic categorical expansion of combinatorial entities. For example, lets say we are trying to talk intelligibly about varieties of apples. Some of my favorite varieties of apples are Gala, Fuji, and Cosmic Crisp. The combinatorial expansion with "or" for the final-prefix:
+
+```
+~ apples
+| :include
+| gala-apples
+| fuji-apples
+| cosmic-apples
+~ apples
+| :include
+| gala-or-fuji-apples
+| gala-or-cosmic-apples
+~ gala-or-fuji-apples
+| :include
+| gala-apples
+| fuji-apples
+~ gala-or-cosmic-apples
+| :include
+| gala-apples
+| cosmic-apples
+```
+
+Now consider combinatorial expansions of conceptual relationships by their definitions. For example, let's continue thinking about apples, but instead of considering them by their different varieties, let's consider them by the properties which characterize those different varieties. Both Gala and Fuji apple varieties, for example, are known for their sweet tastes, but Fuji apples are also known for their tangy flavor, while Cosmic apples are known more for their crispness.
+
+```
+~ apples
+| :include
+| apples-with-sweet-tastes
+| apples-with-crispy-textures
+| apples-with-tangy-flavors
+~ apples-with-sweet-tastes
+| :include
+| apples-with-sweet-tastes-and-crispy-textures
+| apples-with-sweet-tastes-and-tangy-flavors
+~ apples-with-tangy-flavors
+| :include
+| apples-with-tangy-flavors-and-crispy-textures
+| apples-with-sweet-tastes-and-tangy-flavors
+~ apples-with-sweet-tastes-and-tangy-flavors
+| :include
+| apples-with-sweet-tastes-tangy-flavors-and-crispy-textures
+~ apples-with-sweet-tastes-and-crispy-textures
+| :include
+| apples-with-sweet-tastes-tangy-flavors-and-crispy-textures
+~ apples-with-tangy-flavors-and-crispy-textures
+| :include
+| apples-with-sweet-tastes-tangy-flavors-and-crispy-textures
+```
+
+And think about this:
+
+```
+~ apples
+| :include
+| apples-characterized-by-taste
+| apples-characterized-by-color
+~ apples-characterized-by-taste
+| :include
+| apples-with-sweet-tastes
+| apples-with-sour-tastes
+| apples-with-salty-tastes
+~ apples
+| :include
+| apples-characterized-by-texture
+~ apples-characterized-by-texture
+| :include
+| apples-with-crispy-textures
+| apples-with-mushy-textures
+~ apples-characterized-by-texture
+| :include
+| apples-with-more-crispy-textures
+| apples-with-less-crispy-textures
+~ mealy-apples
+| :name
+| apples-with-mushy-textures-and-
+~ apples-characterized-by-texture
+| :include
+| apples-with-more-mushy-textures
+| apples-with-less-mushy-textures
+~ apples-with-sweet-tastes
+| :include
+| apples-with-sweet-and-sour-tastes
+~ tart-apples
+| :name
+| apples-with-sweet-and-sour-tastes
+~ apples-with-sweet-and-sour-tastes
+| :include
+| apples-with-sweet-tastes
+| apples-with-sour-tastes
+| apples-with-crispy-textures
+~ apples-with-sweet-tastes-or-crispy-textures
+| :include
+| apples-with-sweet-tastes
+| apples-with-crispy-textures
+```
+
+An apple cannot be of multiple varieties simultaneously, so it seems that `"or"` is the only realistic `final-prefix` for it. However, many other categorized concepts are not of this kind. Consider butter. There are butters made from dairy products, and butters made from nondairy products. The former include butter from cows. The latter include butter from nuts. In all cases I am familiar with, these involve an intermediate product called milk, and butters are made from that. The most interesting properties about butter are it's texture, and it's taste. Texture, especially, but also taste to a lesser degree, are mediated by its thermodynamic state. The most easily manipulated thermodynamic state variable at home is it's temperature.
+
+```
+~ butters
+| :include
+| more-easily-spreadable-butters
+| less-easily-spreadable-butters
+~ less-easily-spreadable-butters
+| :include
+| much-less-easily-spreadable-butters
+~ much-less-easily-spreadable-butters
+| :include
+| much-less-easily-spreadable-butters-than-average
+~ not-spreadable-butters
+| :name
+| much-less-easily-spreadable-butters-than-average
+~ more-easily-spreadable-butters
+| :include
+| more-easily-spreadable-butters-than-average
+~ more-easily-spreadable-butters-than-average
+| :include
+| much-more-easily-spreadable-butters-than-average
+~ butters
+| :include
+| spreadable-butters
+| not-spreadable-butters
+~ spreadable-butters
+| :name
+| much-more-easily-spreadable-butters-than-average
+~ butters
+| :include
+| nondiary-butters
+| diary-butters
+~ milks
+| :include
+| nut-milks
+| diary-milks
+~ nut-milks
+| :make
+| nut-butters
+~ dairy-milks
+| :make
+| diary-butters
+~ nondairy-butters
+| :include
+| nut-butters
+~ butters
+| :include
+| cool-butters
+| warm-butters
+~ cool-butters
+| :include
+| cold-butters
+~ warm-butters
+| :include
+| hot-butters
+~ cold-butters
+| :include
+| cold-hard-butters
+| cold-soft-butters
+~ soft-butters
+| :include
+| warm-soft-butters
+| cool-soft-butters
+~ cool-soft-butters
+| :include
+| cold-soft-butters
+~ solid-butters
+| :include
+| softer-butters
+| harder-butters
+~ harder-butters
+| :include
+| harder-butters-than-average
+~ harder-butters-than-average
+| :include
+| much-harder-butters-than-average
+~ hard-butters
+| :name
+| much-harder-butters-than-average
+~ softer-butters
+| :include
+| softer-butters-than-average
+~ softer-butters-than-average
+| :include
+| much-softer-butters-than-average
+~ soft-butters
+| :name
+| much-softer-butters-than-average
+~ hard-butters
+| :include
+| cool-hard-butters
+~ cool-hard-butters
+| :include
+| cold-hard-butters
+~ hot-butters
+| :include
+| hot-melted-butters
+| hot-solid-butters
+~ solid-butters
+| :include
+| soft-butters
+| hard-butters
+~ hard-butters
+| :include
+| frozen-solid-butters
+~ butters
+| :include
+| melted-butters
+| solid-butters
+```
+
+The final case of core expansions needs a completely separate implementation taking different arguments. There is no default concept. There is no need to specify an item-type, a left-constructor, or a right-constructor. However, its implementation has its own issues to consider. The final-prefix is no longer optional since concepts tend to be plural and not adjectives. It needs to do more work. For example, it needs to iterate through all the concepts and generate their AND and OR logical situations.
+
+For example:
+
+> (concept-expand-combinatorial-relationships 2 "apples" "cherries" "peaches")
+
+gives:
+
+```
+~ apples
+| :include
+| apples-and-cherries
+| apples-and-peaches
+~ apples-or-cherries
+| :include
+| apples
+| cherries
+~ apples-or-peaches
+| :include
+| apples
+| peaches
+~ apples-cherries-or-peaches
+| :include
+| apples-or-peaches
+| apples-or-cherries
+```
+
 ### Exploratory Data Analysis
 
 There are a lot of opportunities for exploratory analysis of concepts along with the `-subconcepts-` which compose them, the ideas that hold them, and their relative placement within the buffer. Make a couple of tables around those ideas so that so these can be a source of data for the `conceptuel` R package to read from.
