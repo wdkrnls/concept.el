@@ -5795,9 +5795,14 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
                      (not (concept-on-data-line)))
                (concept-add-new-data)))))))
 
-(defun concept-insert-have-dwim ()
-  (interactive)
-  (concept-insert-dwim "have"))
+(defun concept-insert-have-dwim (arg)
+  "Insert a `:have' relationship unless an ARG prefix is supplied.
+In that case, insert a `:name' relationship. See `concept-insert-dwim'
+to understand the rest of the functionality."
+  (interactive "P")
+  (if arg
+      (concept-insert-dwim "name")
+    (concept-insert-dwim "have")))
 
 (defun concept-find-all-concept-words ()
   "Find all unique words in the concept map."
