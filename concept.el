@@ -8185,10 +8185,13 @@ modifying `mailcap-user-mime-data'."
                                     (concept-get-expository-data))))
                              (when (file-exists-p proposed-directory)
                                (expand-file-name proposed-directory))))
-                      default-directory))))
-               (concept-shell-command
-                (concept-get-expository-data)
-                (member "prompt" (concept-resource-block-keys))))))
+                      default-directory)))
+                   (should-run (not (member "dont-run" (concept-resource-block-keys)))))
+               (if should-run
+                 (concept-shell-command
+                  (concept-get-expository-data)
+                  (member "prompt" (concept-resource-block-keys)))
+                 (message "The shell command at point was not run because the `dont-run:' keyword was set!")))))
           ((and (concept-on-exposition-line)
                 (or (string= "emacs-lisp" (concept-exposition-parent-key))
                     (string= "lisp" (concept-exposition-parent-key))))
