@@ -11592,6 +11592,35 @@ want to enter a literal `t' value, type TRUE in capital letters."
       (set-mark end)
       (activate-mark))))
 
+(defun concept-mark-idea ()
+  (interactive)
+  (concept-goto-current-focus)
+  (beginning-of-line)
+  (let ((beg (point)))
+    (outline-end-of-subtree)
+    (let ((end (point)))
+      (goto-char beg)
+      (set-mark end)
+      (activate-mark))))
+
+(defun concept-mark-block (arg)
+  (interactive "P")
+  (if arg
+      (if (concept-in-temporary-block)
+          (concept-activate-temporary-block-region)
+        (concept-mark-idea))
+    (cond ((concept-in-relationship-block)
+           (when-let ((reg (concept-find-relationship-block-extent t)))
+             (goto-char (car reg))
+             (set-mark (cdr reg))
+             (activate-mark)))
+          ((concept-in-resource-block)
+           (when-let ((reg (concept-find-resource-block-extent t)))
+             (goto-char (car reg))
+             (set-mark (cdr reg))
+             (activate-mark)))
+          (t (concept-activate-temporary-block-region)))))
+
 (defun concept-kill-last-temporary-block-region ()
   "Kill the whole temporary block region at or before point."
   (when (derived-mode-p 'concept-mode)
@@ -11835,5 +11864,6 @@ This is useful in conjunction with `concept-funcall-with-string-args'."
 (define-key concept-mode-map (kbd "C-c M-\\")    #'concept-bar-display-mode)
 (define-key concept-mode-map (kbd "C-c M-f")     #'concept-show-followable-mode)
 (define-key concept-mode-map (kbd "C-c M-t")     #'concept-enter-new-tempel-template)
+(define-key concept-mode-map (kbd "C-M-h")       #'concept-mark-block)
 (provide 'concept)
 ;;; concept.el ends here
