@@ -8348,11 +8348,16 @@ modifying `mailcap-user-mime-data'."
   "Test whether the next line enters a new block.
 In practice this means that the next line is either a focus line or a
 resource line."
-  (save-excursion
-    (ignore-errors (forward-line))
-    (or (concept-on-focus-line)
-        (concept-on-resource-line)
-        (progn (end-of-line) (eobp)))))
+  (if (concept-in-temporary-block)
+      (save-excursion
+        (ignore-errors (forward-line))
+        (not (concept-in-temporary-block)))
+    (save-excursion
+      (ignore-errors (forward-line))
+      (or (concept-on-focus-line)
+          (concept-on-resource-line)
+          (concept-in-temporary-block)
+          (progn (end-of-line) (eobp))))))
 
 (defun concept-goto-next-data-concept-or-exposition-line ()
   "Move forward to the next data concept or exposition line."
