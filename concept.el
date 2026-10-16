@@ -11667,6 +11667,16 @@ This only works if inside a temporary configuration block already."
       (end-of-line)
       (forward-char))))
 
+(defun concept-goto-previous-block-boundary ()
+  "Navigate to the previous boundary between relationship, resource, or temporary blocks."
+  (if (concept-in-temporary-block)
+      (when-let ((reg (concept-get-temporary-block-region)))
+        (goto-char (1- (car reg))))
+    (beginning-of-line)
+    (outline-previous-heading)
+    (end-of-line)
+    (skip-chars-backward " ")))
+
 (defun concept-kill-next-temporary-block-region ()
   "Kill the whole temporary block region at or before point."
   (when (derived-mode-p 'concept-mode)
