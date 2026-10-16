@@ -7499,7 +7499,6 @@ enough for now."
                        (url-hexify-string term)))
           (elpher-buffer-name (concat "*Gemipedia*<" term ">")))
       (progn
-        (require 'elpher)
         (if (bufferp (get-buffer elpher-buffer-name))
             (switch-to-buffer elpher-buffer-name)
           (elpher-go url))))
