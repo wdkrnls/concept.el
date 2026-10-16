@@ -138,9 +138,7 @@ The weird and completely miraculous thing is that in practice, we humans hold ma
 | thoughts
 ```
 
-Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. It might seem egregious and unnecessary to be so explicit, but for advanced knowledge work explicitness is commonly recognized as a best practice. This is particularly true in highly multi-disciplinary situations where team members with wildly different skill-sets and expertise collaborate together.
-
-Laying out all the teams conceptual ideas about the problem they are trying to solve can be a revelation for many people working together on a large project. We believe strongly that the best plan can only emerge once everyone on a team gains a comprehensive view of the possibilities before them for solving the problem at hand.
+Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. It might seem egregious and unnecessary to be so explicit, but for advanced knowledge work explicitness is commonly recognized as a best practice. This is particularly true in highly multi-disciplinary situations where team members with wildly different skill-sets and expertise collaborate together. There is much to quibble about and much ambiguity in the above concept map. We certainly see it, but that is the point of concept maps: they give us hooks to organize our thoughts so that they can be productively criticized. It is only through this criticism, preferably open criticism, that our thought improve. Laying out all the teams conceptual ideas about the problem they are trying to solve can be a revelation for many people working together on a large project. We believe strongly that the best plan can only emerge once everyone on a team gains a comprehensive view of the possibilities before them for solving the problem at hand.
 
 The text format used by `concept.el` is designed to be familiar and comfortable to people with experience writing a little bit of lisp code.  Concepts, resources, relationships, and attribute keywords are intended to be assigned identifiers which look like a readable subset of valid lisp symbols. This should be familiar to most people using Emacs as their editor. Once you accept this restriction on naming, you buy into a set of constraints which facilitate the creation of a bunch of very useful editing tools for making huge concept maps quickly.
 
@@ -183,9 +181,148 @@ core: pieces
 definition: of-knowledge
 ```
 
-Gaining an intuition for what this concept is about requires first understanding what is meant by knowledge, pieces, and abstraction. These are often best sharpened by finding their opposites or complements. The opposite of abstract is concrete or definite. The opposite of a piece is a part of something, which usually itself contains many smaller pieces at a different scale. Finally, we come to the definition component. Knowledge concerns successful prediction. Ignorance means almost assuredly unsuccessful prediction. Once you think about a concept this way, it's name alone suggests that a whole concept map supports it. We invite you to take a stab it at. We took some time to do this exercise and got a pretty substantial concept map out of it.
+Gaining an intuition for what this concept is about requires first understanding what is meant by knowledge, pieces, and abstraction. These are often best sharpened by finding their opposites or complements. That is also why scientists conduct comparative experiments. We best understand anything by constructing the boundaries in our minds for what they are and are not. The opposite of abstract is concrete or definite. A piece doesn't have an opposite. However, it has a complement: pieces have parts which make up the whole piece. A piece itself is often not used in isolation, but is merely a part of something greater. A piece of furniture is merely a part of the total interior design of a room. Finally, we come to the definition component. 
 
-Now, there is much to quibble about and much ambiguity in the above concept map. We certainly see it, but that is the point of concept maps: they give us hooks to organize our thoughts so that they can be productively criticized. It is only through this criticism, preferably open criticism, that our thought improve.
+Definitions start with what linguists call prepositions. These are followed by optional adjectives on required qualities.
+
+One of the most common prepositions is `in`:
+
+```
+~ people
+| :include
+| people-in-distress
+| people-in-no-distress
+~ people-in-distress
+| :include
+| people-in-mild-distress
+| people-in-severe-distress
+~ people-in-distress
+| :include
+| people-in-physical-distress
+| people-in-emotional-distress
+```
+
+The quality here is distress. From a concept mapping perspective, we first lay out the quality with it's preposition. Here there is an optional negation before the preposition.
+
+Another common preposition is `with`:
+
+```
+~ people
+| :include
+| people-with-diabetes
+| people-with-no-diabetes
+~ people
+| :include
+| people-with-a-job
+| people-with-no-job
+~ people
+| :include
+| people-with-a-nose
+| people-with-no-nose
+~ people-with-a-nose
+| :include
+| people-with-a-big-nose
+| people-with-a-small-nose
+~ people
+| :include
+| people-with-children
+| people-with-no-children
+~ people-with-children
+| :include
+| people-with-some-children
+| people-with-many-children
+~ parents
+| :name
+| people-with-children
+```
+
+Yet another common preposition is `that`:
+
+```
+~ animals
+| :include
+| animals-that-reproduce-sexually
+~ animals-that-reproduce-sexually
+| :include
+| animals-that-make-sperm-cells
+| animals-that-make-egg-cells
+~ males
+| :name
+| animals-that-make-sperm-cells
+~ females
+| :name
+| animals-that-make-egg-cells
+~ females
+| :include
+| females-that-lay-eggs
+| females-that-give-birth
+~ females-that-lay-eggs
+| :include
+| females-that-can-lay-eggs
+| females-that-cant-lay-eggs
+~ females-that-can-lay-eggs
+| :include
+| females-that-will-lay-eggs
+| females-that-wont-lay-eggs
+~ females-that-give-birth
+| :include
+| females-that-do-give-birth
+| females-that-dont-give-birth
+~ females-that-do-give-birth
+| :have
+| pregnancies
+```
+
+Yet another common preposition is `of`:
+
+```
+~ parts
+| :include
+| parts-of-speech
+~ pieces
+| :include
+| pieces-of-paper
+~ pieces-of-paper
+| :include
+| pieces-of-paper-with-a-standard-size
+~ sheets-of-paper
+| :name
+| pieces-of-paper-with-a-standard-size
+~ sheets
+| :include
+| sheets-of-paper
+~ sheets
+| :include
+| sheets-of-metal
+~ books
+| :hold
+| sheets-of-paper
+~ books-that-were-printed
+| :include
+| books-that-were-printed-on-paper
+| books-that-were-printed-on-vellum
+~ pieces-of-paper
+| :include
+| pieces-of-scratch-paper
+~ people
+| :include
+| people-of-sound-mind
+| people-of-unsound-mind
+```
+
+Here are some more prepositions we tried to place into related groupings:
+
+* association: about, of, with, among
+* relation: against, for
+* proximity: near, by, around
+* movement: from, to, across, past, into, onto
+* relative-position: above, below, behind, ahead, under, over, beyond
+* location: in, on, off, at
+* time: during, since, until, after, before
+
+This introduction really only scratches the surface. There have been many semantical theories about prepositions. We are not experts. As an english speaker, you already know much of this intuitively. From the perspective of concept mapping, our goal is merely to find the "good parts" of english which can clearly represent the concepts we want to think about which also support simple computation. The ultimate goal being to arrive at a way of achieving between-map canonical representations of concept maps. We have already discussed the needs of those: consistent ordering of concept map elements, and consistent vocabulary within the map. For between map canonicalization, you need consisten vocabulary across possible maps. Establishing a way of "speaking" english which enables that is why this subject is being discussed and considered.
+
+Knowledge concerns successful prediction. Ignorance means almost assuredly unsuccessful prediction. Once you think about a concept this way, it's name alone suggests that a whole concept map supports it. We invite you to take a stab it at. We took some time to do this exercise and got a pretty substantial concept map out of it.
 
 In `concept.el` we encourage you to put the classification piece on the left, the core piece in the middle, and the definition piece on the right. Further, it's better to start with the core plus some definition. Then, once you have your definition, you can added a category which alludes to that definition via and `:name` relationship.
 
