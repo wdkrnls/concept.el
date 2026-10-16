@@ -859,7 +859,7 @@ rather than the line numbers."
            (concept-goto-current-focus)
            (beginning-of-line)
            (let ((beg (point)))
-             (outline-next-heading)
+             (concept-goto-next-block-boundary)
              (backward-char)
              (let ((end (point)))
                (cons beg end))))))
