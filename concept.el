@@ -113,6 +113,13 @@
 (require 'url-util)
 (require 'diff)
 
+(when (package-installed-p 'elpher)
+  (require 'elpher))
+(when (package-installed-p 'osm)
+  (require 'osm))
+(when (package-installed-p 'dictionary)
+  (require 'dictionary))
+
 ;;; Reference for internal resources
 
 (defconst concept-package-directory
