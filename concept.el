@@ -868,6 +868,25 @@ rather than the line numbers."
       (cons (line-number-at-pos (car result))
             (line-number-at-pos (cdr result))))))
 
+(defun concept-find-resource-block-extent (&optional positions)
+  "Find the line number pair which bounds the resource block.
+If POSITIONS is supplied, give the character positions in the buffer
+rather than the line numbers."
+  (when (concept-in-resource-block)
+    (let ((result
+           (save-excursion
+             (concept-goto-current-resource)
+             (beginning-of-line)
+             (let ((beg (point)))
+               (concept-goto-next-block-boundary)
+               (backward-char)
+               (let ((end (point)))
+                 (cons beg end))))))
+      (if positions
+          result
+        (cons (line-number-at-pos (car result))
+              (line-number-at-pos (cdr result)))))))
+
 (defun concept-find-overlapping-relationship-blocks (line-numbers)
   "Process a list of LINE-NUMBERS and return a (hopefully much) smaller
 number of new line numbers corresponding to focus lines in the snapshot
