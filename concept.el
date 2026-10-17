@@ -2060,17 +2060,7 @@ When you don't want to kill the whole concept map element, call
            (previous-line)
            (end-of-line))
           ((concept-on-resource-line)
-           (let ((beg (line-beginning-position)))
-             (let ((end (save-excursion
-                          (outline-end-of-subtree)
-                          (when (concept-in-temporary-block)
-                            (re-search-backward "^|" beg t)
-                            (end-of-line))
-                          (point))))
-               (kill-region beg end)))
-           (kill-line)
-           (previous-line)
-           (end-of-line))
+           (concept-kill-resource))
           ((concept-on-attribute-line)
            (kill-region
             (line-beginning-position)
@@ -3839,6 +3829,22 @@ by this command in practice."
               (end-of-line))
           (previous-line)
           (end-of-line))))))
+
+(defun concept-kill-resource ()
+  (when (and (derived-mode-p 'concept-mode)
+             (concept-on-resource-line))
+    (let ((beg (line-beginning-position)))
+      (let ((end (save-excursion
+                   (outline-end-of-subtree)
+                   (when (concept-in-temporary-block)
+                     (re-search-backward "^|" beg t)
+                     (end-of-line))
+                   (point))))
+        (kill-region beg end)))
+    (delete-line)
+    (previous-line)
+    (end-of-line)
+    (skip-chars-backward " ")))
 
 (defun concept-slurp-next-dwim ()
   "Consume the next grouping and all its data into the current grouping."
