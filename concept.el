@@ -3868,6 +3868,16 @@ by this command in practice."
                (end-of-line))
            (end-of-line)
            (backward-char)))
+        ((concept-on-resource-line)
+         (when (concept-map-has-more-concept-blocks)
+           (concept-kill-resource)
+           (concept-goto-next-focus)
+           (concept-end-of-subtree)
+           (insert "\n")
+           (yank)
+           (re-search-backward "^@")
+           (end-of-line)
+           (skip-chars-backward " ")))
         ((or (concept-on-exposition-line)
              (and (concept-in-resource-block)
                   (concept-on-data-line)))
@@ -3945,6 +3955,24 @@ by this command in practice."
           (end-of-line))))
     (backward-char)))
 
+(defun concept-barf-current-resource ()
+  "Move the current resource block to the end of the previous idea."
+  (interactive)
+  (when (and (derived-mode-p 'concept-mode)
+             (concept-on-resource-line)
+             (concept-map-has-more-concept-blocks -1))
+    (concept-kill-resource)
+    (concept-goto-current-focus)
+    (previous-line)
+    (beginning-of-line)
+    (concept-end-of-subtree)
+    (end-of-line)
+    (insert "\n")
+    (yank)
+    (re-search-backward "^@")
+    (end-of-line)
+    (skip-chars-backward " ")))
+
 (defun concept-barf-current-relationship ()
   "Separate the current relationship group from it's relationship block into a new one."
   (interactive)
@@ -3974,6 +4002,8 @@ by this command in practice."
          (concept-barf-current-relationship))
         ((concept-on-attribute-line)
          (concept-barf-current-attribute))
+        ((concept-on-resource-line)
+         (concept-barf-current-resource))
         ((concept-on-exposition-line)
          (concept-barf-current-exposition))))
 
@@ -6523,11 +6553,24 @@ next version."
         re
         " *$") nil t))))
 
-(defun concept-map-has-more-concept-blocks ()
-  "Check if there are more relationship blocks to search through in the concept map."
+(defun concept-map-has-more-concept-blocks (&optional direction)
+  "Check if there are more relationship blocks to search through in the concept map.
+With an optional DIRECTION argument, taking a positive or negative
+number, look in either the forward or backward direction."
+  (when (null direction)
+    (setq direction 1))
+  (when (not (numberp direction))
+    (setq direction 1))
+  (setq direction (sign direction))
+  (when (eq direction 0)
+    (user-error "direction should be either a positive or negative number."))
   (save-excursion
     (end-of-line)
-    (re-search-forward "^~ +" nil t)))
+    (if (eq 1 direction)
+        (re-search-forward "^~ +" nil t)
+      (concept-goto-current-focus)
+      (beginning-of-line)
+      (re-search-backward "^~ +" nil t))))
 
 (defun concept-map-has-more-attributes ()
   "Return non-nil if a later attribute line exists."
@@ -11273,14 +11316,23 @@ data if it already exists."
                (not (concept-in-temporary-block)))
       (newline))))
 
+(defun concept--end-of-subtree ()
+  (outline-end-of-subtree)
+  (when (concept-in-temporary-block)
+    (concept-goto-previous-block-boundary)
+    (when (concept-on-exposition-line)
+      (backward-char))))
+
 (defun concept-end-of-subtree ()
+  "Move to the end of the current outline subtree.
+Unlike `outline-end-of-subtree', this recognizes temporary blocks and acts accordingly."
   (interactive)
   (let ((pt (point)))
-    (outline-end-of-subtree)
+    (concept--end-of-subtree)
     (when (eq pt (point))
       (forward-line)
       (when (not (eobp))
-        (outline-end-of-subtree)))))
+        (concept--end-of-subtree)))))
 
 (defun concept-end-of-previous-subtree ()
   (interactive)
