@@ -2537,6 +2537,354 @@ relationships like `cat-furr' and `cat-claws'."
                        features
                        "\n| "))))
 
+(defconst concept--number-to-english-ones
+  ["zero" "one" "two" "three" "four" "five" "six"
+   "seven" "eight" "nine" "ten" "eleven" "twelve"
+   "thirteen" "fourteen" "fifteen" "sixteen"
+   "seventeen" "eighteen" "nineteen"]
+  "English names for numbers from zero to nineteen.")
+
+(defconst concept--number-to-english-tens
+  [nil nil "twenty" "thirty" "forty" "fifty"
+       "sixty" "seventy" "eighty" "ninety"]
+  "English names for tens-prefixes.
+Non-negative numbers less than 19 have no tens prefixes. This is the
+reason the first two entries of the vector are nil. The first entry
+concerns the numbers 0-9 while the second concerns the numbers 10-19.")
+
+(defconst concept--number-to-english-scales
+  ["" "thousand" "million" "billion" "trillion"
+   "quadrillion" "quintillion" "sextillion"
+   "septillion" "octillion" "nonillion" "decillion"
+   "undecillion" "duodecillion" "tredecillion"
+   "quattuordecillion" "quindecillion"
+   "sexdecillion" "septendecillion" "octodecillion"
+   "novemdecillion" "vigintillion"]
+  "The large number names for numbers said in english.
+These apply to numbers with values greater than or equal to: (exp 10 (*
+3 i)).")
+
+(defun concept--number-to-english-under-1000 (n)
+  "Spell out non-negative integer N, where N is less than 1000."
+  (let (parts)
+    (when (>= n 100)
+      (setq parts
+            (append parts
+                    (list (concat
+                           (aref concept--number-to-english-ones (/ n 100))
+                           "-hundred"))))
+      (setq n (% n 100))
+      (when (< 0 n)
+        (setq parts (append parts (list "and")))))
+    (when (>= n 20)
+      (setq parts
+            (append parts
+                    (list (aref concept--number-to-english-tens (/ n 10)))))
+      (setq n (% n 10)))
+    (when (> n 0)
+      (setq parts
+            (append parts
+                    (list (aref concept--number-to-english-ones n)))))
+    (mapconcat #'identity parts "-")))
+
+(defun concept-number-to-english (n)
+  "Spell non-negative integer N in English, through decillion."
+  (unless (and (integerp n) (>= n 0))
+    (error "Expected a non-negative integer: %S" n))
+  (if (= n 0)
+      "zero"
+    (let ((group-index 0)
+          parts)
+      (while (> n 0)
+        (let ((group (% n 1000)))
+          (when (< 0 group)
+            (when (<= (length concept--number-to-english-scales) group-index)
+              (error "Number exceeds supported scale names!"))
+            (setq parts
+                  (cons (concat
+                         (if (and (= group-index 0)
+                                  (< 0 (/ n 1000))
+                                  (<  group 100))
+                             "and-"
+                           "")
+                         (concept--number-to-english-under-1000 group)
+                         (if (= group-index 0)
+                             ""
+                           (concat "-"
+                                   (aref concept--number-to-english-scales
+                                         group-index))))
+                        parts)))
+        (setq n (/ n 1000)
+              group-index (1+ group-index))))
+      (mapconcat #'identity parts "-"))))
+
+(defconst concept--number-to-english-values
+  '(("zero"      . 0)
+    ("one"       . 1)
+    ("two"       . 2)
+    ("three"     . 3)
+    ("four"      . 4)
+    ("five"      . 5)
+    ("six"       . 6)
+    ("seven"     . 7)
+    ("eight"     . 8)
+    ("nine"      . 9)
+    ("ten"       . 10)
+    ("eleven"    . 11)
+    ("twelve"    . 12)
+    ("thirteen"  . 13)
+    ("fourteen"  . 14)
+    ("fifteen"   . 15)
+    ("sixteen"   . 16)
+    ("seventeen" . 17)
+    ("eighteen"  . 18)
+    ("nineteen"  . 19)
+    ("twenty"    . 20)
+    ("thirty"    . 30)
+    ("forty"     . 40)
+    ("fifty"     . 50)
+    ("sixty"     . 60)
+    ("seventy"   . 70)
+    ("eighty"    . 80)
+    ("ninety"    . 90)))
+
+(defconst concept--number-to-english-scale-values
+  '(("thousand"    . 1000)
+    ("million"     . 1000000)
+    ("billion"     . 1000000000)
+    ("trillion"    . 1000000000000)
+    ("quadrillion" . 1000000000000000)
+    ("quintillion" . 1000000000000000000)
+    ("sextillion"  . 1000000000000000000000)
+    ("septillion"  . 1000000000000000000000000)
+    ("octillion"   . 1000000000000000000000000000)
+    ("nonillion"   . 1000000000000000000000000000000)
+    ("decillion"   . 1000000000000000000000000000000000)))
+
+(defun concept-english-to-number (words)
+  "Convert hyphenated English number WORDS to a non-negative integer."
+  (unless (stringp words)
+    (error "Expected a string: %S" words))
+  (let ((tokens (split-string (downcase words) "[- \t\n]+" t))
+        (total 0)
+        (current 0))
+    (dolist (word tokens)
+      (cond
+       ((equal word "and"))
+       ((equal word "hundred")
+        (setq current (* (max current 1) 100)))
+       ((assoc word concept--number-to-english-scale-values)
+        (setq total
+              (+ total
+                 (* (max current 1)
+                    (cdr (assoc word concept--number-to-english-scale-values)))))
+        (setq current 0))
+       ((assoc word concept--number-to-english-values)
+        (setq current
+              (+ current (cdr (assoc word concept--number-to-english-values)))))
+       (t
+        (error "Unrecognized number word: %s" word))))
+    (+ total current)))
+
+(defconst concept--roman-numerals
+  '((1000 . "M")
+    (900 . "CM")
+    (500 . "D")
+    (400 . "CD")
+    (100 . "C")
+    (90 . "XC")
+    (50 . "L")
+    (40 . "XL")
+    (10 . "X")
+    (9 . "IX")
+    (5 . "V")
+    (4 . "IV")
+    (1 . "I"))
+  "Simplified roman numeral lookup table.")
+
+(defun concept-number-to-roman (n)
+  "Convert positive integer N to a Roman numeral using repeated M's."
+  (unless (and (integerp n) (<= 1 n))
+    (error "Expected a positive integer: %S" n))
+  (let ((remaining n)
+        (result "")
+        (values concept--roman-numerals))
+    (dolist (entry values)
+      (while (<= (car entry) remaining)
+        (setq result (concat result (cdr entry))
+              remaining (- remaining (car entry)))))
+    result))
+
+(defun concept-roman-to-number (roman)
+  "Convert a standard Roman numeral string ROMAN to an integer."
+  (unless (and (stringp roman) (> (length roman) 0))
+    (error "Expected a non-empty Roman numeral string: %S" roman))
+  (let* ((roman (upcase roman))
+         (values '((?I . 1) (?V . 5) (?X . 10) (?L . 50)
+                   (?C . 100) (?D . 500) (?M . 1000)))
+         (i 0)
+         (total 0))
+    (while (< i (length roman))
+      (let* ((current (cdr (assq (aref roman i) values)))
+             (next (if (< (1+ i) (length roman))
+                       (cdr (assq (aref roman (1+ i)) values))
+                     0)))
+        (unless current
+          (error "Invalid Roman numeral character: %c" (aref roman i)))
+        (unless (or (= next 0)
+                    (assq (aref roman (1+ i)) values))
+          (error "Invalid Roman numeral character: %c"
+                 (aref roman (1+ i))))
+        (if (< current next)
+            (setq total (- total current))
+          (setq total (+ total current)))
+        (setq i (1+ i))))
+    (unless (equal roman (concept-number-to-roman total))
+      (error "Not a standard Roman numeral: %s" roman))
+    total))
+
+(defconst concept--english-ordinal-irregular
+  '(("one"         . "first")
+    ("two"         . "second")
+    ("three"       . "third")
+    ("five"        . "fifth")
+    ("eight"       . "eighth")
+    ("nine"        . "ninth")
+    ("twelve"      . "twelfth")
+    ("twenty"      . "twentieth")
+    ("thirty"      . "thirtieth")
+    ("forty"       . "fortieth")
+    ("fifty"       . "fiftieth")
+    ("sixty"       . "sixtieth")
+    ("seventy"     . "seventieth")
+    ("eighty"      . "eightieth")
+    ("ninety"      . "ninetieth")
+    ("hundred"     . "hundredth")
+    ("thousand"    . "thousandth")
+    ("million"     . "millionth")
+    ("billion"     . "billionth")
+    ("trillion"    . "trillionth")
+    ("quadrillion" . "quadrillionth")
+    ("quintillion" . "quintillionth")
+    ("sextillion"  . "sextillionth")
+    ("septillion"  . "septillionth")
+    ("octillion"   . "octillionth")
+    ("nonillion"   . "nonillionth")
+    ("decillion"   . "decillionth")))
+
+(defun concept-english-to-ordinal-english (words)
+  "Convert cardinal number WORDS to its ordinal form."
+  (let* ((parts (split-string (downcase words) "-"))
+         (last-word (car (last parts)))
+         (irregular (assoc last-word concept--english-ordinal-irregular)))
+    (unless parts
+      (error "Expected a non-empty number string"))
+    (setcar (last parts)
+            (if irregular
+                (cdr irregular)
+              (concat last-word "th")))
+    (mapconcat #'identity parts "-")))
+
+(defun concept-ordinal-english-to-english (words)
+  "Convert ordinal number WORDS to its cardinal form."
+  (let* ((parts (split-string (downcase words) "-"))
+         (last-word (car (last parts)))
+         (irregular (rassoc last-word concept--english-ordinal-irregular))
+         (cardinal
+          (cond
+           (irregular (car irregular))
+           ((string-suffix-p "th" last-word)
+            (substring last-word 0 -2))
+           (t (error "Unrecognized ordinal word: %s" last-word)))))
+    (unless parts
+      (error "Expected a non-empty ordinal number string"))
+    (setcar (last parts) cardinal)
+    (mapconcat #'identity parts "-")))
+
+(defun concept-number-to-ordinal-string (n)
+  "Return non-negative integer N as an ordinal string, e.g. 2nd."
+  (unless (and (integerp n) (>= n 0))
+    (error "Expected a non-negative integer: %S" n))
+  (let ((suffix
+         (if (and (<= 11 (% n 100))
+                  (<= (% n 100) 13))
+             "th"
+           (pcase (% n 10)
+             (1 "st")
+             (2 "nd")
+             (3 "rd")
+             (_ "th")))))
+    (format "%d%s" n suffix)))
+
+(defun concept--pad-number (number width)
+  "Pad a number with leading zeros to keep the same length string."
+  (format (format "%%0%dd" width) number))
+
+(defun concept-expand-ordered-relationships (subject relationship &optional category from count width roman word rank)
+  "Construct a relationship block with ordered subjects.
+The focus concept is SUBJECT. The relationship is RELATIONSHIP. An
+optional category can be included as well. The category is useful for
+situations like: `type-II-civilizations' on the Kardashev scale.
+
+This supports the most common ways of expressing numbers in English (and
+Roman). Passing ROMAN will make roman numbers. Passing WORD will
+transform numbers into words. Passing rank will turn numbers into
+strings. If WORD and RANK are both non-nil, then the rank will be given
+in english ordinal form like: ninetieth. Otherwise, numbers are given
+using Arabic numerals. These can have zero padding if WIDTH is supplied
+a positive integer. This can be useful when preserving order in lists
+with more than 10 elements. Counting begins at 1 by default, unless FROM
+is supplied another non-negative number like 0. This is useful for
+passing in scientific laws such as: `zeroth-laws-of-thermodynamics'."
+  (when (and roman word)
+    (user-error "Cannot specify both words and roman numerals at the same time!"))
+  (when (and roman rank)
+    (user-error "Roman numerals do not support ranking!"))
+  (when (null count)
+    (setq count 1))
+  (when (< count 1)
+    (setq count 1))
+  (when (null from)
+    (setq from 1))
+  (let ((max-number (+ from count -1)))
+    (when (and (null width) (not (or roman word)))
+      (setq width (length (number-to-string max-number))))
+    (concat
+     (format "~ %s\n| :%s\n" subject relationship)
+     (let ((idx (number-sequence from max-number)))
+       (mapconcat
+        (lambda (i)
+          (if rank
+              (if category
+                  (format "| %s-%s-%s"
+                          (if word
+                              (concept-english-to-ordinal-english
+                               (concept-number-to-english i))
+                            (concept-number-to-ordinal-string i))
+                          category
+                          subject)
+                (format "| %s-%s"
+                        (if word
+                            (concept-english-to-ordinal-english
+                             (concept-number-to-english i))
+                          (concept-number-to-ordinal-string i))
+                        subject))
+            (if category
+                (format "| %s-%s-%s"
+                        category
+                        (cond (roman (concept-number-to-roman i))
+                              (word (concept-number-to-english i))
+                              (t (concept--pad-number i width)))
+                        subject)
+              (format "| %s-%s"
+                      category
+                      (cond (roman (concept-number-to-roman i))
+                            (word (concept-number-to-english i))
+                            (t (concept--pad-number i width)))
+                      subject))))
+        idx
+        "\n")))))
+
 (defun concept-expand-sibling-relationships (parent subject relationship &rest objects)
   "Construct a relationship block with shared PARENT and RELATIONSHIP, a
 primary SUBJECT, and one or more OBJECTS."
