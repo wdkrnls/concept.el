@@ -11268,44 +11268,55 @@ MEMO caches results, and VISITING detects dependency cycles."
         (push ov concept-bar-overlays)))))
 
 (defun concept-bars-refresh (&rest _)
+  "Refresh unicode overlays for the concept map.
+
+This provides two forms of overlays: vertical bars on the left side of
+the buffer, and corner bars boxing in expository text."
   (mapc #'delete-overlay concept-bar-overlays)
   (setq concept-bar-overlays nil)
   (save-excursion
     (goto-char (point-min))
     (while
         (re-search-forward
-         "^|[[:space:]]+\\([[{‘]\\)\\|^\\([|~@]\\)\\|\\([]}’]\\)[[:space:]]*$"
+         "^|[ ]+\\([[{‘]\\)\\|^\\([|~@]\\)\\|\\([]}’]\\)[ ]*$"
+         ;; Case 1: beginning of expository data line
+         ;; Case 2: beginning of other kinds of data including signals for the beginnings of blocks
+         ;; Case 3: the end of an expository data block
          nil t)
-      (let* ((opening (match-string-no-properties 1))
-             (source
-              (or opening
-                  (match-string-no-properties 2)
-                  (match-string-no-properties 3))))
-        (if opening
-            ;; First alternative matched:
-            ;; | {, | [, or | ‘
-            (progn
-              ;; Overlay the leading |
-              (concept-bar-add-overlay
-               (match-beginning 0)
-               (1+ (match-beginning 0))
-               "|")
-              ;; Overlay the opening symbol
-              (concept-bar-add-overlay
-               (match-beginning 1)
-               (match-end 1)
-               opening))
-          ;; Second or third alternative matched
-          (let ((group
-                 (if (match-beginning 2)
-                     2
-                   3)))
-            (unless (and (eq group 3)
-                         (not (concept-on-exposition-line)))
-              (concept-bar-add-overlay
-               (match-beginning group)
-               (match-end group)
-               source))))))))
+      (let ((opening    (match-string-no-properties 1))
+            (data-block (match-string-no-properties 2))
+            (expo-end   (match-string-no-properties 3)))
+        (let ((source (or opening data-block expo-end)))
+          (unless source
+            (error "One of the search patterns should have matched!"))
+          (if opening
+              ;; First alternative matched:
+              ;; | {, | [, or | ‘
+              (progn
+                ;; Overlay the leading |
+                (concept-bar-add-overlay
+                 (match-beginning 0)
+                 (1+ (match-beginning 0))
+                 "|")
+                ;; Overlay the opening symbol
+                (concept-bar-add-overlay
+                 (match-beginning 1)
+                 (match-end 1)
+                 opening))
+            ;; Second or third alternative matched
+            (let ((group
+                   (if (match-beginning 2)
+                       2
+                     3)))
+              (unless (and (eq group 3)
+                           (not (or (concept-on-exposition-line)
+                                    (save-excursion
+                                      (backward-char)
+                                      (concept-on-exposition-line)))))
+                (concept-bar-add-overlay
+                 (match-beginning group)
+                 (match-end group)
+                 source)))))))))
 
 (define-minor-mode concept-bar-display-mode
   "Display ASCII diagram characters as Unicode box-drawing glyphs."
