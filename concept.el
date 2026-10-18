@@ -2971,7 +2971,7 @@ Compare this with `concept-expand-categorized-inner-relationships'."
           (puthash string t seen))))
     duplicate))
 
-(defvar-local concept-combinatorial-groups-list
+(defvar-local concept-combinatorial-groups-list ; TODO: maybe treat first element of each list as group name?
     nil
   "List of lists of strings from the same combinatorial group.
 For example, hot and cold are from the same group of temperature
@@ -3052,22 +3052,46 @@ settle.")
 (defun concept-view-combinatorial-groups-list ()
   "Display `concept-combinatorial-groups-list' in a tabulated-list buffer."
   (interactive)
-  (let ((table-buffer (get-buffer-create "*Combinatorial Groupings*"))
-        (table concept-combinatorial-groups-list)
-        (group 0)
-        (map-buffer (current-buffer)))
-    (with-current-buffer table-buffer
-      (concept-string-group-view-mode)
-      (setq tabulated-list-entries
-            (mapcar
-             (lambda (entries)
-               (setq group (1+ group))
-               (list group
-                     (vector (number-to-string group)
-                             (mapconcat #'identity entries " "))))
-             table))
-      (tabulated-list-print t))
-    (pop-to-buffer table-buffer)))
+  (if (not (null concept-combinatorial-groups-list))
+      (let ((table-buffer (get-buffer-create "*Combinatorial Groupings*"))
+            (table concept-combinatorial-groups-list)
+            (group 0)
+            (map-buffer (current-buffer)))
+        (with-current-buffer table-buffer
+          (concept-string-group-view-mode)
+          (setq tabulated-list-entries
+                (mapcar
+                 (lambda (entries)
+                   (setq group (1+ group))
+                   (list group
+                         (vector (number-to-string group)
+                                 (mapconcat #'identity entries " "))))
+                 table))
+          (tabulated-list-print t))
+        (pop-to-buffer table-buffer))
+    (message "No combinatorial groupings setup. Table empty!")))
+
+(defun concept-view-combinatorial-exclusions-list ()
+  "Display `concept-combinatorial-exclusions-list' in a tabulated-list buffer."
+  (interactive)
+  (if (not (null concept-combinatorial-exclusions-list))
+      (let ((table-buffer (get-buffer-create "*Combinatorial Exclusions*"))
+            (table concept-combinatorial-exclusions-list)
+            (group 0)
+            (map-buffer (current-buffer)))
+        (with-current-buffer table-buffer
+          (concept-string-group-view-mode)
+          (setq tabulated-list-entries
+                (mapcar
+                 (lambda (entries)
+                   (setq group (1+ group))
+                   (list group
+                         (vector (number-to-string group)
+                                 (mapconcat #'identity entries " "))))
+                 table))
+          (tabulated-list-print t))
+        (pop-to-buffer table-buffer))
+    (message "No combinatorial exclusions setup. Table empty!")))
 
 (defun concept--edit-groups-list-helper (variable-symbol overwrite)
   "Edit a list‑of‑list‑of‑strings stored in VARIABLE‑SYMBOL.
@@ -3241,6 +3265,13 @@ This variable is used when expanding combinatorial templates. See
   (pcase (completing-read "Edit Lists: " '("Groupings" "Exclusions") nil t)
     ("Groupings" (concept-edit-combinatorial-groups-list overwrite))
     ("Exclusions" (concept-edit-combinatorial-exclusions-list overwrite))))
+
+(defun concept-view-combinatorial-groups ()
+  "View the combinatorial groupings or exclusions list."
+  (interactive)
+  (pcase (completing-read "View Lists: " '("Groupings" "Exclusions") nil t)
+    ("Groupings" (concept-view-combinatorial-groups-list))
+    ("Exclusions" (concept-view-combinatorial-exclusions-list))))
 
 (defun concept--expand-combinatorial-helper (concept degree final-prefix item-type left-constructor right-constructor items)
   "Reusable parts of the combinatorial relationship block generation logic.
@@ -12307,6 +12338,7 @@ This is useful in conjunction with `concept-funcall-with-string-args'."
 (define-key concept-mode-map (kbd "C-c C-n")     #'concept-goto-next-dwim)
 (define-key concept-mode-map (kbd "C-c C-p")     #'concept-goto-previous-dwim)
 (define-key concept-mode-map (kbd "C-c C-e")     #'concept-expand-combinatorial-relationship-block)
+(define-key concept-mode-map (kbd "C-c C-M-e")   #'concept-view-combinatorial-groups)
 (define-key concept-mode-map (kbd "C-c M-e")     #'concept-edit-combinatorial-groups)
 (define-key concept-mode-map (kbd "C-c C-= g")   #'concept-set-last-relationship-size-behavior)
 (define-key concept-mode-map (kbd "C-c C-= a")   #'concept-set-last-attribute-count-behavior)
