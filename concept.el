@@ -3855,11 +3855,10 @@ Such lines go inside a relationship block."
   "Insert a keyword attribute.
 An attribute ends with a colon and is only appropriate when inside a
 resource block."
-  (when (concept-in-resource-block)
-    (unless (string-match-p concept-group-name-regexp name)
-      (user-error "%s is not a valid keyword name!" name))
-    (concept-add-new-data)
-    (insert (concat name ":"))))
+  (unless (string-match-p concept-group-name-regexp name)
+    (user-error "%s is not a valid keyword name!" name))
+  (concept-add-new-data)
+  (insert (concat name ":")))
 
 (defun concept-insert-note-line ()
   "Insert a note attribute.
