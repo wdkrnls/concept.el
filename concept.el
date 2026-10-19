@@ -12422,12 +12422,19 @@ relationship block."
       (set-mark end)
       (activate-mark))))
 
-(defun concept-mark-idea ()
-  (interactive)
+(defun concept-mark-idea (arg)
+  "Mark the whole current idea.
+If ARG is an integer greater than 1, then also mark the next ARG-1 ideas
+along with it."
+  (interactive "p")
+  (when (< arg 1)
+    (setq arg 1))
   (concept-goto-current-focus)
   (beginning-of-line)
   (let ((beg (point)))
-    (outline-end-of-subtree)
+    (dotimes (i (1- arg))
+      (concept-goto-next-concept-block))
+    (concept--end-of-subtree)
     (let ((end (point)))
       (goto-char beg)
       (set-mark end)
