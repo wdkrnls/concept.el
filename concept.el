@@ -3494,6 +3494,10 @@ This variable is used when expanding combinatorial templates. See
   "Reusable parts of the combinatorial relationship block generation logic.
 There are three types of combinatorial expansion: categorical, core, and
 definitional. This tries to support all three."
+  ;; TODO: This does the wrong thing! - For both categories and definitions, it
+  ;;       should recognize combinatorial groups and create separate ideas for
+  ;;       each group used. Please see the discussion in the README to
+  ;;       understand what we are looking for.
   (when (stringp degree)
     (setq degree (string-to-number degree)))
   (when (stringp left-constructor)
