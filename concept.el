@@ -2971,7 +2971,7 @@ Compare this with `concept-expand-categorized-inner-relationships'."
           (puthash string t seen))))
     duplicate))
 
-(defvar-local concept-combinatorial-groups-list ; TODO: maybe treat first element of each list as group name?
+(defvar-local concept-combinatorial-groups-list
     nil
   "List of lists of strings from the same combinatorial group.
 For example, hot and cold are from the same group of temperature
@@ -2983,7 +2983,13 @@ In this example, a valid value for this variable would be:
 Then when you call `concept-expand-combinatorial-relationships' with
 these categories it will automatically exclude cold-hot relationship
 categories leaving you with only the intuitively reasonable
-combinations.")
+combinations.
+
+The data inside of this variable should conform to the specifications of
+either `concept--list-of-nonempty-string-lists-p' or `nil'. This allows
+for the inclusion of special data in the string lists which does not
+always get displayed, such as `&{STASH}' and `&{GROUP:color}' for
+example.")
 
 (defvar-local concept-combinatorial-exclusions-list
     nil
@@ -3030,14 +3036,20 @@ settle.")
   "Default string ordering comparison function for defining the ordering of combinations.")
 
 (defun concept--list-of-nonempty-string-lists-p (x)
-  "Return `t' if VALUE is a list of lists of strings."
+  "Test if variable X holds lists of non-empty strings with no spaces."
   (and (not (null x))
        (listp x)
        (seq-every-p
         (lambda (y)
           (and (listp y)
                (< 0 (length y))
-               (seq-every-p #'stringp y)))
+               (< 0 (length (concept--clean-list y)))
+               (seq-every-p
+                (lambda (z)
+                  (and (stringp z)
+                       (not (string-empty-p z))
+                       (not (string-match-p " " z))))
+                y)))
         x)))
 
 (define-derived-mode concept-string-group-view-mode tabulated-list-mode
@@ -3093,12 +3105,143 @@ settle.")
         (pop-to-buffer table-buffer))
     (message "No combinatorial exclusions setup. Table empty!")))
 
-(defun concept--edit-groups-list-helper (variable-symbol overwrite)
+(defun concept--clean-list (list)
+  "Clean up a list of strings.
+
+This was designed for editing lists of lists of strings."
+  (seq-remove (lambda (x)
+                (or (null x)
+                    (string-match-p
+                     "^&{[A-Z]+\\(}\\|:[^ }]+}\\)$"
+                     x)))
+              (flatten-list list)))
+
+(defun concept--string-list-options (list)
+  "Keep only he "
+  (seq-filter
+   (lambda (string)
+     (when (string-match-p
+            "^&{[A-Z]+\\(}\\|:[^ }]+}\\)$"
+            string)
+       string))
+   list))
+
+(defun concept--string-list-option-keys (list)
+  (mapcar
+   (lambda (string)
+     (and (string-match "^&{\\([A-Z]+\\)" string)
+          (substring string (match-beginning 1) (match-end 1))))
+   list))
+
+(defun concept--string-list-option-values (list)
+  (mapcar
+   (lambda (string)
+     (and (string-match ":\\([^} ]+\\)}$" string)
+          (substring string (match-beginning 1) (match-end 1))))
+   list))
+
+(defun concept--string-list-stashed-p (list)
+  ;; TODO: This doesn't seem to be working correctly
+  (and (member
+        "STASH"
+        (concept--string-list-keys
+         (concept--string-list-options list)))
+       t))
+
+(defun concept--string-list-name (list)
+  (if-let* ((options  (concept--string-list-options list))
+              (keys     (concept--string-list-keys options))
+              (values   (concept--string-list-values options))
+              (has-name (member "GROUP" keys)))
+      (nth (seq-position keys "GROUP") values)
+    "*unnamed*"))
+
+(defun concept--string-list-push-at (string n list)
+  "Push STRING to the beginning of the sublist at position N in LIST."
+  (unless (concept--list-of-nonempty-string-lists-p list)
+    (user-error "The supplied list is not a list of string-lists!"))
+  (let ((cell (and (integerp n)
+                   (<= 0 n)
+                   (nthcdr n list))))
+    (unless cell
+      (error "Invalid list index: %S" n))
+    (setcar cell (cons string (car cell))))
+  list)
+
+(defun concept--string-list-display-strings (list &optional stashed)
+  "Make a string list LIST selectable as a single string.
+Optionally show only the stashed strings in the string list by passing
+non-nil to STASHED."
+  (if (null list)
+      nil
+    (unless (concept--list-of-nonempty-string-lists-p list)
+      (user-error "The supplied list is not a list of string-lists!"))
+    (let* ((stashed-groups (mapcar #'concept--string-list-stashed-p list))
+           (any-stashed-p (seq-some #'identity stashed-groups))
+           (any-unstashed-p
+            (seq-some (lambda (stashed) (not stashed)) stashed-groups))
+           (unstashed-groups (mapcar (lambda (stashed) (not stashed)) stashed-groups)))
+      (if (or (and (not stashed)
+                   (not any-unstashed-p))
+              (and stashed
+                   (not any-stashed-p)))
+          nil
+        (concept--clean-list
+         (mapcar (lambda (pos)
+                   (let ((unstashed-p (nth pos unstashed-groups)))
+                     (when-let* ((in-scope (eq stashed (not unstashed-p)))
+                                 (group (nth pos list))
+                                 (name  (concept--string-list-name group)))
+                       (format "%d = [%s] %s"
+                               (1+ pos)
+                               name
+                               (mapconcat
+                                #'identity
+                                (concept--clean-list group)
+                                " ")))))
+                 (number-sequence 0 (1- (length list)))))))))
+
+(defun concept--string-list-display-string-index (string)
+  (1- (string-to-number (car (split-string string " ")))))
+
+(defun concept--add-group-from-scratch ()
+  (condition-case nil
+      (let ((crm-separator " "))
+        (completing-read-multiple
+         "Words/phrases for the new group: " nil))
+    (quit nil)))
+
+(defun concept--string-list-has-unstashed-p (list)
+  (seq-some (lambda (group) (not (concept--string-list-stashed-p group))) list))
+
+(defun concept--string-list-has-stashed-p (list)
+  (seq-some #'concept--string-list-stashed-p list))
+
+(defun concept--edit-groups-list-helper (variable-symbol overwrite &optional no-modify no-stash)
   "Edit a list‑of‑list‑of‑strings stored in VARIABLE‑SYMBOL.
 TABLE‑BUFFER‑NAME is the name of the temporary tabulated‑list buffer.
-If OVERWRITE is non‑nil, start from an empty list; otherwise start from the
-current value of the variable.
-The function returns the new value (or nil if the edit was aborted)."
+If OVERWRITE is non‑nil, start from an empty list; otherwise start from
+the current value of the variable. If NO-MODIFY is non-nil, then prevent
+addition, and removal operations which could modify the macroscoping
+structure of the data. This does not, however, prevent editing of
+existing groups. If NO-STASH is non-nil, then prevent stashing of groups
+which are currently out of scope. This function returns the new value or
+nil if the edit is aborted.
+
+Stashing allows the user to remove a list of strings temporarily from
+consideration, rather than permanently. During an editing session, a
+user may want to consider the same groupings later and reactivate them.
+
+At the implementation level, stashing merely consists of adding a
+special string `&{STASH}' into the list. Removing a list from the stash
+area involves merely removing that special string from the list. This
+can be done with a single call to the elisp procedure: `remove', even if
+there is more than one.
+
+Similar to stashing, a group name can be added to the list using a
+special syntax. `&{GROUP:hair-color}'. Only the first such name will be
+considered. Related features taking advantage of this approach may be
+used to add additional properties in the future."
   (unless (symbolp variable-symbol)
     (user-error "Please supply the name of the variable, not its value"))
   (unless (boundp variable-symbol)
@@ -3130,48 +3273,112 @@ The function returns the new value (or nil if the edit was aborted)."
          (vertico-sort-function nil)
          (changes overwrite)
          (add "Add new group")
+         (order "Sort groups")
          (edit "Edit existing group")
          (remove "Remove an existing group")
          (kill "Remove all existing groups")
+         (stash "Stash an existing group")
+         (pack "Stash all existing groups")
          (save "Save changes")
          (abort (if changes "Quit and discard edits" "Quit"))
          (action nil))
+    ;; TODO: The menu needs to account for situations where all existing data
+    ;; has been stashed.
     (setq action
           (completing-read
            "Action: "
            (cond
             ((and groups changes)
-             (list add edit remove kill save abort))
+             (concept--clean-list
+              (list edit
+                    (unless no-modify
+                      (list add remove kill stash pack order))
+                    save abort)))
             (changes
-             (list add save abort))
+             (concept--clean-list
+              (list (unless no-modify (list add)) save abort)))
             (groups
-             (list add edit remove kill abort))
+             (concept--clean-list
+              (list edit
+                    (unless no-modify
+                      (list add remove kill stash pack order))
+                    abort)))
             (t
-             (list add abort)))
+             (concept--clean-list
+              (list (unless no-modify (list add)) abort))))
            nil t))
     (while (not (member action (list save abort)))
       (cond
+       ((string= action stash)
+        (when-let* ((has-unstashed-p (concept--string-list-has-unstashed-p groups))
+                    (choices         (concept--string-list-display-strings groups))
+                    (stash-done "Finished stashing")
+                    (choice
+                     (completing-read
+                      "Group to stash: "
+                      (append choices (list stash-done)) nil t)))
+          (unless (string= choice stash-done)
+            (let* ((idx (concept--string-list-display-string-index choice))
+                   (new (concept--string-list-push-at "&{STASH}" idx groups)))
+              (setq groups new)))))
+       ((string= action order)
+        (when-let* ((choices (concept--string-list-display-strings groups)))
+          (let ((result nil)
+                (first-priority t)
+                (remaining (copy-sequence choices))
+                choice)
+            (while remaining
+            (setq choice
+                  (completing-read
+                   (if first-priority "Top Priority: " "Next Priority: ")
+                   remaining nil t))
+            (when first-priority
+              (setq first-priority nil))
+            (push choice result)
+            (setq remaining (delete choice remaining)))
+          (if (eq (length groups) (length result))
+              ;; TODO: The new orderings for groups are not getting saved!
+              (let* ((idx (mapcar (lambda (x) (1- (string-to-number (car (split-string x))))) result))
+                     (new-ordering (mapcar (lambda (i) (nth i groups)) idx)))
+                (setq groups new-ordering))
+            (message "Prioritization aborted!")))))
        ((string= action add)
-        (let ((group
-               (condition-case nil
-                   (completing-read-multiple
-                    "Words/phrases for the new group: "
-                    nil nil nil nil nil nil "[[:space:]]+")
-                 (quit nil))))
-          (when group
-            (setq groups (append groups (list group))))))
+        (let* ((add-new "Add new group")
+               (unstash "Unstash existing group")
+               (unstashed-groups
+                (mapcar #'concept--string-list-unstashed-p groups))
+               (stashed-p (seq-some (lambda (unstashed-group) (not unstashed-group)) unstashed-groups)))
+          (catch 'done
+            (when-let* ((group
+                         (if stashed-p
+                             (let ((choice
+                                    (completing-read
+                                     "Option: "
+                                     (list add-new unstash)
+                                     nil t)))
+                               (if (string= choice unstash)
+                                   (when-let* ((unstash-choice
+                                                (completing-read
+                                                 "Unstash group: "
+                                                 (concept--string-list-display-strings groups t)
+                                                 nil t)))
+                                     (concept--string-list-remove-at
+                                      "&STASH"
+                                      (1- (string-to-number (car (split-string unstash-choice " "))))
+                                      groups)
+                                     (throw 'done groups))
+                                 (concept--add-group-from-scratch)))
+                           (concept--add-group-from-scratch))))
+              (setq groups (append groups (list group)))))))
        ((string= action remove)
-        (let* ((choices (when groups
-                         (mapcar (lambda (pos)
-                                   (format "%d = %s"
-                                           (1+ pos)
-                                           (mapconcat #'identity (nth pos groups) " ")))
-                                 (number-sequence 0 (1- (length groups))))))
-               (choice (completing-read
-                        "Group to remove: "
-                        (append choices (list "Finished deletions")) nil t)))
-          (unless (string= choice "Finished deletions")
-            (let* ((idx (1- (string-to-number (car (split-string choice)))))
+        (when-let* ((choices
+                     (concept--string-list-display-strings groups))
+                    (done-removing "Finished deletions")
+                    (choice (completing-read
+                             "Group to remove: "
+                             (append choices (list done-removing)) nil t)))
+          (unless (string= choice done-removing)
+            (let* ((idx (concept--string-list-display-string-index choice))
                    (new (concept--remove-at idx groups)))
               (setq groups new)))))
        ((string= action kill)
@@ -3180,17 +3387,14 @@ The function returns the new value (or nil if the edit was aborted)."
           (setq groups nil)
           (sit-for concept-message-short-wait-time)))
        ((string= action edit)
-        (let* ((choices (when groups
-                         (mapcar (lambda (pos)
-                                   (format "%d = %s"
-                                           (1+ pos)
-                                           (mapconcat #'identity (nth pos groups) " ")))
-                                 (number-sequence 0 (1- (length groups))))))
-               (choice (completing-read
-                        "Group to edit: "
-                        (append choices (list "Finished editing")) nil t)))
-          (unless (string= choice "Finished editing")
-            (let* ((idx (1- (string-to-number (car (split-string choice)))))
+        (when-let* ((choices
+                     (concept--string-list-display-strings groups))
+                    (done-editing "Finished editing")
+                    (choice (completing-read
+                             "Group to edit: "
+                             (append choices (list done-editing)) nil t)))
+          (unless (string= choice done-editing)
+            (let* ((idx (concept--string-list-display-string-index choice))
                    (old-group (nth idx groups))
                    (replacement (completing-read-multiple
                                  "Replacement words/phrases: "
@@ -3202,19 +3406,32 @@ The function returns the new value (or nil if the edit was aborted)."
                 (message "Group deleted because all its elements have been removed!")
                 (setq groups (concept--remove-at idx groups))))))))
       (setq changes (not (equal groups (symbol-value variable-symbol))))
+      (unless (or (null groups)
+                  (concept--list-of-nonempty-string-lists-p groups))
+        (error "The group data got corrupted somehow!\n %S" groups))
       (setq abort (if changes "Quit and discard edits" "Quit"))
       (setq action
             (completing-read
              "Action: "
              (cond
               ((and groups changes)
-               (list add edit remove kill save abort))
+               (concept--clean-list
+                (list edit
+                      (unless no-modify
+                        (list add remove kill stash pack order))
+                      save abort)))
               (changes
-               (list add save abort))
+               (concept--clean-list
+                (list (unless no-modify (list add)) save abort)))
               (groups
-               (list add edit remove kill abort))
+               (concept--clean-list
+                (list edit
+                      (unless no-modify
+                        (list add remove kill stash pack order))
+                      abort)))
               (t
-               (list add abort)))
+               (concept--clean-list
+                (list (unless no-modify (list add)) abort))))
              nil t)))
     (let ((emptied (null groups)))
       (cond
