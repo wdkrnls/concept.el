@@ -903,7 +903,67 @@ network."
                  (goto-line n)
                  (car (concept-find-relationship-block-extent)))))
            line-numbers)))
-  
+
+(defun concept-read-local-variables ()
+  "Read `local-variables' resource blocks through the end of the buffer."
+  (interactive)
+  (unless (derived-mode-p 'concept-mode)
+    (user-error "This can only read local variables in concept-mode buffers."))
+  (save-excursion
+    (goto-char (point-min))
+    (let ((case-fold-search nil)
+          (seen (make-hash-table :test #'eq))
+          (approved enable-local-eval))
+      (while (re-search-forward "^@ local-variables *$" nil t)
+        (forward-line 1)
+        (while (and (concept-in-resource-block)
+                    (string= "local-variables"
+                             (concept-current-resource-name)))
+          (unless (concept-on-attribute-line)
+            (user-error "Malformed local-variable name at line %d"
+                        (line-number-at-pos)))
+          (let* ((name (concept-current-attribute))
+                 (symbol (intern name)))
+            (unless (= 1 (concept-attribute-group-data-count))
+              (user-error "Expected only single values for variable: %s"
+                          name))
+            (when (gethash symbol seen)
+              (user-error "The variable `%s' is specified more than once"
+                          name))
+            (puthash symbol t seen)
+            (forward-line 1)
+            (let ((value (concept-current-exposition)))
+              (unless (eq approved t)
+                (setq approved
+                      (pcase enable-local-eval
+                        ('nil
+                         (user-error "Evaluation of local-variable forms is disabled"))
+                        ('t t)
+                        ('maybe
+                         (unless (y-or-n-p
+                                  "Evaluate local-variable forms in this buffer? ")
+                           (user-error "Evaluation declined"))
+                         (setq-local enable-local-eval t)
+                         t)
+                        (_
+                         (user-error "Unexpected enable-local-eval value: %S"
+                                     enable-local-eval)))))
+              (set (make-local-variable symbol)
+                   (eval (read value))))
+            (forward-line 1))))
+      (when (called-interactively-p 'interactive)
+        (let* ((keys (mapcar #'symbol-name (hash-table-keys seen)))
+               (n (length keys)))
+          (message
+           (cond ((< 1 n)
+                  (concat (format "Set %d local variables: " n)
+                          (mapconcat #'identity (butlast keys) ", ")
+                          (format " and %s." (car (last keys)))))
+                 ((= 0 n)
+                  (message "No new local variables were set or modified."))
+                 (t
+                  (message "Set local variable: %s" (car keys))))))))))
+
 (define-derived-mode concept-mode text-mode "CONCEPT"
   "Major mode for CONCEPT buffers."
   :keymap concept-mode-map
@@ -933,7 +993,8 @@ network."
   ;; (setq-local mode-line-format
   ;;             (append mode-line-format
   ;;                     (list concept-mode-line-entry)))
-  (setq-local font-lock-defaults '(concept-mode-font-lock-keywords)))
+  (setq-local font-lock-defaults '(concept-mode-font-lock-keywords))
+  (concept-read-local-variables))
 
 (add-to-list 'auto-mode-alist '("\\.map\\'" . concept-mode))
 
