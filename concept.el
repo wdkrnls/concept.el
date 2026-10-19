@@ -11605,7 +11605,8 @@ the buffer, and corner bars boxing in expository text."
                        2
                      3)))
               (unless (and (eq group 3)
-                           (not (or (concept-on-exposition-line)
+                           (not (or (eobp)
+                                    (concept-on-exposition-line)
                                     (save-excursion
                                       (backward-char)
                                       (concept-on-exposition-line)))))
