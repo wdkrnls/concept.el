@@ -12622,9 +12622,10 @@ This is useful in conjunction with `concept-funcall-with-string-args'."
 
 (defun concept-do-nothing ()
   (interactive)
-  (message "Nothing was do because upcasing all the text in a concept map is a bad idea.")
+  (message "Nothing was done because the common behavior of this keybinding is a bad idea in concept maps.")
   nil)
 
+(define-key concept-mode-map (kbd "C-x #")       #'concept-do-nothing)
 (define-key concept-mode-map (kbd "C-x C-u")     #'concept-do-nothing)
 (define-key concept-mode-map (kbd "C-M-o")       #'concept-fork-dwim)
 (define-key concept-mode-map (kbd "M-j")         #'concept-add-new-data)
