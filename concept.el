@@ -6654,7 +6654,7 @@ This only affects resource blocks."
 (defun concept-cleanup-map ()
   "Remove whitespace, blank lines, and fix common mistakes with resource blocks."
   (interactive)
-  (delete-blank-lines)  
+  (delete-blank-lines)
   (delete-trailing-whitespace)
   (concept-delete-leading-text (point-min) (point-max))
   (concept-squish-leading-whitespace)
