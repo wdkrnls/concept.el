@@ -12012,6 +12012,8 @@ data if it already exists."
 
 (defun concept--end-of-subtree ()
   (outline-end-of-subtree)
+  (while (concept-current-line-empty-p)
+    (delete-backward-char 1))
   (when (concept-in-temporary-block)
     (concept-goto-previous-block-boundary)
     (when (concept-on-exposition-line)
