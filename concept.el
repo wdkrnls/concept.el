@@ -2218,12 +2218,13 @@ first one of those instead of adding a new relationship."
       (concept-insert-relationship-group relationship))))
 
 (defun concept-resource-block-has-blank-data ()
+  "Test whether the resource block has any blank data lines."
   (when (concept-in-resource-block)
     (save-excursion
       (concept-goto-current-resource)
       (forward-line)
       (catch 'found
-        (while (concept-on-data-line)
+        (while (and (not (eobp)) (concept-on-data-line))
           (when (concept-on-blank-exposition-line)
             (throw 'found t))
           (forward-line))))))
