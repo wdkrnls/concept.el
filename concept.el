@@ -6411,6 +6411,17 @@ can think of this as analogous to how C-. and M-. work."
       (newline)
       (insert data)))))
 
+(defun concept--deal-with-eob ()
+  "Deal with end of buffer issues automatically."
+  (when (concept-on-last-line-p)
+    (end-of-line)
+    (newline)
+    (previous-line)
+    (end-of-line)
+    (skip-chars-backward " "))
+  (when (concept-on-exposition-line)
+    (backward-char)))
+
 (defun concept-insert-dwim (&optional relationship)
   "Do thing action which makes the most sense in the given concept editing situation.
 If on a focused concept, then insert an :include line. Otherwise insert a blank data line."
@@ -6425,6 +6436,7 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
                  (string-trim (read-string "Relationship: " "" t "include"))))))
   (let ((line-move-visual nil))
     (cond ((concept-on-resource-line)
+           (concept--deal-with-eob)
            (concept-insert-note-block))
           ((concept-on-attribute-line)
            (end-of-line)
@@ -6459,11 +6471,7 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
                (concept-insert-next-concept-as-focus 0)
              (concept-insert-last-concept-as-focus)))
           ((concept-on-focus-line)
-           (when (concept-on-last-line-p)
-             (end-of-line)
-             (newline)
-             (previous-line)
-             (end-of-line))
+           (concept--deal-with-eob)
            (when (not (save-excursion
                         (forward-line)
                         (concept-on-relationship-line)))
