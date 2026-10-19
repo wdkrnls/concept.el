@@ -12347,8 +12347,26 @@ want to enter a literal `t' value, type TRUE in capital letters."
   (concept-serialize-all-temporary-blocks-below))
 
 (defun concept-in-temporary-block ()
-  (not (or (concept-in-relationship-block)
-           (concept-in-resource-block))))
+  "Test if the cursor is in a temporary block context.
+Temporary blocks, ends of buffers, and blank lines are different. A
+completely blank line is not part of a temporary block if it is at the
+end of the file or if it is not at the boundary of a resource block or a
+relationship block."
+  (not (or (and (eq (point) (line-beginning-position)) (eobp))
+           (concept-in-relationship-block)
+           (concept-in-resource-block)
+           (when (not (concept-on-first-line-p))
+             (save-excursion
+               (previous-line)
+               (or (concept-on-focus-line)
+                   (concept-on-resource-line)
+                   (concept-on-relationship-line)
+                   (concept-on-attribute-line))))
+           (when (not (concept-on-last-line-p))
+             (save-excursion
+               (next-line)
+               (or (concept-on-exposition-line)
+                   (concept-on-data-concept-line)))))))
 
 (defun concept-get-temporary-block-region ()
   "Get the region boundaries of the current temporary block."
