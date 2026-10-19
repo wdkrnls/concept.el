@@ -1610,22 +1610,27 @@ Disable automatic network updating by turning off the minor mode."
     (beginning-of-line)
     (looking-at-p "[[:blank:]]*$")))
 
+(defun concept-on-last-line-p ()
+  (save-excursion
+    (end-of-line)
+    (= (point) (point-max))))
+
 (defun concept-add-new-data ()
   "Add new line of data to a concept map below the current line.
 
 Note: see also `concept-add-data-below' which I wrote after forgetting
 this."
   (interactive)
-  (when (not (concept-current-line-empty-p))
-    (next-line))
-  (beginning-of-line)
-  (open-line 1)
-  (insert "| "))
-
-(defun concept-on-last-line-p ()
-  (save-excursion
-    (end-of-line)
-    (= (point) (point-max))))
+  (if (concept-on-last-line-p)
+      (progn
+        (end-of-line)
+        (newline)
+        (insert "| "))
+    (when (not (concept-current-line-empty-p))
+      (forward-line))
+    (beginning-of-line)
+    (open-line 1)
+    (insert "| ")))
 
 (defun concept-on-first-line-p ()
   (= 1 (line-number-at-pos (point))))
