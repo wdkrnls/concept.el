@@ -1243,6 +1243,10 @@ gives:
 
 There are a lot of opportunities for exploratory analysis of concepts along with the `-subconcepts-` which compose them, the ideas that hold them, and their relative placement within the buffer. Make a couple of tables around those ideas so that so these can be a source of data for the `conceptuel` R package to read from.
 
+### Minor Mode for Keyboard Macros
+
+Keyboard macros work much faster when nothing else is going on. So, it would be nice to have a temporary minor mode which place a concept map buffer into a state where macros can be performed easily. It could be called `concept-map-cleanroom-mode`, and it should temporary disable any more which causes a lot of stuff to go on in the background.
+
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
 <!-- End: -->
