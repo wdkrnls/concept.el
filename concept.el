@@ -2254,7 +2254,7 @@ first one of those instead of adding a new relationship."
   (when (concept-in-resource-block)
     (if (concept-resource-block-has-blank-data)
         (concept-goto-first-blank-data-in-resource-block)
-      (outline-end-of-subtree)
+      (concept-end-of-subtree)
       (concept-insert-keyword-block keyword))))
 
 (defun concept-repeat-dwim (arg)
