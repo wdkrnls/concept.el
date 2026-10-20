@@ -3185,43 +3185,193 @@ This was designed for editing lists of lists of strings."
               (flatten-list list)))
 
 (defun concept--string-list-options (list)
-  "Keep only he "
+  ;; TODO: XXX this was the old way of doing it. Now I'm trying to make string
+  ;; lists pretty sophisticated so I can use them in many situations.
+  "Return just the configuration data inside of a list of strings."
   (seq-filter
    (lambda (string)
      (when (string-match-p
-            "^&{[A-Z]+\\(}\\|:[^ }]+}\\)$"
+            "^~[^~ ]+~[^~ ]*$"
             string)
        string))
    list))
 
-(defun concept--string-list-option-keys (list)
+(defun concept--string-list-parse-options (list)
+  ;; TODO: XXX note this was the old way of doing it.
   (mapcar
    (lambda (string)
-     (and (string-match "^&{\\([A-Z]+\\)" string)
-          (substring string (match-beginning 1) (match-end 1))))
+     (when-let* ((matches (string-match "^~\\([^~ ]+\\)~\\([^~ ]*\\)$" string))
+                 (key (substring string (match-beginning 1) (match-end 1)))
+                 (value (substring string (match-beginning 2) (match-end 2))))
+       (list (if (string-empty-p key)
+                 nil
+               (cons (not (string-prefix-p "@" key)) key))
+             (if (string-empty-p value)
+                 nil
+               (cons (not (string-prefix-p "@" value)) value)))))
    list))
 
-(defun concept--string-list-option-values (list)
+(defun concept--string-list-parse-plain-data (list &optional class)
+  "Parse normal data from a string list."
+  (when (null class)
+    (setq class (concept--string-list-classify-data list)))
   (mapcar
    (lambda (string)
-     (and (string-match ":\\([^} ]+\\)}$" string)
-          (substring string (match-beginning 1) (match-end 1))))
+     (if (string-prefix-p "@" string)
+         (cons nil (substring string 1))
+       (cons t string)))
+   (seq-filter
+    (lambda (i)
+      (let ((item (nth i list)))
+        (member item (list 'plain 'word 'phrase 'capital))))
+    (number-sequence 0 (1- (length list))))))
+
+(defun concept--string-list-parse-number-data (list &optional class)
+  "Parse numbers to strings."
+  (when (null class)
+    (setq class (concept--string-list-classify-data list)))
+  (mapcar
+   #'string-to-number
+   (mapcar
+    (lambda (i)
+      (nth i list))
+    (seq-filter
+     (lambda (i)
+       (let ((item (nth i class)))
+         (member item (list 'natnum 'nonpos 'number))))
+     (number-sequence 0 (1- (length list)))))))
+
+(defun concept--string-list-parse-bin-oct-or-hex-data (list &optional class)
+  "Parse strings containing binary, octal, and hex data into numbers."
+  (when (null class)
+    (setq class (concept--string-list-classify-data list)))
+  (mapcar
+   (lambda (x) (eval (read x)))
+   (mapcar
+    (lambda (i)
+      (let ((item (nth i list)))
+        (cond ((seq-some (lambda (pre) (string-prefix-p pre item)) (list "0x" "0X"))
+               (concat "#x" (substring item 2)))
+              ((seq-some (lambda (pre) (string-prefix-p pre item)) (list "0b" "0B"))
+               (concat "#b" (substring item 2)))
+              ((seq-some (lambda (pre) (string-prefix-p pre item)) (list "0o" "0O"))
+               (concat "#o" (substring item 2)))
+              ((string-prefix-p "0" item) (concat "#o" (substring item 1)))
+              (t item))))
+    (seq-filter
+     (lambda (i)
+       (let ((item (nth i class)))
+         (member item (list 'bin 'oct 'hex))))
+     (number-sequence 0 (1- (length list)))))))
+
+(defun concept--string-list-classify-data (list)
+  "Classify the string-list data."
+  (mapcar
+   (lambda (string)
+     (let ((case-fold-search nil))
+       (cond ((string-match-p "^[+=-]$" string)                       'plus)
+             ((string-match-p "^[1-9][0-9]*$" string)                 'natnum)
+             ((string-match-p "\\`0[xX][[:xdigit:]]+\\'" string)      'hex)
+             ((string-match-p "\\`#h[[:xdigit:]]+\\'" string)         'hex)
+             ((string-match-p "\\`#o[0-7]+\\'" string)                'oct)
+             ((string-match-p "\\`0[0-7]+\\'" string)                 'oct)
+             ((string-match-p "\\`0[bB][01]+$" string)                'bin)
+             ((string-match-p "\\`#b[01]+$" string)                   'bin)
+             ((string-match-p "^\\(-[1-9][0-9]*\\|0\\)$" string)      'nonpos)
+             ((string-match-p "^[a-z]+$" string)                      'word)
+             ((string-match-p "^[IVXLCDM]+$" string)                  'roman)
+             ((string-match-p "^[A-Z]+$" string)                      'capital)
+             ((string-match-p "^\\([a-z]+-\\|[0-9]+-\\|[A-Z]+-\\)*[a-z]+$" string)
+              'phrase)
+             ((string-match-p
+               "\\`\\(?:100\\(?:\\.0+\\)?\\|\\(?:[0-9]\\|[1-9][0-9]\\)\\(?:\\.[0-9]+\\)?\\)%\\'" string)
+                                                                      'percent)
+             ((string-match-p
+               "\\`[+-]?\\(?:[0-9]+\\(?:\\.[0-9]*\\)?\\|\\.[0-9]+\\)\\(?:[eE][+-]?[0-9]+\\)?\\'"
+               string)                                                'number)
+             ((string-match-p "^[a-zA-Z0-9]+$"                string) 'alnum)
+             ((string-match-p "^@?[^@~ ]+$"                   string) 'plain)
+             ((string-match-p "\\`[[:alnum:]_+%'-]+\\(?:\\.[[:alnum:]_+%'-]+\\)*@\\(?:[[:alnum:]]\\(?:[[:alnum:]-]*[[:alnum:]]\\)?\\.\\)+[[:alpha:]]\\{2,\\}\\'"
+                              string)                                 'email)
+             ((string-match-p "^@?[^@~ ]+~@?[^@~ ]+$"         string) 'plain-kv)
+             ((string-match-p "^~?\\([^~ ]+\\)~\\([^~ ]*\\)$" string) 'kv)
+             ((string-match-p "^\\(@?[^~ ]+~\\)*@?[^~ ]+$"    string) 'order)
+             (t                                                       'unknown))))
    list))
+
+(defun concept--string-list-parse-kv-data (list &optional class)
+  "Parse key-value data from a string list.
+This breaks each record down into a list of three parts: configuration
+bit, key, and value."
+  (when (null class)
+    (setq class (concept--string-list-classify-data list)))
+  (mapcar
+   (lambda (string)
+     (when-let* ((matches (string-match "^\\([~]*\\)\\([^~ ]+\\)~\\([^~ ]*\\)$" string))
+                 (conf  (substring string (match-beginning 1) (match-end 1)))
+                 (key   (substring string (match-beginning 2) (match-end 2)))
+                 (value (substring string (match-beginning 3) (match-end 3))))
+       (list (not (string-empty-p conf))
+             (if (string-empty-p key)
+                 nil
+               (cons (not (string-prefix-p "@" key)) key))
+             (if (string-empty-p value)
+                 nil
+               (cons (not (string-prefix-p "@" value)) value)))))
+   (mapcar
+    (lambda (i)
+      (nth i list))
+    (seq-filter
+     (lambda (i)
+       (let ((item (nth i class)))
+         (member item (list 'kv 'plain-kv))))
+     (number-sequence 0 (1- (length list)))))))
+
+(defun concept--string-list-parse-ordered-data (list &optional class)
+  "Parse a list of pieces of ordered data."
+  (when (null class)
+    (setq class (concept--string-list-classify-data list)))
+  (mapcar
+   (lambda (string)
+     (let ((data (string-split string "~" t "")))
+       (mapcar
+        (lambda (x)
+          (if (string-prefix-p "@" x)
+              (cons nil (substring x 1))
+            (cons t x)))
+        data)))
+   (mapcar
+    (lambda (i)
+      (nth i list))
+    (seq-filter
+     (lambda (i)
+       (let ((item (nth i class)))
+         (member item (list 'order 'plain-kv))))
+     (number-sequence 0 (1- (length list)))))))
+
+(defun concept--string-list-option-keys (list &optional parsed)
+  ;; TODO: this needs to be rewritten in terms of class
+  (when (null parsed)
+    (setq parsed (concept--string-list-parse-options list)))
+  (mapcar (pcase-lambda (`(,key ,_)) (cdr key)) parsed))
+
+(defun concept--string-list-option-values (list &optional parsed)
+  ;; TODO: this needs to be rewritten in terms of class
+  (when (null parsed)
+    (setq parsed (concept--string-list-parse-options list)))
+  (mapcar (pcase-lambda (`(,_ ,value)) (cdr value)) parsed))
 
 (defun concept--string-list-stashed-p (list)
   ;; TODO: This doesn't seem to be working correctly
-  (and (member
-        "STASH"
-        (concept--string-list-keys
-         (concept--string-list-options list)))
-       t))
+  (and (member "~stash~" list) t))
 
 (defun concept--string-list-name (list)
+  ;; TODO: This should be readily simplified with the new parsing approach
   (if-let* ((options  (concept--string-list-options list))
-              (keys     (concept--string-list-keys options))
-              (values   (concept--string-list-values options))
-              (has-name (member "GROUP" keys)))
-      (nth (seq-position keys "GROUP") values)
+            (keys     (concept--string-list-keys    options))
+            (values   (concept--string-list-values  options))
+            (has-name (member "group" keys)))
+      (nth (seq-position keys "group") values)
     "*unnamed*"))
 
 (defun concept--string-list-push-at (string n list)
@@ -3287,7 +3437,7 @@ non-nil to STASHED."
 
 (defun concept--edit-groups-list-helper (variable-symbol overwrite &optional no-modify no-stash)
   "Edit a list‑of‑list‑of‑strings stored in VARIABLE‑SYMBOL.
-TABLE‑BUFFER‑NAME is the name of the temporary tabulated‑list buffer.
+
 If OVERWRITE is non‑nil, start from an empty list; otherwise start from
 the current value of the variable. If NO-MODIFY is non-nil, then prevent
 addition, and removal operations which could modify the macroscoping
@@ -3296,20 +3446,37 @@ existing groups. If NO-STASH is non-nil, then prevent stashing of groups
 which are currently out of scope. This function returns the new value or
 nil if the edit is aborted.
 
-Stashing allows the user to remove a list of strings temporarily from
-consideration, rather than permanently. During an editing session, a
-user may want to consider the same groupings later and reactivate them.
+Stashing allows the user to remove a list of strings temporarily, rather
+than permanently. The list of strings is still there, but it is no
+longer shown in the list of candidates. Instead it is shown in the stash
+area. During an editing session, a user may want to reconsider the same
+groupings later and reactivate them, removing them from the stash area
+and placing them back in the group candidates list.
 
 At the implementation level, stashing merely consists of adding a
-special string `&{STASH}' into the list. Removing a list from the stash
-area involves merely removing that special string from the list. This
+special string `~stash~' into the list. Removing a list from the stash
+area involves merely removing this special string from the list. This
 can be done with a single call to the elisp procedure: `remove', even if
 there is more than one.
 
 Similar to stashing, a group name can be added to the list using a
-special syntax. `&{GROUP:hair-color}'. Only the first such name will be
+syntax for specifying key-value pairs combined with the special syntax
+for representing configuration data. The prefix `~' in `~stash~'
+indicates that. Similarly, the group can be named by passing in
+something like: `~group~hair-color'. Only the first such name will be
 considered. Related features taking advantage of this approach may be
-used to add additional properties in the future."
+used to add additional properties in the future.
+
+The key-value pair syntax can be reused as well by data as well,
+dropping the tilde prefix. For example: `if~then' describes an
+association between the fragments `if' and `then': `if' is the key and
+`then' is the value associated with that key. Similarly, `@if~then' will
+allow you to specify left negation, while `if~@then' gives right
+negation.
+
+There is a lot more which can be done with such notation, like
+specifying ordering, e.g., `1~2~3~4', but for basic purposes, it can
+just be used to enter string fragments separated by spaces."
   (unless (symbolp variable-symbol)
     (user-error "Please supply the name of the variable, not its value"))
   (unless (boundp variable-symbol)
