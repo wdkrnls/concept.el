@@ -4,20 +4,18 @@
 
 ## Introduction
 
-Conceptual knowledge is an often underappreciated third form of knowledge which underlies the more commonly studied relational and procedural forms of knowledge. Those more celebrated forms of knowledge answer the questions:
+**Conceptual** knowledge is an often underappreciated third form of knowledge which underlies the more commonly studied **relational** and **procedural** forms of knowledge. Those more celebrated forms of knowledge answer the questions:
 
 * What is the case?
-* How is it done?
+* How does it happen?
 
 The specifications for these more commonly studied forms of knowledge seem to come from nowhere, residing somehow in our heads. Their underlying genius often lost with the progression of time. After which, they need to be uncovered anew, often by fresh eyes.
 
-Defining effective procedures or coherent relational databases requires firm grounding in domain knowledge. That knowledge is largely conceptual. It doesn't involve calculation, but it captures and organizes patterns in reality which we intuitively map inside our heads into our own verbal understanding.
-
-The conceptual form of knowledge then could be thought of as answering the question:
+Defining effective procedures or coherent relational databases requires firm grounding in domain knowledge. That knowledge is largely conceptual. It doesn't involve calculation, but it captures and organizes patterns in reality which we intuitively map inside our heads into our own verbal understanding. Thus, the conceptual form of knowledge could be thought of as answering the question:
 
 * What does it mean?
 
-In this computer age, conceptual knowledge is still largely captured in free-form documents such as scientific articles, school textbooks, and blog tutorials. While modern search tools powered by probabilistic models and advanced data structures can help us sort through such documents, this package proposes a radically different way of managing it: through porting it from a linear prose structure into an inherently recursive structure. This new structure closely reflects how we as humans think and learn verbally according to educational psychologies.
+In this computer age, **conceptual** knowledge is still largely captured in free-form documents such as scientific articles, school textbooks, and blog tutorials. While modern search tools powered by probabilistic models and advanced data structures can help us sort through such documents, this package proposes a radically different way of managing it: through porting it from a linear prose structure into an inherently recursive structure. This new structure closely reflects how we as humans think and learn verbally according to educational psychologies.
 
 The text representation of this format is pretty straightforward. A concept map consists of a text file. For convenience, let's say its a text with a `.map` file extension. Inside of this text file are a series of *ideas*. An idea captures a group of closely related thoughts. There are two kinds of thoughts as far as conceptual knowledge is concerned. There are thoughts which form propositions meaningful inside of some system to thus construct our (often more or less erroneous) understanding, and then there are thoughts which ground our abstract understanding in facts, evidence, and educational materials.
 
@@ -25,7 +23,7 @@ Following this conceptualization of our thinking when we think conceptually, in 
 
 In `concept.el`, every idea starts with a *focus* concept which starts a new idea as well as it's first component: the *relationship block*. This holds all the conceptual relationships relevant to the idea. The focus concept starts with a `~`. It can be thought of as analogous to the subject of a sentence. Then come one or more relationship groups which specify a common relationship, analogous to the verb of a sentence, under which comes one or more data concepts corresponding to the object of a sentence. Thus, a relationship block specifies a group of related conceptual propositions each with their own verbs and objects, but all sharing the same subject.
 
-After the *relationship block* comes zero or more *resource blocks*. These contain one or more attributes which are largely analogous to relationships, except that the data associated with each attribute is often structured more traditionally, if far more briefly.
+After a *relationship block* comes zero or more *resource blocks*. These contain one or more *attributes* which are largely analogous to *relationships*, except that the data associated with each attribute is often structured more traditionally, if far more briefly.
 
 The example below gives the simplest possible idea. It has one resource block associated with it. It would still be valid if there were none. There doesn't have to be any, but adding them is recommended, especially in situations where there is ambiguity about what idea is being represented. In such an idea as the one expressed below, there is quite a lot of ambiguity!
 
