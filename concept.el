@@ -181,6 +181,11 @@
     ("@" . 2))
   "Heading symbols for `outline-heading-alist'.")
 
+(defvar concept-string-list-config-regexp
+  "^@[^~ ]+\\(~[^~ ]+\\)?$"
+  "Regular expression for detecting valid configuration strings.
+This applies to the standard list interfaces.")
+
 (defvar concept-subject-or-object-line-regexp
   "^[~|] +[^][:{}‘’ ]+ *$"
   "Regular expression for detecting valid subject or object concepts.")
@@ -3177,16 +3182,11 @@ settle.")
   "Clean up a list of strings.
 
 This was designed for editing lists of lists of strings."
-  (seq-remove (lambda (x)
-                (or (null x)
-                    (string-match-p
-                     "^&{[A-Z]+\\(}\\|:[^ }]+}\\)$"
-                     x)))
-              (flatten-list list)))
-
-(defun concept--string-list-options (list)
-  ;; TODO: XXX this was the old way of doing it. Now I'm trying to make string
-  ;; lists pretty sophisticated so I can use them in many situations.
+  (seq-remove
+   (lambda (x)
+     (or (null x)
+         (string-match-p concept-string-list-config-regexp x)))
+   (flatten-list list)))
   "Return just the configuration data inside of a list of strings."
   (seq-filter
    (lambda (string)
