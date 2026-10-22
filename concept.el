@@ -3435,16 +3435,21 @@ non-nil to STASHED."
 (defun concept--string-list-has-stashed-p (list)
   (seq-some #'concept--string-list-stashed-p list))
 
-(defun concept--edit-groups-list-helper (variable-symbol overwrite &optional no-modify no-stash)
+(defun concept--edit-groups-list-helper (variable-symbol overwrite class &optional no-modify no-stash limit)
   "Edit a list‑of‑list‑of‑strings stored in VARIABLE‑SYMBOL.
 
 If OVERWRITE is non‑nil, start from an empty list; otherwise start from
-the current value of the variable. If NO-MODIFY is non-nil, then prevent
-addition, and removal operations which could modify the macroscoping
-structure of the data. This does not, however, prevent editing of
-existing groups. If NO-STASH is non-nil, then prevent stashing of groups
-which are currently out of scope. This function returns the new value or
-nil if the edit is aborted.
+the current value of the variable. CLASS takes a list of expected class
+symbols. The strings included in the group which don't match one of the
+symbols in CLASS will be discarded except for those which give
+configuration options.
+
+If NO-MODIFY is non-nil, then prevent addition, and removal operations
+which could modify the macroscoping structure of the data. This does
+not, however, prevent editing of existing groups. If NO-STASH is
+non-nil, then prevent stashing of groups which are currently out of
+scope. This function returns the new value or nil if the edit is
+aborted.
 
 Stashing allows the user to remove a list of strings temporarily, rather
 than permanently. The list of strings is still there, but it is no
@@ -3454,18 +3459,25 @@ groupings later and reactivate them, removing them from the stash area
 and placing them back in the group candidates list.
 
 At the implementation level, stashing merely consists of adding a
-special string `~stash~' into the list. Removing a list from the stash
+special string `@stash' into the list. Removing a list from the stash
 area involves merely removing this special string from the list. This
 can be done with a single call to the elisp procedure: `remove', even if
 there is more than one.
 
+When LIMIT is non-nil, it expects a positive integer defining the
+maximum number of groups that can be active at one time. The remaining
+groups according to the current prioritization are immediately
+stashed. Any newly created group is immediately stashed, and when it is
+unstashed, the user must decide which active group it replaces. There
+will never be a limit applied to the stash area.
+
 Similar to stashing, a group name can be added to the list using a
 syntax for specifying key-value pairs combined with the special syntax
-for representing configuration data. The prefix `~' in `~stash~'
+for representing configuration data. The prefix `@' in `@stash'
 indicates that. Similarly, the group can be named by passing in
-something like: `~group~hair-color'. Only the first such name will be
-considered. Related features taking advantage of this approach may be
-used to add additional properties in the future.
+something like: `@group~hair-color'. The first such name encountered
+will take precedence. Related features taking advantage of this approach
+may be used to add additional properties in the future.
 
 The key-value pair syntax can be reused as well by data as well,
 dropping the tilde prefix. For example: `if~then' describes an
@@ -3476,7 +3488,8 @@ negation.
 
 There is a lot more which can be done with such notation, like
 specifying ordering, e.g., `1~2~3~4', but for basic purposes, it can
-just be used to enter string fragments separated by spaces."
+just be used to enter string fragments separated by spaces.
+"
   (unless (symbolp variable-symbol)
     (user-error "Please supply the name of the variable, not its value"))
   (unless (boundp variable-symbol)
