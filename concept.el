@@ -3188,30 +3188,30 @@ This was designed for editing lists of lists of strings."
          (string-match-p concept-string-list-config-regexp x)))
    (flatten-list list)))
 
-(defun concept--string-list-parse-options (list)
-  ;; TODO: XXX note this was the old way of doing it.
+(defun concept--string-list-options (list &optional class)
+  "Return just the configuration data inside of a list of strings."
+  (when (null class)
+    (setq class (concept--string-list-classify-data list)))
   (mapcar
-   (lambda (string)
-     (when-let* ((matches (string-match "^~\\([^~ ]+\\)~\\([^~ ]*\\)$" string))
-                 (key (substring string (match-beginning 1) (match-end 1)))
-                 (value (substring string (match-beginning 2) (match-end 2))))
-       (list (if (string-empty-p key)
-                 nil
-               (cons (not (string-prefix-p "@" key)) key))
-             (if (string-empty-p value)
-                 nil
-               (cons (not (string-prefix-p "@" value)) value)))))
-   list))
+   (lambda (i)
+     (nth i list))
+   (seq-filter
+    (lambda (i)
+      (let ((item (nth i class)))
+        (member item (list 'ckv 'cflag))))
+    (number-sequence 0 (1- (length list))))))
+
+(defun concept--parse-plain-data (string)
+  (if (string-prefix-p "@" string)
+      (cons nil (substring string 1))
+    (cons t string)))
 
 (defun concept--string-list-parse-plain-data (list &optional class)
   "Parse normal data from a string list."
   (when (null class)
     (setq class (concept--string-list-classify-data list)))
   (mapcar
-   (lambda (string)
-     (if (string-prefix-p "@" string)
-         (cons nil (substring string 1))
-       (cons t string)))
+   #'concept--parse-plain-data
    (seq-filter
     (lambda (i)
       (let ((item (nth i list)))
@@ -3233,6 +3233,28 @@ This was designed for editing lists of lists of strings."
          (member item (list 'natnum 'nonpos 'number))))
      (number-sequence 0 (1- (length list)))))))
 
+(defun concept--parse-bin-oct-or-hex-data (string)
+  "Parse strings containing binary, octal, and hex data into numbers."
+  (when (stringp string)
+    (cond ((seq-some
+            (lambda (pre)
+              (string-prefix-p pre string))
+            (list "0x" "0X"))
+           (concat "#x" (substring string 2)))
+          ((seq-some
+            (lambda (pre)
+              (string-prefix-p pre string))
+            (list "0b" "0B"))
+           (concat "#b" (substring string 2)))
+          ((seq-some
+            (lambda (pre)
+              (string-prefix-p pre string))
+            (list "0o" "0O"))
+           (concat "#o" (substring string 2)))
+          ((string-prefix-p "0" string)
+           (concat "#o" (substring string 1)))
+          (t string))))
+
 (defun concept--string-list-parse-bin-oct-or-hex-data (list &optional class)
   "Parse strings containing binary, octal, and hex data into numbers."
   (when (null class)
@@ -3242,54 +3264,384 @@ This was designed for editing lists of lists of strings."
    (mapcar
     (lambda (i)
       (let ((item (nth i list)))
-        (cond ((seq-some (lambda (pre) (string-prefix-p pre item)) (list "0x" "0X"))
-               (concat "#x" (substring item 2)))
-              ((seq-some (lambda (pre) (string-prefix-p pre item)) (list "0b" "0B"))
-               (concat "#b" (substring item 2)))
-              ((seq-some (lambda (pre) (string-prefix-p pre item)) (list "0o" "0O"))
-               (concat "#o" (substring item 2)))
-              ((string-prefix-p "0" item) (concat "#o" (substring item 1)))
-              (t item))))
+        (concept--parse-bin-oct-or-hex-data item)))
     (seq-filter
      (lambda (i)
        (let ((item (nth i class)))
          (member item (list 'bin 'oct 'hex))))
      (number-sequence 0 (1- (length list)))))))
 
+(defun concept--unique-letters-p (text)
+  "Return t when TEXT consists only of unique letters."
+  (let ((n (length text)))
+    (or (= n 1)
+        (and (string-match-p "\\`[a-zA-Z]+\\'" text)
+             (= n (length (delete-dups (string-to-list text))))))))
+
+(defun concept--sequential-letters-p (text)
+  "Return t when TEXT consists only of (possibly out of order) sequential letters.
+
+Examples:
+
+abc -> t
+acb -> t
+acd -> nil
+"
+  (and (stringp text)
+       (string-match-p "\\`\\(?:[a-z]+\\|[A-Z]+\\)\\'" text)
+       (let ((chars (sort (string-to-list text) #'<))
+             (ok t))
+         (while (and ok (cdr chars))
+           (unless (= (cadr chars) (1+ (car chars)))
+             (setq ok nil))
+           (setq chars (cdr chars)))
+         ok)))
+
+(defun concept--palindrome-p (s)
+  "Return t when a vector S is symmetrical."
+  (let ((i 0)
+        (j (1- (length s)))
+        (ok t))
+    (while (and ok (< i j))
+      (unless (= (aref s i) (aref s j))
+        (setq ok nil))
+      (setq i (1+ i)
+            j (1- j)))
+    ok))
+
+(defun concept--string-url-p (string)
+  "Return non-nil if STRING looks like an absolute HTTP(S) URL."
+  (and (stringp string)
+       (not (string-match-p "[[:space:]]" string))
+       (condition-case nil
+           (let ((parsed (url-generic-parse-url string)))
+             (and (member (url-type parsed) '("http" "https" "gemini" "gopher"))
+                  (url-host parsed)))
+         (error nil))))
+
+(defun concept--string-doi-p (string)
+  "Return non-nil if STRING looks like a DOI code."
+  (and (stringp string)
+       (string-match-p "\\`10\\.[0-9]\\{4,9\\}/[-._;()/:A-Za-z0-9%+]+\\'" string)
+       t))
+
+(defun concept--date-stamp-p (string)
+  "Return non-nil if STRING is a valid YYYY-MM-DD or YYYY/MM/DD date."
+  (and (stringp string)
+       (string-match
+        "\\`\\([0-9]\\{4\\}\\)[/-]\\([0-9]\\{2\\}\\)[/-]\\([0-9]\\{2\\}\\)\\'"
+        string)
+       (let* ((year  (string-to-number (match-string 1 string)))
+              (month (string-to-number (match-string 2 string)))
+              (day   (string-to-number (match-string 3 string)))
+              (leap-year
+               (and (= (% year 4) 0)
+                    (or (/= (% year 100) 0)
+                        (= (% year 400) 0))))
+              (max-day
+               (cond
+                ((memq month '(1 3 5 7 8 10 12)) 31)
+                ((memq month '(4 6 9 11)) 30)
+                ((= month 2) (if leap-year 29 28))
+                (t 0))))
+         (and (<= 1 day max-day)))))
+
+(defun concept--only-time-stamp-p (string)
+  "Return t if STRING is a time-only timestamp."
+  (and
+   (string-match-p
+    "\\`\\(?:[01][0-9]\\|2[0-3]\\):[0-5][0-9]\\(?::[0-5][0-9]\\(?:\\.[0-9]+\\)?\\)?\\(?:Z\\|[+-]\\(?:[01][0-9]\\|2[0-3]\\):[0-5][0-9]\\)?\\'"
+    string)
+   t))
+
+(defun concept--datetime-stamp-p (string)
+  "Return t if STRING is a date-time timestamp."
+  (when (stringp string)
+    (and (string-match-p
+          "\\`[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}T[0-9]\\{2\\}:[0-9]\\{2\\}:[0-9]\\{2\\}\\(?:\\.[0-9]+\\)?\\(?:Z\\|[+-][0-9]\\{2\\}:[0-9]\\{2\\}\\)\\'"
+          string)
+         t)))
+
+(defun concept--ipv4-address-p (text)
+  "Return non-nil if TEXT is a strict dotted-decimal IPv4 address."
+  (when (stringp text)
+    (let ((octet "\\(?:25[0-5]\\|2[0-4][0-9]\\|1[0-9][0-9]\\|[1-9]?[0-9]\\)"))
+      (and (string-match-p
+            (concat "\\`" octet "\\." octet "\\." octet "\\." octet "\\'")
+            text)
+           t))))
+
+(defun concept--ipv6-address-p (text)
+  "Return non-nil if TEXT is a hexadecimal IPv6 address."
+  (when (stringp text)
+    (let* ((compressed (string-match-p "::" text))
+           (bad-compression (string-match-p ":::\\|::.*::" text))
+           (separator (and compressed (string-match "::" text)))
+           (left (if separator (substring text 0 separator) text))
+           (right (if separator (substring text (+ separator 2)) ""))
+           (groups (append (unless (string-empty-p left)
+                             (split-string left ":"))
+                           (unless (string-empty-p right)
+                             (split-string right ":"))))
+           (valid-groups
+            (and groups
+                 (let ((ok t))
+                   (dolist (group groups)
+                     (unless (string-match-p
+                              "\\`[[:xdigit:]]\\{1,4\\}\\'" group)
+                       (setq ok nil)))
+                   ok))))
+      (and (not bad-compression)
+           valid-groups
+           (if compressed
+               (< (length groups) 8)
+             (= (length groups) 8))))))
+
+(defun concept--sha1-hash-p (text)
+  "Return non-nil if TEXT looks like a 40-character SHA-1 digest."
+  (and (stringp text)
+       (string-match-p "\\`[[:xdigit:]]\\{40\\}\\'" text)
+       t))
+
+(defun concept--md5-hash-p (text)
+  "Return non-nil if TEXT looks like a 40-character SHA-1 digest."
+  (and (stringp text)
+       (string-match-p "\\`[[:xdigit:]]\\{42\\}\\'" text)
+       t))
+
+(defun concept--string-balanced-p (text)
+  "Return non-nil if TEXT has balanced brackets and quotes.
+
+Checks (), [], {}, straight single and double quotes, and curly single
+quotes (‘…’). Backslash escapes the next character."
+  (when (stringp text)
+    (let ((i 0)
+          (stack nil)
+          (quote-end nil)
+          (escaped nil)
+          (valid t))
+      (while (and (< i (length text)) valid)
+        (let ((c (aref text i)))
+          (cond
+           (escaped
+            (setq escaped nil))
+           ((= c ?\\)
+            (setq escaped t))
+           (quote-end
+            (when (= c quote-end)
+              (setq quote-end nil)))
+           ((= c ?')
+            (setq quote-end ?'))
+           ((= c ?\")
+            (setq quote-end ?\"))
+           ((= c #x2018) ; ‘
+            (setq quote-end #x2019)) ; ’
+           ((memq c '(?\( ?\[ ?\{))
+            (push c stack))
+           ((memq c '(?\) ?\] ?\}))
+            (let ((expected (cdr (assq c
+                                       '((?\) . ?\()
+                                         (?\] . ?\[)
+                                         (?\} . ?\{))))))
+              (if (eq (car stack) expected)
+                  (pop stack)
+                (setq valid nil))))))
+        (setq i (1+ i)))
+      (and valid
+           (not escaped)
+           (not quote-end)
+           (null stack)))))
+
+(defun concept--valid-elisp-symbol-p (text)
+  "Return non-nil if TEXT is exactly one readable Emacs Lisp symbol."
+  (when (stringp text)
+    (with-temp-buffer
+      (insert text)
+      (emacs-lisp-mode)
+      (goto-char (point-min))
+      (condition-case nil
+          (let ((object (read (current-buffer))))
+            (forward-comment (point-max))
+            (and (symbolp object) (eobp)))
+        (error nil)))))
+
+(defun concept--valid-lisp-expression-p (text)
+  "Return non-nil if TEXT contains exactly one readable Lisp expression."
+  (when (stringp text)
+    (with-temp-buffer
+      (insert text)
+      (emacs-lisp-mode)
+      (goto-char (point-min))
+      (condition-case nil
+          (progn
+            (read (current-buffer))
+            (forward-comment (point-max))
+            (eobp))
+        (error nil)))))
+
+(defun concept--arithmetic-expression-p (text)
+  "Return non-nil if TEXT is a complete arithmetic expression."
+  (when (stringp text)
+    (with-temp-buffer
+      (insert text)
+      (goto-char (point-min))
+      (with-peg-rules
+          ((start (and ws expr ws (eob)))
+           (expr add)
+           (add (and mul (* (and ws (or "+" "-") ws mul))))
+           (mul (and unary (* (and ws (or "*" "/") ws unary))))
+           (unary (or (and (or "+" "-") ws unary)
+                      power))
+           (power (and primary (opt (and ws "^" ws unary))))
+           (primary (or function-call
+                        number
+                        (and "(" ws expr ws ")")))
+           (function-call
+            (and identifier ws "(" ws expr ws ")"))
+           (identifier (and identifier-start (* identifier-char)))
+           (identifier-start [A-Z a-z ?_])
+           (identifier-char [A-Z a-z 0-9 ?_])
+           (number (or (and (+ digit) (opt (and "." (* digit))))
+                       (and "." (+ digit))))
+           (digit [0-9])
+           (ws (* (or " " "\t" "\n" "\r"))))
+        (peg-run (peg start))))))
+
+(defun concept--algebraic-expression-p (text)
+  "Return non-nil if TEXT is an algebraic expression or a single equation."
+  (when (stringp text)
+    (with-temp-buffer
+      (insert text)
+      (goto-char (point-min))
+      (with-peg-rules
+          ((start (and ws (or equation expr) ws (eob)))
+           (equation (and expr ws "=" ws expr))
+           (expr add)
+           (add (and mul (* (and ws (or "+" "-") ws mul))))
+           (mul (and unary (* (and ws (or "*" "/") ws unary))))
+           (unary (or (and (or "+" "-") ws unary)
+                      power))
+           (power (and primary (opt (and ws "^" ws unary))))
+           (primary (or function-call
+                        number
+                        identifier
+                        (and "(" ws expr ws ")")))
+           (function-call
+            (and identifier ws "(" ws expr ws ")"))
+           (identifier (and identifier-start (* identifier-char)))
+           (identifier-start [A-Z a-z ?_])
+           (identifier-char [A-Z a-z 0-9 ?_])
+           (number (or (and (+ digit) (opt (and "." (* digit))))
+                       (and "." (+ digit))))
+           (digit [0-9])
+           (ws (* (or " " "\t" "\n" "\r"))))
+        (peg-run (peg start))))))
+
 (defun concept--string-list-classify-data (list)
-  "Classify the string-list data."
+  "Classify the string-list data in LIST.
+
+There are many kinds of data recognized by this function."
   (mapcar
    (lambda (string)
      (let ((case-fold-search nil))
-       (cond ((string-match-p "^[+=-]$" string)                       'plus)
-             ((string-match-p "^[1-9][0-9]*$" string)                 'natnum)
-             ((string-match-p "\\`0[xX][[:xdigit:]]+\\'" string)      'hex)
-             ((string-match-p "\\`#h[[:xdigit:]]+\\'" string)         'hex)
-             ((string-match-p "\\`#o[0-7]+\\'" string)                'oct)
-             ((string-match-p "\\`0[0-7]+\\'" string)                 'oct)
-             ((string-match-p "\\`0[bB][01]+$" string)                'bin)
-             ((string-match-p "\\`#b[01]+$" string)                   'bin)
-             ((string-match-p "^\\(-[1-9][0-9]*\\|0\\)$" string)      'nonpos)
-             ((string-match-p "^[a-z]+$" string)                      'word)
-             ((string-match-p "^[IVXLCDM]+$" string)                  'roman)
-             ((string-match-p "^[A-Z]+$" string)                      'capital)
-             ((string-match-p "^\\([a-z]+-\\|[0-9]+-\\|[A-Z]+-\\)*[a-z]+$" string)
-              'phrase)
-             ((string-match-p
-               "\\`\\(?:100\\(?:\\.0+\\)?\\|\\(?:[0-9]\\|[1-9][0-9]\\)\\(?:\\.[0-9]+\\)?\\)%\\'" string)
-                                                                      'percent)
+       (cond ((string-match-p "^[+=-]$"                     string)   'plus     )
+             ((string-match-p "^[._]+$"                     string)   'morse    )
+             ((string-match-p "\\`0[xX][[:xdigit:]]+\\'"    string)   'hex      )
+             ((string-match-p "\\`#h[[:xdigit:]]+\\'"       string)   'hex      )
+             ((concept--sha1-hash-p                         string)   'sha1     )
+             ((concept--md5-hash-p                          string)   'md5      )
+             ((string-match-p "^[1-9][0-9]*$"               string)   'natnum   )
+             ((string-match-p "\\`#o[0-7]+\\'"              string)   'oct      )
+             ((string-match-p "\\`0[0-7]+\\'"               string)   'oct      )
+             ((string-match-p "\\`0[bB][01]+$"              string)   'bin      )
+             ((string-match-p "\\`#b[01]+$"                 string)   'bin      )
+             ((string-match-p "^\\(-[1-9][0-9]*\\|0\\)$"    string)   'nonpos   )
              ((string-match-p
                "\\`[+-]?\\(?:[0-9]+\\(?:\\.[0-9]*\\)?\\|\\.[0-9]+\\)\\(?:[eE][+-]?[0-9]+\\)?\\'"
-               string)                                                'number)
-             ((string-match-p "^[a-zA-Z0-9]+$"                string) 'alnum)
-             ((string-match-p "^@?[^@~ ]+$"                   string) 'plain)
-             ((string-match-p "\\`[[:alnum:]_+%'-]+\\(?:\\.[[:alnum:]_+%'-]+\\)*@\\(?:[[:alnum:]]\\(?:[[:alnum:]-]*[[:alnum:]]\\)?\\.\\)+[[:alpha:]]\\{2,\\}\\'"
-                              string)                                 'email)
-             ((string-match-p "^@?[^@~ ]+~@?[^@~ ]+$"         string) 'plain-kv)
-             ((string-match-p "^~?\\([^~ ]+\\)~\\([^~ ]*\\)$" string) 'kv)
-             ((string-match-p "^\\(@?[^~ ]+~\\)*@?[^~ ]+$"    string) 'order)
-             (t                                                       'unknown))))
+               string)                                                'number   )
+             ((and (string-match-p "^[IVXLCDM]+$"           string)
+                   (condition-case nil
+                       (concept-roman-to-number             string)
+                     (error nil)))                                    'roman    )
+             ((concept--sequential-letters-p                string)   'letseq   )
+             ((concept--unique-letters-p                    string)   'letuniq  )
+             ((string-match-p "^[a-z]+$"                    string)   'word     )
+             ((and (string-match-p "^[A-Z]+$"               string)
+                            (concept--palindrome-p          string)) 'palindrome)
+             ((string-match-p "^[A-Z]+$"                    string)   'capital  )
+             ((string-match-p "^-[a-zA-Z0-9]+$"             string)   'sflag    )
+             ((string-match-p "^--[a-zA-Z0-9-]+$"           string)   'lflag    )
+             ((string-match-p "^--[a-zA-Z0-9-]+=$"          string)   'loption  )
+             ((string-match-p
+               "^\\([a-z]+-\\|[0-9]+-\\|[A-Z]+-\\)*[a-z]+$" string)   'phrase   )
+             ((string-match-p
+               "\\(?:/\\)?\\(?:[^/ \t\n]+/\\)+[^/ \t\n]+"   string)   'path     )
+             ((concept--string-url-p                          string) 'url      )
+             ((concept--string-doi-p                        string)   'doi      )
+             ((concept--ipv4-address-p                      string)   'ipv4     )
+             ((concept--ipv6-address-p                      string)   'ipv6     )
+             ((string-match-p "^@+$"                        string)   'at       )
+             ((string-match-p "^@[^@~.+/* ]+$"              string)   'cflag    )
+             ((string-match-p "^@?[^@~.+/* ]+$"             string)   'plain    )
+             ((string-match-p "^[a-zA-Z0-9]+$"              string)   'alnum    )
+             ((string-match-p "^@[^@~. ]+~@?[^@~. ]+$"      string)   'ckv      )
+             ((string-match-p "^@?[^@~. ]+~@?[^@~. ]+$"     string)   'kv       )
+             ((string-match-p
+               "^@?[^@~. ]+~@?[^@~. ]+~@?[^@~. ]+$"         string)   'triple   )
+             ((string-match-p "^\\(@?[^@~ ]+~\\)+@?[^@~ ]+$" string)  'order    )
+             ((concept--date-stamp-p                        string)   'date     )
+             ((concept--only-time-stamp-p                   string)   'time     )
+             ((concept--datetime-stamp-p                    string)   'datetime )
+             ((string-match-p
+               "\\`[[:alnum:]_+%'-]+\\(?:\\.[[:alnum:]_+%'-]+\\)*@\\(?:[[:alnum:]]\\(?:[[:alnum:]-]*[[:alnum:]]\\)?\\.\\)+[[:alpha:]]\\{2,\\}\\'"
+                                                            string)   'email    )
+             ((string-match-p
+               "\\`\\(?:100\\(?:\\.0+\\)?\\|\\(?:[0-9]\\|[1-9][0-9]\\)\\(?:\\.[0-9]+\\)?\\)%\\'"
+                                                            string)
+                                                                      'percent  )
+             ((concept--arithmetic-expression-p             string)   'arith    )
+             ((concept--algebraic-expression-p              string)   'algebra  )
+             ((concept--valid-elisp-symbol-p                string)   'lisp-sym )
+             ((concept--valid-elisp-expression-p            string)   'lisp     )
+             ((string-match-p "[][(){}‘’]"                  string)
+              (if (concept--string-balanced-p string)
+                                                                      'balblk
+                                                                      'ublblk  ))
+             ((string-match-p "[[:space:]]"                 string)   'spaced   )
+             (t                                                       'freeform ))))
    list))
+
+(defun concept--parse-kv-data (string)
+  (when-let* ((matches (string-match "^\\([^~: ]+\\)~\\([^~: ]*\\)$" string))
+              (conf  (substring string (match-beginning 1) (match-end 1)))
+              (key   (substring string (match-beginning 2) (match-end 2)))
+              (value (substring string (match-beginning 3) (match-end 3))))
+    (list (not (string-empty-p conf))
+          (if (string-empty-p key)
+              nil
+            (cons (not (string-prefix-p "@" key)) key))
+          (if (string-empty-p value)
+              nil
+            (cons (not (string-prefix-p "@" value)) value)))))
+
+(defun concept--string-list-custom-parse (list parse keep &optional class)
+  "General purpose function for parsing across lists of strings."
+  (when (stringp parse)
+    (setq parse (intern parse)))
+  (unless (functionp parse)
+    (user-error "No parse function was supplied. Aborting!"))
+  (when (null class)
+    (setq class (concept--string-list-classify-data list)))
+  (mapcar
+   parse
+   (mapcar
+    (lambda (i)
+      (nth i list))
+    (seq-filter
+     (lambda (i)
+       (let ((item (nth i class)))
+         (member item keep)))
+     (number-sequence 0 (1- (length list)))))))
 
 (defun concept--string-list-parse-kv-data (list &optional class)
   "Parse key-value data from a string list.
@@ -3298,25 +3650,14 @@ bit, key, and value."
   (when (null class)
     (setq class (concept--string-list-classify-data list)))
   (mapcar
-   (lambda (string)
-     (when-let* ((matches (string-match "^\\([~]*\\)\\([^~ ]+\\)~\\([^~ ]*\\)$" string))
-                 (conf  (substring string (match-beginning 1) (match-end 1)))
-                 (key   (substring string (match-beginning 2) (match-end 2)))
-                 (value (substring string (match-beginning 3) (match-end 3))))
-       (list (not (string-empty-p conf))
-             (if (string-empty-p key)
-                 nil
-               (cons (not (string-prefix-p "@" key)) key))
-             (if (string-empty-p value)
-                 nil
-               (cons (not (string-prefix-p "@" value)) value)))))
+   #'concept--parse-kv-data
    (mapcar
     (lambda (i)
       (nth i list))
     (seq-filter
      (lambda (i)
        (let ((item (nth i class)))
-         (member item (list 'kv 'plain-kv))))
+         (member item (list 'ckv 'kv))))
      (number-sequence 0 (1- (length list)))))))
 
 (defun concept--string-list-parse-ordered-data (list &optional class)
@@ -3338,8 +3679,17 @@ bit, key, and value."
     (seq-filter
      (lambda (i)
        (let ((item (nth i class)))
-         (member item (list 'order 'plain-kv))))
+         (member item (list 'order 'triple 'kv))))
      (number-sequence 0 (1- (length list)))))))
+
+(defun concept--string-list-options (list &optional class)
+  ;; TODO: XXX this should preserve order perhaps be using the general purpose
+  ;; parsing method
+  (when (null class)
+    (setq class (concept--string-list-classify-data list)))
+  (append
+   (concept--string-list-parse-plain-data list class)
+   (concept--string-list-parse-kv-data list class)))
 
 (defun concept--string-list-option-keys (list &optional parsed)
   ;; TODO: this needs to be rewritten in terms of class
