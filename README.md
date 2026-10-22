@@ -1245,6 +1245,14 @@ There are a lot of opportunities for exploratory analysis of concepts along with
 
 Keyboard macros work much faster when nothing else is going on. So, it would be nice to have a temporary minor mode which place a concept map buffer into a state where macros can be performed easily. It could be called `concept-map-cleanroom-mode`, and it should temporary disable any more which causes a lot of stuff to go on in the background.
 
+### String Lists and Groups
+
+Conceptual relationship networks should be redefined interactively in a way analogous to the way that the combinatorial expansion templates are: with a full generic function tower, but with a default function which is simple to use, and relies on the user specifying a list of string lists holding readily relevant data for specifying triples for inclusion and exclusion.
+
+Unique to network exploration, a single list of triples can handle pretty much any interactively specified relationship filtering. However, it will still be the case that many such sets of triples may be interesting. So, stashes are needed to switch between the currently active list. The main functionality wich the helper give is a way to specify the allowed number of active group lists: 1, 2, or infinitely many. However, also important to specify is the list of classes which should be considered.
+
+For combinatorial template expansions, what is needed is not triples, but phrases. There is still the need to stash groups of phrases. However, multiple groups of phrases can be active at any given time.
+
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
 <!-- End: -->
