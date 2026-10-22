@@ -3187,14 +3187,6 @@ This was designed for editing lists of lists of strings."
      (or (null x)
          (string-match-p concept-string-list-config-regexp x)))
    (flatten-list list)))
-  "Return just the configuration data inside of a list of strings."
-  (seq-filter
-   (lambda (string)
-     (when (string-match-p
-            "^~[^~ ]+~[^~ ]*$"
-            string)
-       string))
-   list))
 
 (defun concept--string-list-parse-options (list)
   ;; TODO: XXX note this was the old way of doing it.
