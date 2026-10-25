@@ -3722,7 +3722,7 @@ length."
       (nth (seq-position keys "group") values)
     "*unnamed*"))
 
-(defun concept--string-list-push-at (string n list)
+(defun concept--string-list-push-at (n string list)
   "Push STRING to the beginning of the sublist at position N in LIST."
   (unless (concept--list-of-nonempty-string-lists-p list)
     (user-error "The supplied list is not a list of string-lists!"))
@@ -3734,10 +3734,30 @@ length."
     (setcar cell (cons string (car cell))))
   list)
 
+(defun concept--string-list-remove-at (n string list)
+  "Destructively remove the first STRING from the Nth string list in LIST.
+N is zero-based.  Compare strings by contents.  Return LIST."
+  (let ((cell (nthcdr n list)))
+    (unless (and (integerp n) (>= n 0) cell)
+      (error "No string list at index %S" n))
+    (let ((strings (car cell)))
+      (setcar cell
+              (let ((prev nil)
+                    (rest strings))
+                (while (and rest (not (string= string (car rest))))
+                  (setq prev rest
+                        rest (cdr rest)))
+                (when rest
+                  (if prev
+                      (setcdr prev (cdr rest))
+                    (setq strings (cdr rest))))
+                strings))))
+  list)
+
 (defun concept--string-list-display-strings (list &optional stashed)
   "Make a string list LIST selectable as a single string.
-Optionally show only the stashed strings in the string list by passing
-non-nil to STASHED."
+When STASHED is non-nil, only the stashed strings in the string list are
+shown. When nil (the default), only the unstashed strings are shown."
   (if (null list)
       nil
     (unless (concept--list-of-nonempty-string-lists-p list)
