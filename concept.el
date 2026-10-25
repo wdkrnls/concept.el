@@ -3662,58 +3662,72 @@ bit, key, and value."
          (member item (list 'ckv 'kv))))
      (number-sequence 0 (1- (length list)))))))
 
+(defun concept--parse-ordered-data (string)
+  "Parse a piece of ordered data into a list with data slots and bit flags."
+  (let ((data (string-split string "~" t "")))
+    (mapcar
+     (lambda (x)
+       (if (string-prefix-p "@" x)
+           (cons nil (substring x 1))
+         (cons t x)))
+     data)))
+
+(defun concept--string-list-filter-class (list class keep)
+  "Filter data in a LIST according to it's CLASS given by KEEP.
+
+Both KEEP and CLASS are lists of symbols. CLASS holds all assigned class
+symbols for the data in LIST. Thus, CLASS and LIST should be the same
+length."
+  (seq-filter
+   (lambda (i)
+     (let ((item (nth i class)))
+       (member item keep)))
+     (number-sequence 0 (1- (length list)))))
+
 (defun concept--string-list-parse-ordered-data (list &optional class)
-  "Parse a list of pieces of ordered data."
+  "Filter a list containing ordered data into a list with data slots and bit flags."
   (when (null class)
     (setq class (concept--string-list-classify-data list)))
   (mapcar
-   (lambda (string)
-     (let ((data (string-split string "~" t "")))
-       (mapcar
-        (lambda (x)
-          (if (string-prefix-p "@" x)
-              (cons nil (substring x 1))
-            (cons t x)))
-        data)))
+   #'concept--parse-ordered-data
    (mapcar
     (lambda (i)
       (nth i list))
-    (seq-filter
-     (lambda (i)
-       (let ((item (nth i class)))
-         (member item (list 'order 'triple 'kv))))
-     (number-sequence 0 (1- (length list)))))))
+    (concept--string-list-filter-class
+     list
+     class
+     '(roman letseq letuniq word capital phrase cflag plain order triple kv)))))
 
 (defun concept--string-list-options (list &optional class)
-  ;; TODO: XXX this should preserve order perhaps be using the general purpose
-  ;; parsing method
+  "Filter a list containing ordered data into a list with data slots and bit flags."
   (when (null class)
     (setq class (concept--string-list-classify-data list)))
-  (append
-   (concept--string-list-parse-plain-data list class)
-   (concept--string-list-parse-kv-data list class)))
+  (mapcar
+   #'concept--parse-ordered-data
+   (mapcar
+    (lambda (i)
+      (nth i list))
+    (concept--string-list-filter-class
+     list
+     class
+     '(cflag ckv ctriple)))))
 
-(defun concept--string-list-option-keys (list &optional parsed)
-  ;; TODO: this needs to be rewritten in terms of class
-  (when (null parsed)
-    (setq parsed (concept--string-list-parse-options list)))
-  (mapcar (pcase-lambda (`(,key ,_)) (cdr key)) parsed))
+(defun concept--string-list-option-keys (options)
+  (mapcar (pcase-lambda (`(,key ,_)) (cdr key)) options))
 
-(defun concept--string-list-option-values (list &optional parsed)
-  ;; TODO: this needs to be rewritten in terms of class
-  (when (null parsed)
-    (setq parsed (concept--string-list-parse-options list)))
-  (mapcar (pcase-lambda (`(,_ ,value)) (cdr value)) parsed))
+(defun concept--string-list-option-values (options)
+  (mapcar (pcase-lambda (`(,_ ,value)) (cdr value)) options))
 
 (defun concept--string-list-stashed-p (list)
-  ;; TODO: This doesn't seem to be working correctly
-  (and (member "~stash~" list) t))
+  ;; TODO: should add an argument establishing a pcase for the different data
+  ;; types. In the main use case, an @-prefix is enough. However, in general
+  ;; that is not the case.
+  (and (member "@stash" list) t))
 
 (defun concept--string-list-name (list)
-  ;; TODO: This should be readily simplified with the new parsing approach
-  (if-let* ((options  (concept--string-list-options list))
-            (keys     (concept--string-list-keys    options))
-            (values   (concept--string-list-values  options))
+  (if-let* ((options  (concept--string-list-options        list))
+            (keys     (concept--string-list-option-keys    options))
+            (values   (concept--string-list-option-values  options))
             (has-name (member "group" keys)))
       (nth (seq-position keys "group") values)
     "*unnamed*"))
