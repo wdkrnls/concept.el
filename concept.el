@@ -3678,7 +3678,7 @@ length."
     (concept--string-list-filter-class
      list
      class
-     '(roman letseq letuniq word capital phrase cflag plain order triple kv)))))
+     '(roman letseq letuniq word capital phrase cflag plain order ctriple triple kv ckv)))))
 
 (defun concept--string-list-options (list &optional class)
   "Filter a list containing ordered data into a list with data slots and bit flags."
