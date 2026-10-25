@@ -3196,11 +3196,8 @@ This was designed for editing lists of lists of strings."
   (mapcar
    (lambda (i)
      (nth i list))
-   (seq-filter
-    (lambda (i)
-      (let ((item (nth i class)))
-        (member item (list 'ckv 'cflag))))
-    (number-sequence 0 (1- (length list))))))
+   (concept--string-list-filter-class
+    list class '(ckv cflag))))
 
 (defun concept--parse-plain-data (string)
   (if (string-prefix-p "@" string)
@@ -3213,11 +3210,8 @@ This was designed for editing lists of lists of strings."
     (setq class (concept--string-list-classify-data list)))
   (mapcar
    #'concept--parse-plain-data
-   (seq-filter
-    (lambda (i)
-      (let ((item (nth i list)))
-        (member item (list 'plain 'word 'phrase 'capital))))
-    (number-sequence 0 (1- (length list))))))
+   (concept--string-list-filter-class
+    list class '(plain word phrase capital))))
 
 (defun concept--string-list-parse-number-data (list &optional class)
   "Parse numbers to strings."
@@ -3228,11 +3222,9 @@ This was designed for editing lists of lists of strings."
    (mapcar
     (lambda (i)
       (nth i list))
-    (seq-filter
-     (lambda (i)
-       (let ((item (nth i class)))
-         (member item (list 'natnum 'nonpos 'number))))
-     (number-sequence 0 (1- (length list)))))))
+    (concept--string-list-filter-class
+     list class
+     '(natnum nonpos number)))))
 
 (defun concept--parse-bin-oct-or-hex-data (string)
   "Parse strings containing binary, octal, and hex data into numbers."
@@ -3266,11 +3258,8 @@ This was designed for editing lists of lists of strings."
     (lambda (i)
       (let ((item (nth i list)))
         (concept--parse-bin-oct-or-hex-data item)))
-    (seq-filter
-     (lambda (i)
-       (let ((item (nth i class)))
-         (member item (list 'bin 'oct 'hex))))
-     (number-sequence 0 (1- (length list)))))))
+    (concept--string-list-filter-class
+     list class '(bin oct hex)))))
 
 (defun concept--unique-letters-p (text)
   "Return t when TEXT consists only of unique letters."
@@ -3640,11 +3629,7 @@ There are many kinds of data recognized by this function."
    (mapcar
     (lambda (i)
       (nth i list))
-    (seq-filter
-     (lambda (i)
-       (let ((item (nth i class)))
-         (member item keep)))
-     (number-sequence 0 (1- (length list)))))))
+    (concept--string-list-filter-class list class keep))))
 
 (defun concept--string-list-parse-kv-data (list &optional class)
   "Parse key-value data from a string list.
@@ -3657,11 +3642,7 @@ bit, key, and value."
    (mapcar
     (lambda (i)
       (nth i list))
-    (seq-filter
-     (lambda (i)
-       (let ((item (nth i class)))
-         (member item (list 'ckv 'kv))))
-     (number-sequence 0 (1- (length list)))))))
+    (concept--string-list-filter-class list class '(ckv kv)))))
 
 (defun concept--parse-ordered-data (string)
   "Parse a piece of ordered data into a list with data slots and bit flags."
