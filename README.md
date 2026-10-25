@@ -143,17 +143,21 @@ The text format used by `concept.el` is designed to be familiar and comfortable 
 These editing tools include:
 
 * a variety of (full and partial) text-completion interfaces
-* buffer-wide data validation tools including a parser for concept maps implemented via the `peg` parsing expression grammar library
+* buffer-wide data validation tools including a parser for concept maps implemented via the built-in `peg` parsing expression grammar library
 * hyper-linking to external documents, image files, as well as online documentation
 * whole file scanning provided through `imenu`
-* document navigation and re-organization system provided through `outline` just like `org` mode in addition to custom tools tailored for concept maps
+* a document navigation and re-organization system provided through `outline` (like `org` mode) in addition to custom tools tailored for concept maps
 * a search interface and query language provided through `consult`
-* a minibuffer-based editing interface which provides data validation
-* data "following" tools which help the user ensure the map is meaningful by grounding it in concrete resources
+* a minibuffer-based editing interface which provides data validation tools
+* data "following" tools which help the user ensure the map is meaningful by grounding it in concrete examples and references to external resources
+* an extensible string list menuing tools for editing local variables which configure various aspects of the concept map editing system.
+* a suite of useful template expansion functions which can be combined with packages like `tempel` to ease adding new resource and relationship blocks.
 * an automatically synchronized network graph representation of the concept map holding all the conceptual relationships stored in the relationship block portions of the buffer
 * a suite of local network analysis tools useful for refining concept maps to make them more comprehensive
+* a suite of exploratory data analysis tools which collect data for studying the (sometimes spatial) distribution of ideas, resources, and concepts within a concept map.
+* a suite of tools for standardizing the names of concept identifiers between multiple concept maps so that they can be merged together.
 
-Together they make it feasible to productively develop and explore concept maps with hundreds of thousands of concepts and even more relationships within them.
+Together these tools, bolstered when used in conjunction with external data analysis packages like R, combine to make it feasible to productively develop and explore concept maps including millions of concepts, resources, and even more relationships between them.
 
 ## Installation
 
@@ -1247,11 +1251,13 @@ Keyboard macros work much faster when nothing else is going on. So, it would be 
 
 ### String Lists and Groups
 
-Conceptual relationship networks should be redefined interactively in a way analogous to the way that the combinatorial expansion templates are: with a full generic function tower, but with a default function which is simple to use, and relies on the user specifying a list of string lists holding readily relevant data for specifying triples for inclusion and exclusion.
+Conceptual relationship networks should be redefined interactively in an analogous way to how the combinatorial expansion templates are configured: with a full generic function tower, but with a default function which is simple to use, but flexible in its capabilities, and which relies on the user specifying a list of string lists holding potentially relevant data for specifying triples for inclusion and exclusion.
 
-Unique to network exploration, a single list of triples can handle pretty much any interactively specified relationship filtering. However, it will still be the case that many such sets of triples may be interesting. So, stashes are needed to switch between the currently active list. The main functionality wich the helper give is a way to specify the allowed number of active group lists: 1, 2, or infinitely many. However, also important to specify is the list of classes which should be considered.
+Unique to network exploration, a single list of triples can handle pretty much any interactively specified relationship filtering. However, it will still be the case that many such sets of triples may be interesting. So, stashes are needed to switch between the currently active list. The main functionality which the menu helper gives is a way to specify an allowed number of active group lists: 1, 2, or infinitely many (signified by nil). However, it is also important to specify the list of classes which should be considered in addition ot the pieces of text which hold configuration data which controls whether a group is stashed or not and what the name of the group is.
 
-For combinatorial template expansions, what is needed is not triples, but phrases. There is still the need to stash groups of phrases. However, multiple groups of phrases can be active at any given time.
+For combinatorial template expansions, what is needed is not lists of triples, but lists of phrases. However, in both situations there is still the need to stash groups holding repeatedly useful "queries". Unlike network search, where there is only single group of triples,  multiple groups of phrases can be active at any given time.
+
+In other situations, the order of groups matters, and in some of those situations, there is a limit to the number of groups which matter. The rest of the groups being considered inactive, but the ordering of the groups deciding whether or not a group is active. These are a separate idea from stashing. When the underlying data variable updates, it changes the ordering of the groups such that the prioritized variables come first followed by the stashed variables, ordered as in the original case.
 
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
