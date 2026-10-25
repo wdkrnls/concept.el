@@ -3803,46 +3803,57 @@ shown. When nil (the default), only the unstashed strings are shown."
 (defun concept--string-list-has-stashed-p (list)
   (seq-some #'concept--string-list-stashed-p list))
 
-(defun concept--edit-groups-list-helper (variable-symbol overwrite class &optional no-modify no-stash limit)
+(defun concept--edit-groups-list-helper (variable-symbol overwrite class &optional no-modify no-stash no-order limit)
   "Edit a list‑of‑list‑of‑strings stored in VARIABLE‑SYMBOL.
 
-If OVERWRITE is non‑nil, start from an empty list; otherwise start from
-the current value of the variable. CLASS takes a list of expected class
+If OVERWRITE is non‑nil, start from an empty list, discarding any
+previous data; otherwise start from the current value of the variable to
+which VARIABLE-SYMBOL points. CLASS takes a list of expected class
 symbols. The strings included in the group which don't match one of the
 symbols in CLASS will be discarded except for those which give
 configuration options.
 
 If NO-MODIFY is non-nil, then prevent addition, and removal operations
-which could modify the macroscoping structure of the data. This does
-not, however, prevent editing of existing groups. If NO-STASH is
-non-nil, then prevent stashing of groups which are currently out of
-scope. This function returns the new value or nil if the edit is
-aborted.
+which could modify the macroscopic structure of the data. This does not,
+however, prevent editing of existing groups, unless the edit will make
+the group empty when the configuration variables are removed. If
+NO-STASH is non-nil, then prevent stashing of groups which are currently
+out of scope. NO-STASH is useful when, for example, stashing provides
+too much extra consideration on the part of the user. This could happen
+when NO-MODIFY is non-nil.
 
-Stashing allows the user to remove a list of strings temporarily, rather
-than permanently. The list of strings is still there, but it is no
-longer shown in the list of candidates. Instead it is shown in the stash
-area. During an editing session, a user may want to reconsider the same
-groupings later and reactivate them, removing them from the stash area
-and placing them back in the group candidates list.
+Stashing allows the user to remove a group (i.e., a list of strings)
+temporarily, rather than permanently. The list of strings is still
+there, but it is no longer shown in the list of candidates. Instead it
+is shown in the stash area. During an editing session, a user may want
+to reconsider the same groupings later and reactivate them, removing
+them from the stash area and placing them back in the group candidates
+list.
 
 At the implementation level, stashing merely consists of adding a
-special string `@stash' into the list. Removing a list from the stash
-area involves merely removing this special string from the list. This
-can be done with a single call to the elisp procedure: `remove', even if
-there is more than one.
+special string `@stash' to the group list. Removing a list from the
+stash area then involves removing this special string from the
+list. This can be done with a single call to the elisp procedure:
+`remove', even if there is more than one.
+
+NO-ORDER hides the option to re-sort a list of strings. This is useful
+when order doesn't matter.
 
 When LIMIT is non-nil, it expects a positive integer defining the
-maximum number of groups that can be active at one time. The remaining
-groups according to the current prioritization are immediately
-stashed. Any newly created group is immediately stashed, and when it is
-unstashed, the user must decide which active group it replaces. There
-will never be a limit applied to the stash area.
+maximum number of groups that are active at one time. The remaining
+groups according to the current prioritization are inactive, and while
+visible, are not used in any subsequent computation. Newly created
+groups are placed at the bottom of the priority list. To make them
+active, the user must reprioritize that group to a priority under or at
+the LIMIT. Thus, they show up as unstashed groups, and are only ignored
+when the data gets used. There will never be a limit applied to the
+stashed groups, and they will not show up during prioritization.
 
 Similar to stashing, a group name can be added to the list using a
 syntax for specifying key-value pairs combined with the special syntax
-for representing configuration data. The prefix `@' in `@stash'
-indicates that. Similarly, the group can be named by passing in
+for representing configuration data. For the main user interfaces in
+`concept.el', the prefix `@' in `@stash' indicates that it is a
+configuration value. Similarly, the group can be named by passing in
 something like: `@group~hair-color'. The first such name encountered
 will take precedence. Related features taking advantage of this approach
 may be used to add additional properties in the future.
@@ -3850,18 +3861,27 @@ may be used to add additional properties in the future.
 The key-value pair syntax can be reused as well by data as well,
 dropping the tilde prefix. For example: `if~then' describes an
 association between the fragments `if' and `then': `if' is the key and
-`then' is the value associated with that key. Similarly, `@if~then' will
-allow you to specify left negation, while `if~@then' gives right
-negation.
+`then' is the value associated with that key. Similarly, `@if~then'
+might allow you to specify left negation, while `if~@then' provides
+right negation. The meaning of the `@' can be defined in context. This
+is merely for future extension purposes which are currently beyond the
+scope of `concept.el'.  The main usage of the `@' prefix is for
+configuration variables except for inside of concept map searches, where
+triples containing `@' use it for performing negative queries.
 
 There is a lot more which can be done with such notation, like
 specifying ordering, e.g., `1~2~3~4', but for basic purposes, it can
-just be used to enter string fragments separated by spaces.
-"
+just be used to enter string fragments separated by spaces. Future
+extensions might also permit the definition of newly recognized data
+classes.
+
+This function returns the new value or nil if the edit is aborted."
   (unless (symbolp variable-symbol)
     (user-error "Please supply the name of the variable, not its value"))
   (unless (boundp variable-symbol)
     (user-error "Variable %s is not defined" variable-symbol))
+  (when (and limit (not (natnump limit)))
+    (user-error "Invalid value given for LIMIT argument: %S" limit))
   (let* ((current-value (symbol-value variable-symbol))
          (corrupt-p
           (and (not (null current-value))
@@ -3883,46 +3903,68 @@ just be used to enter string fragments separated by spaces.
             (if overwrite
                 nil
               (copy-tree current-value)))))
+         (stashed (mapcar #'concept--string-list-stashed-p groups))
+         (any-unstashed-p (seq-some (lambda (x) (not x)) stashed))
+         (all-stashed-p (seq-every-p (lambda (x) x) stashed))
+         (any-stashed-p (or all-stashed-p (seq-some (lambda (x) x) stashed)))
          (completion-sort-function nil)
          (completion-cycle-threshold most-positive-fixnum)
          (completion-styles '(basic))
          (vertico-sort-function nil)
          (changes overwrite)
-         (add "Add new group")
-         (order "Sort groups")
-         (edit "Edit existing group")
-         (remove "Remove an existing group")
-         (kill "Remove all existing groups")
-         (stash "Stash an existing group")
-         (pack "Stash all existing groups")
-         (save "Save changes")
+         (add     "Add new group")
+         (order   "Re-sort groups")
+         (edit    "Edit existing group")
+         (remove  "Remove an existing group")
+         (kill    "Remove all existing groups")
+         (stash   "Stash an existing group")
+         (unstash "Unstash a stashed group")
+         (pack    "Stash all existing groups")
+         (unpack  "Unstash all stashed groups")
+         (save    "Save changes")
          (abort (if changes "Quit and discard edits" "Quit"))
          (action nil))
-    ;; TODO: The menu needs to account for situations where all existing data
-    ;; has been stashed.
+    (unless (seq-every-p
+             (lambda (group)
+               (let ((data-classes (concept--string-list-classify-data group)))
+                 (and (seq-some (lambda (data-class) (member data-class class)) data-classes)
+                      (seq-every-p (lambda (data-class) (member data-class (append class '(cflag ckv)))) data-classes))))
+             groups)
+      (user-error "The data in %s is invalid!" (symbol-name variable-symbol)))
     (setq action
           (completing-read
            "Action: "
-           (cond
-            ((and groups changes)
-             (concept--clean-list
-              (list edit
-                    (unless no-modify
-                      (list add remove kill stash pack order))
-                    save abort)))
-            (changes
-             (concept--clean-list
-              (list (unless no-modify (list add)) save abort)))
-            (groups
-             (concept--clean-list
-              (list edit
-                    (unless no-modify
-                      (list add remove kill stash pack order))
-                    abort)))
-            (t
-             (concept--clean-list
-              (list (unless no-modify (list add)) abort))))
-           nil t))
+           (let ((n-groups (length groups)))
+             (cond
+              ((and groups changes)
+               (concept--clean-list
+                (list (unless (or no-order (eq 1 n-groups)) order)
+                      (when any-unstashed-p edit)
+                      (unless no-modify
+                        (list add (when any-unstashed-p (list remove kill))
+                              (unless (or no-stash all-stashed-p)
+                                (list stash pack))
+                              (when (or no-stash (null any-stashed-p))
+                                (list unstash unpack))))
+                      (list save abort))))
+              (changes
+               (concept--clean-list
+                (list (unless no-modify (list add)) save abort)))
+              (groups
+               (concept--clean-list
+                (list (unless (or no-order (eq 1 n-groups)) order)
+                      (when any-unstashed-p edit)
+                      (unless no-modify
+                        (list add (when any-unstashed-p (list remove kill))
+                              (unless (or no-stash all-stashed-p)
+                                (list stash pack))
+                              (unless (or no-stash (not any-stashed-p))
+                                (list unstash unpack))))
+                      abort)))
+              (t
+               (concept--clean-list
+                (list (unless no-modify add) abort)))))
+             nil t))
     (while (not (member action (list save abort)))
       (cond
        ((string= action stash)
@@ -3930,18 +3972,43 @@ just be used to enter string fragments separated by spaces.
                     (choices         (concept--string-list-display-strings groups))
                     (stash-done "Finished stashing")
                     (choice
-                     (completing-read
-                      "Group to stash: "
-                      (append choices (list stash-done)) nil t)))
+                     (if choices
+                         (completing-read
+                          "Group to stash: "
+                          (append choices (list stash-done)) nil t)
+                       stash-done)))
           (unless (string= choice stash-done)
-            (let* ((idx (concept--string-list-display-string-index choice))
-                   (new (concept--string-list-push-at "&{STASH}" idx groups)))
-              (setq groups new)))))
+            (let* ((idx (concept--string-list-display-string-index choice)))
+              (concept--string-list-push-at idx "@stash" groups)))))
+       ((string= action unstash)
+        (when-let* ((choices
+                     (concept--string-list-display-strings groups t))
+                    (done-unstashing "Finished unstashing")
+                    (choice (completing-read
+                             "Group to unstash: "
+                             (append choices (list done-unstashing)) nil t)))
+          (unless (string= choice done-unstashing)
+            (let* ((idx (concept--string-list-display-string-index choice)))
+              (concept--string-list-remove-at idx "@stash" groups)
+              ;; TODO: this is still not becoming unstashed. Why?
+              (unless (concept--string-list-unstashed-p (nth idx groups))
+                (error "The group is still stashed!"))))))
+       ((string= action pack)
+        (when-let* ((has-unstashed-p (seq-some concept--string-list-has-unstashed-p groups)))
+          (dotimes (idx (length groups))
+            (unless (concept--string-list-stashed-p (nth idx groups))
+              (concept--string-list-push-at idx "@stash" groups)))))
+       ((string= action unpack)
+        (dotimes (idx (length groups))
+          (when (concept--string-list-stashed-p (nth idx groups))
+            (concept--string-list-remove-at idx "@stash" groups))))
        ((string= action order)
-        (when-let* ((choices (concept--string-list-display-strings groups)))
+        (when-let* ((choices (concept--string-list-display-strings groups nil)))
           (let ((result nil)
                 (first-priority t)
                 (remaining (copy-sequence choices))
+                (stashed
+                 (seq-filter #'concept--string-list-stashed-p (copy-tree groups)))
                 choice)
             (while remaining
             (setq choice
@@ -4012,9 +4079,11 @@ just be used to enter string fragments separated by spaces.
           (unless (string= choice done-editing)
             (let* ((idx (concept--string-list-display-string-index choice))
                    (old-group (nth idx groups))
-                   (replacement (completing-read-multiple
-                                 "Replacement words/phrases: "
-                                 nil nil nil (mapconcat #'identity old-group " ") nil nil "[[:space:]]+")))
+                   (replacement
+                    (let ((crm-separator "[[:space:]]+"))
+                      (completing-read-multiple
+                       "Replacement words/phrases: "
+                       nil nil nil (mapconcat #'identity old-group " ")))))
               (if (and replacement (seq-some (lambda (s) (not (string-blank-p s))) replacement))
                   (progn
                     (setf (nth idx groups) replacement)
@@ -4022,6 +4091,9 @@ just be used to enter string fragments separated by spaces.
                 (message "Group deleted because all its elements have been removed!")
                 (setq groups (concept--remove-at idx groups))))))))
       (setq changes (not (equal groups (symbol-value variable-symbol))))
+      (setq any-unstashed-p (seq-some #'concept--string-list-unstashed-p groups))
+      (setq any-stashed-p (seq-some #'concept--string-list-stashed-p groups))
+      (setq all-stashed-p (seq-every-p #'concept--string-list-stashed-p groups))
       (unless (or (null groups)
                   (concept--list-of-nonempty-string-lists-p groups))
         (error "The group data got corrupted somehow!\n %S" groups))
@@ -4029,25 +4101,37 @@ just be used to enter string fragments separated by spaces.
       (setq action
             (completing-read
              "Action: "
-             (cond
-              ((and groups changes)
-               (concept--clean-list
-                (list edit
-                      (unless no-modify
-                        (list add remove kill stash pack order))
-                      save abort)))
-              (changes
-               (concept--clean-list
-                (list (unless no-modify (list add)) save abort)))
-              (groups
-               (concept--clean-list
-                (list edit
-                      (unless no-modify
-                        (list add remove kill stash pack order))
-                      abort)))
-              (t
-               (concept--clean-list
-                (list (unless no-modify (list add)) abort))))
+             (let ((n-groups (length groups)))
+               (cond
+                ((and groups changes)
+                 (concept--clean-list
+                  (list (unless (or no-order (eq 1 n-groups)) order)
+                        (when any-unstashed-p edit)
+                        (unless no-modify
+                          (list add
+                                (when any-unstashed-p (list remove kill))
+                                (unless (or no-stash (null any-unstashed-p))
+                                  (list stash pack
+                                        (when any-stashed-p
+                                          (list unstash unpack))))))
+                        (list save abort))))
+                (changes
+                 (concept--clean-list
+                  (list (unless no-modify (list add)) save abort)))
+                (groups
+                 (concept--clean-list
+                  (list (when any-unstashed-p edit)
+                        (unless no-modify
+                          (list add (when any-unstashed-p
+                                      (list remove kill))
+                                (unless no-modify
+                                  (when any-unstashed-p (list stash pack)))
+                                (when any-stashed-p
+                                  (list unstash unpack))))
+                        abort)))
+                (t
+                 (concept--clean-list
+                  (list (unless no-modify add) abort)))))
              nil t)))
     (let ((emptied (null groups)))
       (cond
@@ -4081,7 +4165,8 @@ With a prefix argument (OVERWRITE non‑nil) start from an empty list."
   (interactive "P")
   (concept--edit-groups-list-helper
    'concept-combinatorial-groups-list
-   overwrite))
+   overwrite
+   '(phrase word letseq letuniq capital cflag ckv)))
 
 (defun concept-edit-combinatorial-exclusions-list (overwrite)
   "Interactively edit the `concept-exclusion-groups-list' variable.
