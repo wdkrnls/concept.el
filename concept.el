@@ -3970,8 +3970,8 @@ just be used to enter string fragments separated by spaces.
                                                  (concept--string-list-display-strings groups t)
                                                  nil t)))
                                      (concept--string-list-remove-at
-                                      "&STASH"
                                       (1- (string-to-number (car (split-string unstash-choice " "))))
+                                      "@stash"
                                       groups)
                                      (throw 'done groups))
                                  (concept--add-group-from-scratch)))
