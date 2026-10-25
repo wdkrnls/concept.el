@@ -3587,6 +3587,8 @@ There are many kinds of data recognized by this function."
              ((string-match-p "^@[^@~. ]+~@?[^@~. ]+$"      string)   'ckv      )
              ((string-match-p "^@?[^@~. ]+~@?[^@~. ]+$"     string)   'kv       )
              ((string-match-p
+               "^@[^@~. ]+~@?[^@~. ]+~@?[^@~. ]+$"          string)   'ctriple  )
+             ((string-match-p
                "^@?[^@~. ]+~@?[^@~. ]+~@?[^@~. ]+$"         string)   'triple   )
              ((string-match-p "^\\(@?[^@~ ]+~\\)+@?[^@~ ]+$" string)  'order    )
              ((concept--date-stamp-p                        string)   'date     )
