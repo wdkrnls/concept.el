@@ -3708,6 +3708,12 @@ length."
   ;; that is not the case.
   (and (member "@stash" list) t))
 
+(defun concept--string-list-unstashed-p (list)
+  ;; TODO: should add an argument establishing a pcase for the different data
+  ;; types. In the main use case, an @-prefix is enough. However, in general
+  ;; that is not the case.
+  (unless (member "@stash" list) t))
+
 (defun concept--string-list-name (list)
   (if-let* ((options  (concept--string-list-options        list))
             (keys     (concept--string-list-option-keys    options))
