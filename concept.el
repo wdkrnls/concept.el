@@ -3061,8 +3061,9 @@ combinations.
 The data inside of this variable should conform to the specifications of
 either `concept--list-of-nonempty-string-lists-p' or `nil'. This allows
 for the inclusion of special data in the string lists which does not
-always get displayed, such as `&{STASH}' and `&{GROUP:color}' for
-example.")
+always get displayed, such as `@stash' and `@group~color' for
+example. The convention is that these are configuration data types
+classified as `cflag', `ckv', or `ctriple'.")
 
 (defvar-local concept-combinatorial-exclusions-list
     nil
