@@ -3698,7 +3698,9 @@ length."
   (mapcar (pcase-lambda (`(,key ,_)) (cdr key)) options))
 
 (defun concept--string-list-option-values (options)
-  (mapcar (pcase-lambda (`(,_ ,value)) (cdr value)) options))
+  ;; TODO: needs to be generalized for triples and ordered data.
+  (mapcar
+   (pcase-lambda (`(,_ ,value)) (cdr value)) options))
 
 (defun concept--string-list-stashed-p (list)
   ;; TODO: should add an argument establishing a pcase for the different data
