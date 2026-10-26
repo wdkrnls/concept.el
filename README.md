@@ -449,7 +449,7 @@ Reorganizing existing attribute groups, or expository data lines can be done wit
 * reverse ordering (`C-c C-r`)
 * random shuffling (`C-c M-r`)
 
-The point of all this functionality is to implement a canonical ordering of the whole concept map. With such an ordering, it becomes feasible to get a clear diff of two variants of nearly the same concept map without a lot of syntactic differences which mask the vastly more important semantically meaningful changes. Remember, the whole point of investing in concept mapping is to engage in meaningful learning!
+The point of all this functionality is to implement a canonical ordering of the whole concept map. With such an ordering, it becomes feasible to get a clear diff of two variants from nearly the same concept map without a lot of syntactic differences which mask the vastly more important semantically meaningful changes. Remember, the whole point of investing in concept mapping is to engage in and share meaningful learning!
 
 Why then is there a random shuffling feature? One use case for that is to test that the canonical sorting procedures work as intended no matter what. There are a lot of situations to test, and in the beginning it will be hard to know which situations are more important to check. Thus, it's pretty useful to simulate a lot of situations randomly to see if there are edge cases which haven't been covered yet.
 
