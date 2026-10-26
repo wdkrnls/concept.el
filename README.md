@@ -136,28 +136,32 @@ The weird and completely miraculous thing is that in practice, we humans hold ma
 | thoughts
 ```
 
-Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. It might seem egregious and unnecessary to be so explicit, but for advanced knowledge work explicitness is commonly recognized as a best practice. This is particularly true in highly multi-disciplinary situations where team members with wildly different skill-sets and expertise collaborate together. There is much to quibble about and much ambiguity in the above concept map. We certainly see it, but that is the point of concept maps: they give us hooks to organize our thoughts so that they can be productively criticized. It is only through this criticism, preferably open criticism, that our thought improve. Laying out all the teams conceptual ideas about the problem they are trying to solve can be a revelation for many people working together on a large project. We believe strongly that the best plan can only emerge once everyone on a team gains a comprehensive view of the possibilities before them for solving the problem at hand.
+Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. It might seem egregious and unnecessary to be so explicit, but for advanced knowledge work explicitness is widely-recognized as a best practice. This is particularly true in highly multi-disciplinary situations where team members come with wildly different skill-sets and expertise collaborate together. So, why do you have this feeling? It is an alien way of working that is widely discouraged.
+
+There is much to quibble about in the above concept map. It leaves a lot left unsaid and ambiguous. We certainly see that ambiguity, but the point here is to recognize that there is value in constructing large concept maps: they give us the hooks to (re-)organize our thoughts so that they can be productively criticized and improved upon.
+
+It is only through criticism, preferably open criticism and preferably criticism we apply to our own thoughts, that help our thinking processes improve. Laying out all the conceptual ideas a team knows about the problem they are trying to solve can be a revelation for many people working together on a large project. We believe strongly that the best plan can only emerge once everyone on a team gains a comprehensive view of the possibilities before them for solving the problem at hand.
 
 The text format used by `concept.el` is designed to be familiar and comfortable to people with experience writing a little bit of lisp code.  Concepts, resources, relationships, and attribute keywords are intended to be assigned identifiers which look like a readable subset of valid lisp symbols. This should be familiar to most people using Emacs as their editor. Once you accept this restriction on naming, you buy into a set of constraints which facilitate the creation of a bunch of very useful editing tools for making huge concept maps quickly.
 
 These editing tools include:
 
-* a variety of (full and partial) text-completion interfaces
-* buffer-wide data validation tools including a parser for concept maps implemented via the built-in `peg` parsing expression grammar library
-* hyper-linking to external documents, image files, as well as online documentation
-* whole file scanning provided through `imenu`
-* a document navigation and re-organization system provided through `outline` (like `org` mode) in addition to custom tools tailored for concept maps
-* a search interface and query language provided through `consult`
-* a minibuffer-based editing interface which provides data validation tools
-* data "following" tools which help the user ensure the map is meaningful by grounding it in concrete examples and references to external resources
-* an extensible string list menuing tools for editing local variables which configure various aspects of the concept map editing system.
+* a variety of (full and partial) text-completion interfaces.
+* a whole file scanning system giving an overview of all the conceptual elements used in a concept map provided through `imenu`.
+* a document navigation and re-organization system provided through `outline` (like `org` mode) in addition to custom tools tailored for concept maps.
+* buffer-wide data validation tools including a parser for concept maps implemented via the built-in `peg` parsing expression grammar library.
+* hyper-linking to external documents, image files, and online documentation
+* a data "following" tools which help the user ensure the map is meaningful by grounding it in concrete examples and references to external resources.
+* a search interface and query language provided through `consult`.
+* a minibuffer-based editing interface which provides data validation tools.
+* An extensible menuing system for editing local variables holding lists of lists of strings that configure the behavior of a variety of concept map editing features including combinatorial conceptual relationship expansion and the scope of an interactive conceptual network analysis.
 * a suite of useful template expansion functions which can be combined with packages like `tempel` to ease adding new resource and relationship blocks.
-* an automatically synchronized network graph representation of the concept map holding all the conceptual relationships stored in the relationship block portions of the buffer
-* a suite of local network analysis tools useful for refining concept maps to make them more comprehensive
-* a suite of exploratory data analysis tools which collect data for studying the (sometimes spatial) distribution of ideas, resources, and concepts within a concept map.
+* an automatically synchronized network graph representation of the concept map holding all the conceptual relationships stored in the relationship block portions of the buffer.
+* a suite of local network analysis tools useful for refining concept maps to make them more comprehensive.
+* a suite of exploratory data analysis tools which collect data for studying the (sometimes spatial) distribution of ideas, resources, concepts, and the relationships between them within a concept map.
 * a suite of tools for standardizing the names of concept identifiers between multiple concept maps so that they can be merged together.
 
-Together these tools, bolstered when used in conjunction with external data analysis packages like R, combine to make it feasible to productively develop and explore concept maps including millions of concepts, resources, and even more relationships between them.
+These tools, bolstered when used in conjunction with external data analysis packages like R, combine to make it feasible to productively develop and explore concept maps including millions of concepts, resources, and even more relationships between them.
 
 ## Installation
 
@@ -165,7 +169,7 @@ Install via ELPA (eventually!). Run M-x `package-install`. Press `ENTER`. Type `
 
 ## Thinking about concepts
 
-When you think about a particular thing, you use the singular voice: you speak of the cat in the alleyway and the mouse she is chasing. When you think about things in general you use the plural voice, you speak of cats in the act of chasing mice and mice in the act of fleeing cats. When you follow this convention of naming concepts with plural words, you realize that concepts in english have names with three distinct components:
+When you think about a particular thing, you use the singular voice: you speak of the cat in the alleyway and the mouse she is chasing. When you think about things in general you use the plural voice: you speak of cats in their acts of chasing mice and mice in the act of fleeing cats. When you follow this convention of naming concepts with plural words, you realize that concepts in English have names with three distinct components:
 
 * a classification or categorization component
 * a core concept component
@@ -185,7 +189,7 @@ definition: of-knowledge
 
 Gaining an intuition for what this concept is about requires first understanding what is meant by knowledge, pieces, and abstraction. These are often best sharpened by finding their opposites or complements. That is also why scientists conduct comparative experiments. We best understand anything by constructing the boundaries in our minds for what they are and are not. The opposite of abstract is concrete or definite. A piece doesn't have an opposite. However, it has a complement: pieces have parts which make up the whole piece. A piece itself is often not used in isolation, but is merely a part of something greater. A piece of furniture is merely a part of the total interior design of a room. Finally, we come to the definition component. 
 
-Definitions start with what linguists call prepositions. These are followed by optional adjectives on required qualities.
+Definitions start with what linguists call *prepositions*. These are followed by optional adjectives on required qualities.
 
 One of the most common prepositions is `in`:
 
@@ -197,6 +201,7 @@ One of the most common prepositions is `in`:
 ~ people-in-distress
 | :include
 | people-in-mild-distress
+| people-in-moderate-distress
 | people-in-severe-distress
 ~ people-in-distress
 | :include
@@ -248,29 +253,43 @@ Yet another common preposition is `that`:
 | :include
 | animals-that-make-sperm-cells
 | animals-that-make-egg-cells
-~ males
+~ male-animals
 | :name
 | animals-that-make-sperm-cells
-~ females
+~ female-animals
 | :name
 | animals-that-make-egg-cells
-~ females
+~ animals
 | :include
-| females-that-lay-eggs
-| females-that-give-birth
-~ females-that-lay-eggs
+| male-animals
+| female-animals
+~ plants
 | :include
-| females-that-can-lay-eggs
-| females-that-cant-lay-eggs
-~ females-that-can-lay-eggs
+| male-plants
+| female-plants
+~ species
 | :include
-| females-that-will-lay-eggs
-| females-that-wont-lay-eggs
-~ females-that-give-birth
+| animal-species
+| plant-species
+| fungal-species
+| bacterial-species
+~ female-animals
 | :include
-| females-that-do-give-birth
-| females-that-dont-give-birth
-~ females-that-do-give-birth
+| female-animals-that-lay-eggs
+| female-animals-that-give-birth
+~ female-animals-that-lay-eggs
+| :include
+| female-animals-that-can-lay-eggs
+| female-animals-that-cant-lay-eggs
+~ female-animals-that-can-lay-eggs
+| :include
+| female-animals-that-will-lay-eggs
+| female-animals-that-wont-lay-eggs
+~ female-animals-that-give-birth
+| :include
+| female-animals-that-do-give-birth
+| female-animals-that-dont-give-birth
+~ female-animals-that-do-give-birth
 | :have
 | pregnancies
 ```
@@ -287,6 +306,7 @@ Yet another common preposition is `of`:
 ~ pieces-of-paper
 | :include
 | pieces-of-paper-with-a-standard-size
+| pieces-of-paper-with-no-standard-size
 ~ sheets-of-paper
 | :name
 | pieces-of-paper-with-a-standard-size
@@ -322,7 +342,11 @@ Here are some more prepositions we tried to place into related groupings:
 * location: in, on, off, at
 * time: during, since, until, after, before
 
-This introduction really only scratches the surface. There have been many semantical theories about prepositions. We are not experts. As an english speaker, you already know much of this intuitively. From the perspective of concept mapping, our goal is merely to find the "good parts" of english which can clearly represent the concepts we want to think about which also support simple computation. The ultimate goal being to arrive at a way of achieving between-map canonical representations of concept maps. We have already discussed the needs of those: consistent ordering of concept map elements, and consistent vocabulary within the map. For between map canonicalization, you need consisten vocabulary across possible maps. Establishing a way of "speaking" english which enables that is why this subject is being discussed and considered.
+This introduction really only scratches the surface. There have been many semantical theories about prepositions. We are not experts. As an English speaker, you already grasp much of this intuitively. From the perspective of concept mapping, our goal is merely to find the "good parts" of English which can clearly represent the concepts we want to think about, but which also support simple computation. 
+
+A proximate goal of this is to help ourselves think more clearly right now. Complicated language conceals the possibilities of our thinking and limits who we can collaborate with. Simple language reveals the essence of reality, and facilitates the composition of related ideas together.
+
+An ultimate goal of finding the "good parts" of English, is making it easier to find appealing between-map canonical representations of concept maps. We have already discussed the needs of within-map canonical representations: consistent ordering of conceptual elements, and a consistent vocabulary within a map. For between-map canonicalization, you need consistent vocabulary across possibly many maps. Establishing such a way of "speaking" English which enables this desirable outcome is why this subject is being discussed and considered here.
 
 Knowledge concerns successful prediction. Ignorance means almost assuredly unsuccessful prediction. Once you think about a concept this way, it's name alone suggests that a whole concept map supports it. We invite you to take a stab it at. We took some time to do this exercise and got a pretty substantial concept map out of it.
 
@@ -345,13 +369,13 @@ In `concept.el` we encourage you to put the classification piece on the left, th
 | mortal-beings
 ```
 
-Redundancy isn't too much of a problem since the main thing is that you understand what you are talking about and that you can gain that understanding by searching through a concept map.
+Redundancy isn't too much of a problem since the goal is that you deeply understand what you are talking about and that you can gain that understanding quickly by searching through a concept map.
 
 The package provides an implementation of the longest common sub-string algorithm to help build tools for automatically identifying these components. This can be combined with the string-distance procedure and tools which provide you a list of all concepts in the buffer to find likely core concepts. Of course, really discovering this will often require a degree of standardization which is not really possible with Emacs, but should be feasible from a dedicated data analysis environment like R.
 
 ## Navigating through concept maps
 
-Concept maps inherit from `outline-minor-mode`. This gives a whole suite of keyboard shortcuts and M-x commands which automatically work with concept maps. Navigating up and down outline heading elements is implemented with `M-n` and `M-p`. In `concept.el`, there are two headings `~` and `@`. Otherwise, you can press `C-<up>` or `C-<down>` to move quickly across additional levels of concept maps including *relationship groups*, *attribute groups* and their corresponding data elements (data concepts) and (expository data). Finally, `C-M-<down>` and `C-M-<up>` let you fly across different elements of the same type.
+Concept maps inherit from `outline-minor-mode`. This gives a whole suite of keyboard shortcuts and `M-x` commands which automatically work with concept maps. Navigating up and down outline heading elements is implemented with `M-n` and `M-p`. In `concept.el`, there are two headings `~` and `@`. Otherwise, you can press `C-<up>` or `C-<down>` to move quickly across additional levels of concept maps including *relationship groups*, *attribute groups* and their corresponding data elements (data concepts) and (expository data). Finally, `C-M-<down>` and `C-M-<up>` let you fly across different elements of the same type.
 
 Did I say 'finally'? I lied. You can also press `C-c C-n` or `C-c C-p` for a more advanced contextual method of navigating through concept maps. These commands have modally defined behavior depending on the value of global variables `concept-last-relationship-group-size-behavior` and `concept-last-attribute-count-behavior` which chooses between the modes `"all"`, `"unique"`, and `"diff"`. These options analyze each idea and compute statistics summarizing interesting aspects of the idea.
 
