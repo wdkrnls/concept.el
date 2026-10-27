@@ -218,6 +218,7 @@
 ;;; Code:
 
 (require 'seq)
+(require 'subr-x)
 (require 'outline)
 (require 'peg)
 (require 'consult)
@@ -4507,21 +4508,52 @@ the page number, and constructs the resource block."
       (switch-to-buffer cmbuf)
       (insert (format "| {%d}" page)))))
 
-(defun concept-expand-list-resources (includes &optional excludes prefix focus)
+(defun concept-drop-last-parts (phrase n)
+  "Drop the last N parts of PHRASE.
+
+A PHRASE is a hypen separated string without spaces."
+  (let* ((parts  (split-string phrase     "-"))
+         (keep   (max 0 (- (length parts) n))))
+    (string-join (seq-take parts keep)    "-")))
+
+(defun concept-drop-first-parts (phrase n)
+  "Drop the first N parts of PHRASE.
+
+A PHRASE is a hypen separated string without spaces."
+  (let* ((parts (split-string phrase "-"))
+         (keep (max 0 (- (length parts) n))))
+    (string-join (reverse (seq-take (reverse parts) keep)) "-")))
+
+(defun concept--lambda-form-p (object)
+  (and (consp object)
+       (eq (car object) 'lambda)))
+
+(defun concept-expand-list-resources (includes &optional excludes focus prefix suffix)
   "Generate the data needed to more quickly construct a resource template.
-It takes two lists of strings as argument INCLUDES and EXCLUDES. These
-define substrings which indicate the suffixes of core concepts. When
-FOCUS is non-nil, the focus concept is included in the consideration of
-possible exposition lines added to the resulting resource block. This
-command automatically removes any duplicate lines."
-  (when (null prefix)
-    (setq prefix ""))
+This function takes two lists of strings as arguments: INCLUDES and
+EXCLUDES. These define substrings which indicate the suffixes of core
+concepts. When PREFIX or SUFFIX are non-nil, then it is expected to hold
+a string which is inserted in the line before the main body of the
+text. When FOCUS is non-nil, the focus concept is included in the
+consideration of possible exposition lines added to the resulting
+resource block. This command automatically removes any duplicate lines."
+  (if (null prefix)
+      (setq prefix "")
+    (unless (or (stringp prefix) (and (functionp prefix) (stringp (funcall prefix ""))))
+      (user-error "PREFIX should be a string or a function of a string which returns a string! Got: %S" prefix)))
+  (if (null suffix)
+      (setq suffix "")
+    (unless (or (stringp suffix) (and (functionp suffix) (stringp (funcall suffix ""))))
+      (user-error "SUFFIX should be a string or a function of a string which returns a string! Got: %S" suffix)))
   (let ((N (concept--max-words includes)))
     (save-excursion
       (concept-goto-last-relationship)
       (mapconcat
        (lambda (string)
-         (format "| {%s%s}" prefix string))
+         (format "| {%s%s%s}"
+                 (if (functionp prefix) (funcall prefix string) prefix)
+                 string
+                 (if (functionp suffix) (funcall suffix string) suffix)))
        (delete-dups
         (mapcar
          (lambda (z)
