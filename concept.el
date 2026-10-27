@@ -27,51 +27,85 @@
 ;;; Commentary:
 
 ;; `concept.el' provides a plain-text conceptual knowledge editor for Emacs. The
-;; theory of concept mapping it build on top of is based on some of the ideas
-;; from the psychologists David Ausibel and Joseph D. Novak who studied how best
-;; to learn for understanding: what they call 'meaningful learning'. Novak
-;; especially focused on exploring how David Ausibel's ideas related to concept
-;; maps.
+;; theory of concept mapping it builds on top of is based on ideas from the
+;; psychologists David Ausibel and Joseph D. Novak. The latter building on top
+;; of the formers work studying how best cognitively to learn for understanding:
+;; what they call 'meaningful learning'. Novak, especially, focused on exploring
+;; how David Ausibel's ideas related to concept maps along with what he calls a
+;; Vee diagram, within which that concept map is considered as one small part.
 ;;
 ;; Novak-style concept maps can be concstructed using the non-free program
-;; cmaptools (https://cmap.ihmc.us/cmaptools/). His maps focus exclusively on
-;; the relationships between abstract concepts. An editor with a traditional
-;; graphical user interface like cmaptools seeks only to create an informative
-;; diagram as a visual aid in an educational setting. The details which invite
-;; concept formation in the first place are left out. In Novak's conception of
-;; concept mapping, their use is limited to the reflective period of learning
-;; after consuming standard educational materials including Dr. Ausibel calls
-;; 'advanced organizers'. Note that the authors of `concept.el' have never used
-;; cmaptools. We are basing our assessment entirely off of the pictures we have
-;; seen of concept maps produced by that software.
+;; `cmaptools' (https://cmap.ihmc.us/cmaptools/). His maps focus exclusively on
+;; the visualizing relationships between abstract concepts. An editor with a
+;; traditional graphical user interface like cmaptools seeks only to create an
+;; informative diagram as a visual aid in an educational setting. The details
+;; which invite concept formation in the first place are left out. In Novak's
+;; conception of concept mapping, their use is limited to the reflective period
+;; of learning after consuming standard educational materials including
+;; Dr. Ausibel calls 'advanced organizers'. Note that the authors of
+;; `concept.el' have never used cmaptools. We are basing our assessment entirely
+;; off of the pictures we have seen of concept maps produced by that software
+;; and the discussions of concept maps contained in Novak's books and papers.
 ;;
 ;; `concept.el' assumes a far wider role for concept maps that what most concept
-;; map editors aspire to achieve. It sees concept mapping as an ontological
-;; engineering project. It expects that concept maps will naturally become far
-;; larger and more comprehensive than what can feasibly be shown in a single
-;; diagram. No collection of useful concepts is an island. All such concepts are
-;; deeply related at some level and this package is designed to help the concept
-;; mapper record those relationships.
+;; map editors aspire to achieve. It sees concept mapping as more of an
+;; ontological engineering project. It expects that concept maps will naturally
+;; become far larger and more comprehensive over time than what can feasibly be
+;; shown in a single diagram. This is quite natural. No collection of useful
+;; concepts is an island. All such concepts are deeply related to each other at
+;; some level. This package is designed to help the concept mapper
+;; systematically discover those relationships.
 ;;
 ;; It aims to keep concept maps tied to the concrete pieces of knowledge from
 ;; which we can infer their existence. The core design philosophy of
-;; `concept.el' holds that while meaningful learning happens most efficiently
-;; starting from more abstract ideas, and proceding to more concrete ones, less
-;; familiar abstract ideas are more easily grasped when their more specific
-;; instances are illustrated by many reference to many examples described at a
-;; high level within the concept map along with greater depth beyond
-;; it. Therefore, ideas are seen as a pairing of conceptual relationship blocks
-;; and expository resource blocks. The more unfamiliar the idea, the more adding
-;; additional resource blocks help concept mappers understand them.
+;; `concept.el' keeps in mind that understanding usually happens fastest when
+;; starting from the most abstract yet familiar or relatable idea, which is then
+;; illustrated by moving to more and more concrete ideas. Less familiar but
+;; often more abstract ideas can really only be easily grasped when their more
+;; specific instances are illustrated by many reference to many examples
+;; described at a high level within the concept map along with greater depth
+;; beyond it. Therefore, ideas are seen as a pairing of conceptual relationship
+;; blocks and expository resource blocks. The more unfamiliar the idea, the more
+;; adding additional resource blocks help concept mappers understand
+;; them. Similarly, abstractly unrelatable ideas, are best understanding by
+;; linking them fully with their less abstract descendants.
 ;;
-;; Understanding is an iterative process, so as your concept maps grow in
-;; complexity, `concept.el' provides powerful tools for sifting through them to
-;; support efficient reflection, reorganization, and extension. These include
-;; facilities for quickly adding new concepts, relating them to other concepts,
-;; and grounding them in concrete facts, explicit examples, and external
-;; references. To keep concept maps from growing unwieldy, there are many tools
-;; for probing them from within Emacs. In particular, `concept.el' provides
-;; powerful features for searching through related ideas.
+;; Understanding is attained from this process of walking up and down these
+;; hierarchies of abstractness. Learning for understanding is a necessarily
+;; recursive and agglomerative process that must happen inside a human
+;; mind. However, it doesn't have to be done solely by the human mind. As
+;; concept maps grow in complexity, `concept.el' provides users with powerful
+;; tools for supporting through them the assimilation, reflection, subsumption,
+;; reorganization, and extension. There are many facilities provided by
+;; `concept.el' for quickly adding new concepts, relating them to other
+;; concepts, and grounding them in concrete facts along with explicit examples,
+;; and external references.
+;;
+;; Over time concept maps can become enormous in scope. To keep concept maps
+;; from growing unwieldy, there are many tools in the package for probing them
+;; from within Emacs. In particular, `concept.el' provides powerful features for
+;; searching through related ideas, but to understand them, the user needs a bit
+;; of theory. Let's consider ideas actually are. What makes two ideas more or
+;; less related?  Related ideas should have concepts in common, especially their
+;; subjects (also called focus concepts), but also their objects (also called
+;; data concepts) and the relationships shared between them. Think of an idea as
+;; a paragraph, not just any paragraph, but a paragraph focused towards picking
+;; out the most salient conceptual aspects relevant to the situation for which
+;; the idea makes sense. `concept.el' provides two small query "languages" for
+;; finding related ideas. These are presented through live previews via two
+;; search interfaces built on top of `consult.el'
+;; (https://github.com/minad/consult). These make it feasible during review to
+;; quickly refresh yourself of all the notes you've made which match a query.
+;;
+;; The first query language builds up a list of substrings which should match
+;; inside the set of concepts involved in the idea. The order doesn't
+;; matter. What matters is whether the idea contains concepts with those
+;; substrings. Each different substring is separated by a semicolon `;'. The
+;; second query language is based on lists of subject~relationship~object
+;; triples separated by a colon `:'. The triple syntax enables tighter, richer
+;; queries, but their development is also necessarily more involved than with
+;; the semicolon syntax. These features can be discovered by reading the source
+;; code, below.
 ;;
 ;; Concept maps in `concept.el' hold ideas related to a single topic or field of
 ;; study and are placed in one large text file, usually with a `.map'
@@ -105,23 +139,6 @@
 ;; understanding, and all of them are in scope for `concept.el'. However,
 ;; memorization is not in scope. Use another tool for that.
 ;;
-;; Let's consider ideas a bit more. What makes two ideas related?  They should
-;; have concepts in common, especially their subjects (also called focus
-;; concepts), but also their objects (also called data concepts) and the
-;; relationships shared between them. Think of an idea as a paragraph, not just
-;; any paragraph, but a paragraph focused towards picking out the most salient
-;; conceptual aspects relevant to a situation. `concept.el' provides two small
-;; query "languages" for finding related ideas. These are presented through live
-;; previews via two search interfaces built on top of `consult.el'
-;; (https://github.com/minad/consult).
-;;
-;; The first query language builds up a list of substrings which should match
-;; inside the set of concepts involved in the idea. Each different substring is
-;; separated by a semicolon. The second query language is based on lists of
-;; subject~relationship~object triples separated by a colon `:' or optionally a
-;; space, depending on the configuration. The triple syntax enables tighter,
-;; richer queries, but their development is also necessarily more
-;; involved. These features can be discovered by reading the source code, below.
 ;;
 ;; Other kinds of data are relevant when naming more complicated concepts. In
 ;; general, names for concepts, as far as `concept.el' is concerned, have three
