@@ -4524,10 +4524,6 @@ A PHRASE is a hypen separated string without spaces."
          (keep (max 0 (- (length parts) n))))
     (string-join (reverse (seq-take (reverse parts) keep)) "-")))
 
-(defun concept--lambda-form-p (object)
-  (and (consp object)
-       (eq (car object) 'lambda)))
-
 (defun concept-expand-list-resources (includes &optional excludes focus prefix suffix)
   "Generate the data needed to more quickly construct a resource template.
 This function takes two lists of strings as arguments: INCLUDES and
