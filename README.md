@@ -27,7 +27,7 @@ After a *relationship block* comes zero or more *resource blocks*. These contain
 
 The example below gives the simplest possible idea. It has one resource block associated with it. It would still be valid if there were none. There doesn't have to be any, but adding them is recommended, especially in situations where there is ambiguity about what idea is being represented. In such an idea as the one expressed below, there is quite a lot of ambiguity!
 
-```
+```concept
 ~ things
 | :include
 | concepts
@@ -40,7 +40,7 @@ The focus concept (subject) of the idea is on the first line. The relationship (
 
 The weird and completely miraculous thing is that in practice, we humans hold many hundreds or thousands of ideas in our heads at any given time. So, correspondingly a concept map hold many many ideas combined together. The example concept map below is included as a file in the source code repository for `concept.el`.
 
-```
+```concept
 ~ things
 | :include
 | concepts
@@ -158,10 +158,10 @@ These editing tools include:
 * a suite of useful template expansion functions which can be combined with packages like `tempel` to ease adding new resource and relationship blocks.
 * an automatically synchronized network graph representation of the concept map holding all the conceptual relationships stored in the relationship block portions of the buffer.
 * a suite of local network analysis tools useful for refining concept maps to make them more comprehensive.
-* a suite of exploratory data analysis tools which collect data for studying the (sometimes spatial) distribution of ideas, resources, concepts, and the relationships between them within a concept map.
-* a suite of tools for standardizing the names of concept identifiers between multiple concept maps so that they can be merged together.
+* a suite of exploratory data analysis tools which collect data for studying the (sometimes spatial) distribution of ideas, concepts, concept-fragments, resources, and the relationships between them within a concept map.
+* a suite of tools for standardizing the names of concept identifiers both within a single concept map as well as between multiple concept maps so that they can either readily be split apart or merged together.
 
-These tools, bolstered when used in conjunction with external data analysis packages like R, combine to make it feasible to productively develop and explore concept maps including millions of concepts, resources, and even more relationships between them.
+These tools, bolstered when used in conjunction with external data analysis packages like R, combine to make it feasible to productively develop and explore concept maps which include millions of concepts, resources, and even more relationships between them.
 
 ## Installation
 
@@ -193,7 +193,7 @@ Definitions start with what linguists call *prepositions*. These are followed by
 
 One of the most common prepositions is `in`:
 
-```
+```concept
 ~ people
 | :include
 | people-in-distress
@@ -213,7 +213,7 @@ The quality here is distress. From a concept mapping perspective, we first lay o
 
 Another common preposition is `with`:
 
-```
+```concept
 ~ people
 | :include
 | people-with-diabetes
@@ -245,7 +245,7 @@ Another common preposition is `with`:
 
 Yet another common preposition is `that`:
 
-```
+```concept
 ~ animals
 | :include
 | animals-that-reproduce-sexually
@@ -296,7 +296,7 @@ Yet another common preposition is `that`:
 
 Yet another common preposition is `of`:
 
-```
+```concept
 ~ parts
 | :include
 | parts-of-speech
@@ -335,24 +335,24 @@ Yet another common preposition is `of`:
 Here are some more prepositions we tried to place into related groupings:
 
 * association: about, of, with, among
-* relation: against, for
-* proximity: near, by, around
-* movement: from, to, across, past, into, onto
-* relative-position: above, below, behind, ahead, under, over, beyond
-* location: in, on, off, at
-* time: during, since, until, after, before
+* relation:    against, for
+* proximity:   near, by, around
+* movement:    from, to, across, past, into, onto
+* position:    above, below, behind, ahead, under, over, beyond
+* location:    in, on, off, at
+* time:        during, since, until, after, before
 
-This introduction really only scratches the surface. There have been many semantical theories about prepositions. We are not experts. As an English speaker, you already grasp much of this intuitively. From the perspective of concept mapping, our goal is merely to find the "good parts" of English which can clearly represent the concepts we want to think about, but which also support simple computation. 
+This introduction really only scratches the surface. There have been many semantical theories about prepositions proposed by linguists. We are not experts. We defer to the experts to the degree their tools are readily graspable and useful to us. As an English speaker, we already grasp much of the semantics of prepositions intuitively. From the perspective of concept mapping, our goal is merely to find the "good parts" of English from which we can clearly represent the concepts we want to think about, but in a way which also supports simple computational schemes which allow us to comprehensively understand our concept maps.
 
-A proximate goal of this is to help ourselves think more clearly right now. Complicated language conceals the possibilities of our thinking and limits who we can collaborate with. Simple language reveals the essence of reality, and facilitates the composition of related ideas together.
+A proximate goal of concept map making with a simpler vocabulary is to help ourselves think more clearly right now. Complicated language often both conceals the possibilities of our thinking and limits who we can collaborate with. Simple language reveals the essence of our verbal reality, and facilitates the composition of ideas together. It also makes searching for related ideas easier. It makes vector database search less useful when the vocabulary of the concept map is composed of more frequently used simpler fragments from which various statistical analysis approaches can be readily applied based on computationally inexpensive geometric techniques which can be run on ordinary hardware like principal components analysis and it's generalizations which handle both categorical and quantitative understanding simultaneously, along with varying amounts of "missing" data.
 
-An ultimate goal of finding the "good parts" of English, is making it easier to find appealing between-map canonical representations of concept maps. We have already discussed the needs of within-map canonical representations: consistent ordering of conceptual elements, and a consistent vocabulary within a map. For between-map canonicalization, you need consistent vocabulary across possibly many maps. Establishing such a way of "speaking" English which enables this desirable outcome is why this subject is being discussed and considered here.
+An ultimate goal of finding the "good parts" of English, is making it easier to find appealing between-map canonical representations of concept maps. We have already discussed the needs of within-map canonical representations: consistent ordering of conceptual elements, and a consistent vocabulary within a map. For between-map canonicalization, we need consistent vocabulary across possibly many maps. Establishing such a way of "speaking" English which enables this desirable outcome is why this subject is being discussed and considered here. It is in scope for data analysis in the future.
 
 Knowledge concerns successful prediction. Ignorance means almost assuredly unsuccessful prediction. Once you think about a concept this way, it's name alone suggests that a whole concept map supports it. We invite you to take a stab it at. We took some time to do this exercise and got a pretty substantial concept map out of it.
 
 In `concept.el` we encourage you to put the classification piece on the left, the core piece in the middle, and the definition piece on the right. Further, it's better to start with the core plus some definition. Then, once you have your definition, you can added a category which alludes to that definition via and `:name` relationship.
 
-```
+```concept
 ~ beings
 | :include
 | beings-that-die
@@ -369,9 +369,9 @@ In `concept.el` we encourage you to put the classification piece on the left, th
 | mortal-beings
 ```
 
-Redundancy isn't too much of a problem since the goal is that you deeply understand what you are talking about and that you can gain that understanding quickly by searching through a concept map.
+Redundancy isn't too much of a problem since the goal is that you deeply understand what you are talking about and that you can gain that understanding quickly by exploring a concept map generally paired searching through a concept map specifically, along with validating your assumptions by exploring both narrowly within ideas, and widely between collections of related concepts.
 
-The package provides an implementation of the longest common sub-string algorithm to help build tools for automatically identifying these components. This can be combined with the string-distance procedure and tools which provide you a list of all concepts in the buffer to find likely core concepts. Of course, really discovering this will often require a degree of standardization which is not really possible with Emacs, but should be feasible from a dedicated data analysis environment like R.
+To facilitate this, among other features, `concept.el` provides an implementation of the longest common sub-string algorithm to help build tools for automatically identifying these components. This can be combined with the string-distance procedure and tools which provide you a list of all concepts in the buffer to find likely core concepts. Of course, really discovering this will often require a degree of standardization which is not yet really possible with Emacs, but should be feasible from a dedicated data analysis environment like R.
 
 ## Navigating through concept maps
 
@@ -383,13 +383,15 @@ This can be useful for finding ideas or resources with certain interesting featu
 
 If you want to look for ideas with a certain number of relationship groups, press `C-c C-n` from a relationship group line. Similarly, if you want to go forward to the next resource group with a desired number of data lines, place the cursor on a resource line.
 
-Leveraging the tools in `consult.el` can be another very effective way of exploring a concept map. So can `C-s` and `C-r`. Later we will discuss some more powerful block-aware search tools that can be very convenient when the line oriented search tools just don't cut it.
+Leveraging the line-oriented tools in `consult.el` can be another very effective way of exploring a concept map. So can vanilla forward `C-s` and backward `C-r` text searches. Later we will discuss some more powerful block-aware search tools that can be very convenient when the line oriented search tools just don't cut it.
+
+For navigation within an idea, the commands `concept-forward` bound to `C-M-f` and `concept-backward` bound to `C-M-b` can be helpeful. However, the standard text cursor motions are always available and unchanged inside of a concept map.
 
 ## Editing tools for concept maps
 
-`concept.el` provides a wealth of tools for both rapidly entering new ideas and rapidly editing existing ones. We believe that for concept maps to become the best learning tools they can, we must be able to write programs against their data. To be able to write programs, concept maps must be both internally consistent and comprehensive. Internal consistency minimizes the need to deal with special cases. Comprehensive concept maps hold the information we want to query in the first place. If we just stuck to the ordinary plain text editing regime provided out of the box by most text editors, concept maps stay as "write only" constructions. However, we feel that good design should be both "read and write".
+`concept.el` provides a wealth of tools for both rapidly entering new ideas and rapidly editing existing ones. We believe that for concept maps to become the best learning tools they can, we must be able to write programs against their data. When we analyze the result of the program, we quickly learn whether our data is capable enough to support it. To be able to write programs, concept maps must be both internally consistent and comprehensive. Internal consistency minimizes the need to deal with special cases. Comprehensive concept maps hold the information we want to query in the first place. If we just stuck to the ordinary plain text editing regime provided out of the box by most text editors, concept maps stay as "write only" constructions. There are good tools to enter some usually small amount of data, and displaying it in a pretty graphic, but only limited support for reorganizing it. We feel that a good design should be both "read and write", and provide extensive support for editing the concept map and rapidly changing it. Being text based, these changes can be tracked with the assistance of version control systems like `git`.
 
-In a regular text buffer, the keybinding in vanilla Emacs `C-o` opens up a new line above the current one. `M-o` is undefined, but it made sense to me that it should open something up below the current line. However, it also made sense to me that it should do something with the previous data. This part is confusing it retrospect.
+In a regular text buffer, pressing `C-o` in vanilla Emacs executes `open-line` which opens up a new line above the current one. `M-o` is undefined, but it made sense to me that analogous to `C-o` it should also open up a new line. Since above the current line was already taken, `M-o` should open something up below the current line. However, it also made sense to me that it should do something with the previous data. This part is confusing it retrospect. However, when filling out resource blocks this aspect can save some time and ease the standardization of language used across different concept maps, making them more easily compared.
 
 You need a way to insert text both within blocks and between blocks. For relationship blocks insertions between blocks are more useful than insertions within the blocks, while within resource blocks it's the opposite. We've found that in resource blocks, the different attribute groups take a far more prominent role, atleast when getting your ideas down initially. This tension challenges the desirable goal of following the principle of least surprise.  To minimize that tension, you sometimes need to press `C-u` first in relationship blocks to get similar behavior as you would see in resource blocks.
 
@@ -423,7 +425,7 @@ If you are on an attribute keyword, you can press `C-<down>` and it will move yo
 
 It can be very convenient to use (e.g. tempel or tempo) templates to insert *resource blocks*. In my `init.el` configuration file I have bound the following tempel configuration for concept maps.
 
-```
+```elisp
 (defun tempel-setup-capf ()
   (setq-local completion-at-point-functions
               (cons #'tempel-expand completion-at-point-functions))
@@ -449,15 +451,15 @@ Reorganizing existing attribute groups, or expository data lines can be done wit
 * reverse ordering (`C-c C-r`)
 * random shuffling (`C-c M-r`)
 
-The point of all this functionality is to implement a canonical ordering of the whole concept map. With such an ordering, it becomes feasible to get a clear diff of two variants from nearly the same concept map without a lot of syntactic differences which mask the vastly more important semantically meaningful changes. Remember, the whole point of investing in concept mapping is to engage in and share meaningful learning!
+The point of all this functionality is to implement a canonical ordering for a whole concept map. With such an ordering, it becomes feasible to get a clear diff between two variants of nearly the same concept map. This avoids the problem of meaningless reorganization tasks masking vastly more important meaningful changes. Remember, the whole point of investing in concept mapping is to engage in and share meaningful learning! Canonical sorting is a crucial step towards this goal.
 
-Why then is there a random shuffling feature? One use case for that is to test that the canonical sorting procedures work as intended no matter what. There are a lot of situations to test, and in the beginning it will be hard to know which situations are more important to check. Thus, it's pretty useful to simulate a lot of situations randomly to see if there are edge cases which haven't been covered yet.
+Why then is there a random shuffling feature? One use case for shuffling the conceptual elements in a concept map is to test that the canonical sorting procedures work as intended no matter what. There are a lot of situations to test, and in the beginning it will be hard to know which situations are more important to check. Thus, it's pretty useful to simulate a lot of situations randomly to see if there are edge cases which haven't been covered yet.
 
 ## Identifying "smelly" ideas
 
 One way an idea can smell is if it cannot be canonically sorted. A major challenge to the notion of canonical sorting for concept maps is figuring out what to do with the following situation. Look at the snippet from our `example.map` concept map we have been discussing previously below. Note that under the current logic, a canonical sorting of the concept map by our current scheme is impossible. There is an ironclad guarantee that if we keep randomizing the concept map, eventually we will not be able to recover the same sorting, at least not with purely alphabetic sorting. The only potentially canonical sort we see is to first sort by resources alphabetically, and that only works if we can do a lexical sort, where we conditionally sort by alphabet, then length, and then we need to further sort on something else such as the length of the shortest or longest lines in the attribute data.
 
-```
+```concept
 ~ concepts
 | :include
 | objects
@@ -496,7 +498,7 @@ audio/*; mpv -- %s
 
 That is enough to tell `concept.el` how to open dynamic multimedia files with `mpv` in an external process. Otherwise, the Emacs MIME machinery will look at the Emacs variable `mailcap-user-mime-data`. Below is an example Emacs variable which tells Emacs how to open a video file with the `mpv` shell command.
 
-```
+```elisp
 (setopt mailcap-user-mime-data
         (list (list "mpv -- %s" "video/.*")))
 ```
@@ -539,7 +541,7 @@ concept;relationship;@group
 
 The subjects for those matches are:
 
-```
+```concept
 ~ things
 ~ relationships-between-mental-objects
 ~ relationship-blocks
@@ -591,7 +593,7 @@ This one only matches the one idea with a `derived-from:` keyword. The `$` means
 
 By pressing the `C-u` prefix before `C-c s` or `C-c C-s`, the search interface will show only the first match in the buffer. This variant is very useful for editing. As an example imagine that you are studying On the Origin of Species by Charles Darwin published in 1859 and thus in the public domain. You will naturally make a lot of references to the book as you read. In your haste to make note of all the interesting ideas in the book, you might leave off documenting the location of your book on your file system. This is precisely where the `C-u` prefix comes in handy. Consider the concept map fragment below:
 
-```
+```concept
 ~ mechanisms
 | :include
 | evolutionary-mechanisms
@@ -770,7 +772,7 @@ In the future it would be nice if this dependency on `consult.el` could be made 
 
 ### Defining what is a valid concept name
 
-I believe a valid concept name should be pretty flexible. I ask that it not start with a colon or one of the exposition line delimiters. Further, I ask that it not start with common beginning punctuation like parentheses (brackets are already covered!). I ask that it contain no spaces or widely used sigils like `@` or `~`. I ask that it not include common "ending" punctuation like parentheses, periods, semicolons, or colons. Further, I ask that it not end with any exposition line delimiters. That's it. Everything else should be a valid concept. This allows concepts to be readily inserted in lots of places including inside of exposition blocks and temporary template configuration blocks. What about `|`? I'm leaning on banning that and the beginning and the end as well. Obviously, it cannot contain newlines or tabs either.
+I believe a valid concept name should be pretty flexible. I ask that it not start with a colon or one of the exposition line delimiters. Further, I ask that it not start with common beginning punctuation like parentheses (brackets are already covered!) or anchor characters like `^` or `$` which are quite useful for interactive searching. I also ask that it contain no spaces or widely used sigils like `@` or `~`. I ask that it not include common "ending" punctuation like parentheses, periods, semicolons, or colons. Further, I ask that it not end with any exposition line delimiters. That's it. Everything else should be a valid concept. This allows concepts to be readily inserted in lots of places including inside of exposition blocks and temporary template configuration blocks. What about `|`? I'm leaning on banning that and the beginning and the end as well. Obviously, it cannot contain newlines or tabs either.
 
 This criterion gives the following regular expression:
 
@@ -802,7 +804,7 @@ I need to make network updating an optional feature that is disabled by default.
 
 I found a logic bug in my network updating code. When I took the `example.map` and split it such that I transformed:
 
-```
+```concept
 ~ concepts
 | :include
 | core-concepts
@@ -812,7 +814,7 @@ I found a logic bug in my network updating code. When I took the `example.map` a
 
 into:
 
-```
+```concept
 ~ concepts
 | :include
 | core-concepts
@@ -846,9 +848,9 @@ This approach makes a lot more sense, and so seems far more appropriate for solv
 
 I found that undoing this situation revealed another bug.
 
-Turning
+Turning this:
 
-```
+```concept
 ~ concepts
 | :include
 | core-concepts
@@ -858,9 +860,9 @@ Turning
 | defined-concepts
 ```
 
-into:
+into this:
 
-```
+```concept
 ~ concepts
 | :include
 | core-concepts
@@ -932,7 +934,7 @@ Thinking about names in a standard way would really help with merging two differ
 
 One frequent situation where being able to work better with concept names programmatically would really help is in filling out combinatorial relationships. Consider the following fragment from a concept map:
 
-```
+```concept
 ~ networks
 | :include
 | cyclic-networks
@@ -957,7 +959,7 @@ One frequent situation where being able to work better with concept names progra
 
 It would be convenient if `concept.el` provided a tool where you started with the first two ideas, and then generate the combinatorial ideas.
 
-```
+```concept
 ~ networks
 | :include
 | cyclic-networks
@@ -992,8 +994,8 @@ I have further extended this streak by making several template expansion helpers
 
 A:
 
-```
-| things
+```concept
+~ things
 | :include
 | single-things
 | multiple-things
@@ -1001,7 +1003,7 @@ A:
 
 B:
 
-```
+```concept
 ~ documents
 | :include
 | single-page-documents
@@ -1032,7 +1034,7 @@ The first two cases can be handled by a shared helper function, making their mai
 
 Consider the basic categorical expansion of combinatorial entities. For example, lets say we are trying to talk intelligibly about varieties of apples. Some of my favorite varieties of apples are Gala, Fuji, and Cosmic Crisp. The combinatorial expansion with "or" for the final-prefix:
 
-```
+```concept
 ~ apples
 | :include
 | gala-apples
@@ -1054,7 +1056,7 @@ Consider the basic categorical expansion of combinatorial entities. For example,
 
 Now consider combinatorial expansions of conceptual relationships by their definitions. For example, let's continue thinking about apples, but instead of considering them by their different varieties, let's consider them by the properties which characterize those different varieties. Both Gala and Fuji apple varieties, for example, are known for their sweet tastes, but Fuji apples are also known for their tangy flavor, while Cosmic apples are known more for their crispness.
 
-```
+```concept
 ~ apples
 | :include
 | apples-with-sweet-tastes
@@ -1081,7 +1083,7 @@ Now consider combinatorial expansions of conceptual relationships by their defin
 
 And think about this:
 
-```
+```concept
 ~ apples
 | :include
 | apples-characterized-by-taste
@@ -1128,7 +1130,7 @@ And think about this:
 
 An apple cannot be of multiple varieties simultaneously, so it seems that `"or"` is the only realistic `final-prefix` for it. However, many other categorized concepts are not of this kind. Consider butter. There are butters made from dairy products, and butters made from nondairy products. The former include butter from cows. The latter include butter from nuts. In all cases I am familiar with, these involve an intermediate product called milk, and butters are made from that. The most interesting properties about butter are it's texture, and it's taste. Texture, especially, but also taste to a lesser degree, are mediated by its thermodynamic state. The most easily manipulated thermodynamic state variable at home is it's temperature.
 
-```
+```concept
 ~ butters
 | :include
 | more-easily-spreadable-butters
@@ -1246,7 +1248,7 @@ For example:
 
 gives:
 
-```
+```concept
 ~ apples
 | :include
 | apples-and-cherries
@@ -1282,6 +1284,10 @@ Unique to network exploration, a single list of triples can handle pretty much a
 For combinatorial template expansions, what is needed is not lists of triples, but lists of phrases. However, in both situations there is still the need to stash groups holding repeatedly useful "queries". Unlike network search, where there is only single group of triples,  multiple groups of phrases can be active at any given time.
 
 In other situations, the order of groups matters, and in some of those situations, there is a limit to the number of groups which matter. The rest of the groups being considered inactive, but the ordering of the groups deciding whether or not a group is active. These are a separate idea from stashing. When the underlying data variable updates, it changes the ordering of the groups such that the prioritized variables come first followed by the stashed variables, ordered as in the original case.
+
+### Issues with bar overlays in Markdown-mode
+
+There is an issue with bar overlays when concept maps are embedded into markdown documents in Emacs. They get applied to the whole buffer, inside every verbatim block, whether or not that block is in concept-mode. This seems more like a problem with markdown-mode, but maybe there is something I can do about.
 
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
