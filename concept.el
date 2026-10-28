@@ -251,31 +251,31 @@
 
 (defface concept-subject
   '((t :inherit outline-1 :height 1.2 :weight normal))
-  "DEMO face for a heading.")
+  "Face for a focus concept starting a new relationship block..")
 
 (defface concept-object
   '((t :inherit default))
-  "DEMO face for a heading.")
+  "Face for a data concept in an relationship block.")
 
 (defface concept-feature
   '((t :inherit font-lock-string-face))
-  "DEMO face for a heading.")
+  "Face for an attribute group keyword.")
 
 (defface concept-thought
   '((t :inherit shadow))
-  "DEMO face for pipes.")
+  "Face for the beginning of an expository piece of data.")
 
 (defface concept-example
   '((t :inherit outline-2 :height 1.2 :weight normal))
-  "DEMO face for a heading.")
+  "Face for the beginning of a new resource block.")
 
 (defface concept-relationship
   '((t :inherit font-lock-constant-face))
-  "DEMO face for a heading.")
+  "Face for a keyword starting a new relationship group.")
 
 (defface concept-attribute
   '((t :inherit default))
-  "DEMO face for a heading.")
+  "Face for a piece of expository data.")
 
 ;; For face names, check `M-x list-faces-display'.
 (defconst concept-mode-font-lock-keywords
