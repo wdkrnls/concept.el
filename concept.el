@@ -2061,6 +2061,7 @@ concept in a relationship group where you already had another one
 previously. In that case the command inserts the next data concept and
 calls it the last data concept. Since this function is only used for
 interactive editing by a user, this makes sense."
+  ;; TODO: Document what ARG does.
   (interactive "P")
   (unless (or (concept-on-resource-line)
               (concept-on-attribute-line)
