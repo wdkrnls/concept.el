@@ -5184,7 +5184,8 @@ by this command in practice."
                        (forward-line)
                        (concept-on-relationship-line))
                  (forward-line)
-                 (kill-whole-line))))
+                 (kill-whole-line)))
+                 (end-of-line))
             ((and (concept-on-relationship-line)
                   (save-excursion
                     (forward-line)
