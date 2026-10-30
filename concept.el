@@ -26,26 +26,37 @@
 
 ;;; Commentary:
 
-;; `concept.el' provides a plain-text conceptual knowledge editor for Emacs. The
-;; theory of concept mapping it builds on top of is based on ideas from the
-;; psychologists David Ausibel and Joseph D. Novak. The latter building on top
-;; of the formers work studying how best cognitively to learn for understanding:
-;; what they call 'meaningful learning'. Novak, especially, focused on exploring
-;; how David Ausibel's ideas related to concept maps along with what he calls a
-;; Vee diagram, within which that concept map is considered as one small part.
+;; `concept.el' provides a plain-text conceptual knowledge editor for Emacs. In
+;; short, it allows users to construct concept maps. The theory of concept
+;; mapping it builds on top of is based on ideas from the psychologist David
+;; Ausibel and later Joseph D. Novak. The latter building on top of the former's
+;; work studying how best students can learn for understanding, as opposed to
+;; memorization: what they call 'Meaningful Learning'. Novak, in particular,
+;; focused his research in educational psychology on exploring how David
+;; Ausibel's ideas related to concept maps. He further investigated how concept
+;; maps fit wholistically into the overall educational process of learning a
+;; mathematical, technical or scientific discipline. Together with what he calls
+;; a "Vee" diagram, concept maps form the backbone of the verbal component of
+;; learning for understanding and mastery.
 ;;
 ;; Novak-style concept maps can be concstructed using the non-free program
-;; `cmaptools' (https://cmap.ihmc.us/cmaptools/). His maps focus exclusively on
-;; the visualizing relationships between abstract concepts. An editor with a
-;; traditional graphical user interface like cmaptools seeks only to create an
-;; informative diagram as a visual aid in an educational setting. The details
-;; which invite concept formation in the first place are left out. In Novak's
-;; conception of concept mapping, their use is limited to the reflective period
-;; of learning after consuming standard educational materials including
-;; Dr. Ausibel calls 'advanced organizers'. Note that the authors of
-;; `concept.el' have never used cmaptools. We are basing our assessment entirely
-;; off of the pictures we have seen of concept maps produced by that software
-;; and the discussions of concept maps contained in Novak's books and papers.
+;; `cmaptools' (https://cmap.ihmc.us/cmaptools/) his team developed. Maps
+;; created by `cmaptools' and similar graphics-first editors focus exclusively
+;; on developing visualizable summaries of the relationships between high level
+;; abstract concepts. The details which invite concept formation in the first
+;; place are left off the map.
+;;
+;; In Novak's conception of concept mapping, their use is limited to the
+;; reflective and consolidation period of learning after consuming standard
+;; educational materials including what Dr. Ausibel calls 'Advanced Organizers'
+;; which teach students new material in a way that relates it as tightly as
+;; possible with what the target audience already knows.
+;;
+;; Note that the authors of `concept.el' have never used `cmaptools'. We are
+;; basing our assessment of it entirely off of the pictures we have seen of
+;; concept maps produced by that software as well as the description of the
+;; concept maps included in Novak's books and papers such as "Learning how to
+;; Learn" (published in 1984).
 ;;
 ;; `concept.el' assumes a far wider role for concept maps that what most concept
 ;; map editors aspire to achieve. It sees concept mapping as more of an
