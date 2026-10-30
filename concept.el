@@ -296,7 +296,7 @@
     ("^\\(~\\) \\(.*\\)"
      (1 'concept-subject)
      (2 'concept-subject))
-    ("^\\(|\\) \\({.*}\\)"
+    ("^\\(|\\) \\({.*}\\|\\[.*\\]\\|‘.*’\\)"
      (1 'concept-thought)
      (2 'concept-attribute nil :lax-match))
     ("^| \\(.+:\\)"
