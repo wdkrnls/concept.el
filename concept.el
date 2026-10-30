@@ -5598,6 +5598,82 @@ This is a wrapper function useful for interactive usage."
      t)))
   (insert function))
 
+(defun concept-insert-emacs-command-name-at-point (function)
+  "Insert the name of a FUNCTION at point."
+  (interactive
+   (list
+    (completing-read
+     "Function: "
+     #'help--symbol-completion-table
+     (lambda (x) (and (fboundp x) (commandp (symbol-function x))))
+     t)))
+  (insert function))
+
+(defun concept-insert-environment-variable-name-at-point ()
+  "Insert the name of one of the existing environment variables at point."
+  (interactive)
+  (insert (call-interactively #'getenv)))
+
+(defun concept--list-path-executables ()
+  "Return unique executable names found in `exec-path'."
+  (let ((seen (make-hash-table :test 'equal))
+        names)
+    (dolist (dir exec-path)
+      (dolist (file (directory-files (or dir default-directory) nil))
+        (let ((path (expand-file-name file (or dir default-directory))))
+          (when (and (not (member file '("." "..")))
+                     (file-executable-p path)
+                     (not (gethash file seen)))
+            (puthash file t seen)
+            (push file names)))))
+    (sort names #'string<)))
+
+(defun concept--whatis-executable (executable)
+  (with-temp-buffer
+    (call-process "whatis" nil t nil executable)
+    (goto-char (point-min))
+    (when (re-search-forward " - " nil t)
+      (string-trim
+       (buffer-substring-no-properties (point) (line-end-position))))))
+
+(defun concept--shell-command-annotate (executable)
+  (when-let ((description (concept--whatis-executable executable)))
+    (concat
+     (propertize " " 'display '(space :align-to 32))
+     (propertize description 'face 'shadow))))
+
+(defun concept--shell-command-completion-table
+    (candidates string predicate action)
+  (if (eq action 'metadata)
+      '(metadata (category . shell-executable))
+    (complete-with-action action candidates string predicate)))
+
+(with-eval-after-load 'marginalia
+  (add-to-list 'marginalia-annotators
+               '(shell-executable concept--shell-command-annotate none)))
+
+(defun concept-insert-shell-command-name-at-point (executable)
+  "Insert the name of one of the existing shell commands at point."
+  (interactive
+   (let ((candidates (concept--list-path-executables)))
+     (list
+      (completing-read
+       "Executable: "
+       (apply-partially
+        #'concept--shell-command-completion-table candidates)
+       nil t))))
+  (insert executable))
+
+(defun concept-insert-shell-command-name-at-point (executable)
+  "Insert the name of one of the existing shell commands at point."
+  (interactive
+   (list
+    (completing-read
+     "Executable: "
+     (concept--list-path-executables)
+     nil t)))
+  (insert executable))
+
 (defun concept-insert-emacs-variable-name-at-point (variable)
   "Insert the name of a VARIABLE at point."
   (interactive
@@ -13469,6 +13545,15 @@ This is useful in conjunction with `concept-funcall-with-string-args'."
     ("Emacs Lisp"
      "Variable"
      concept-insert-emacs-variable-name-at-point)
+    ("Emacs Lisp"
+     "Command"
+     concept-insert-emacs-command-name-at-point)
+    ("UNIX Shell"
+     "Environment Variable"
+     concept-insert-environment-variable-name-at-point)
+    ("UNIX Shell"
+     "Executable Command"
+     concept-insert-shell-command-name-at-point)
     ("Concept Map"
      "Concept"
      concept-insert-concept-at-point))
