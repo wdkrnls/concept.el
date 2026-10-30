@@ -9430,8 +9430,10 @@ When EXPECT-PROMPT is not nil, place into comint mode."
   "Make a dictionary search and open it's buffer.
 Whether this works depends on if the dictionary.el package is installed."
   (if (package-installed-p 'dictionary)
-      (and (dictionary-search string)
-           (delete-other-windows))
+      (if (not (stringp string))
+          (message "The wrong data was passed to the function: %S" string)
+        (dictionary-search string)
+        (delete-other-windows))
     (message "The dictionary.el interface to rfc2229 dictionaries is not yet installed. Run (package-install 'dictionary) to install it!")))
 
 (defvar concept-playback-process-name-prefix
