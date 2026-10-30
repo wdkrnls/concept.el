@@ -13475,45 +13475,53 @@ interactive command."
   :type '(repeat sexp)
   :group 'convenience)
 
-(defvar concept-insert-at-point-command-menu-last-source nil
-  "Menu path of the last completion source used by the command menu.")
+(defvar concept-insert-at-point-command-menu-last-command nil
+  "Last command selected from `concept-insert-at-point-command-menu'.")
 
-(defun concept-insert-at-point-dwim ()
-  "Choose and run a command from `concept-insert-at-point-command-menu'."
-  (interactive)
-  (let ((prefix nil))
-    (catch 'done
-      (while t
-        (let* ((matching
-                (seq-filter
-                 (lambda (item)
-                   (equal prefix (seq-take item (length prefix))))
-                 concept-insert-at-point-command-menu))
-               (choices
-                (delete-dups
-                 (mapcar
-                  (lambda (item)
-                    (nth (length prefix) item))
+(defun concept-insert-at-point-dwim (repeat-last-command)
+  "Choose and run a command from `concept-insert-at-point-command-menu'.
+With a prefix argument, run the last command selected from the menu."
+  (interactive "P")
+  (if repeat-last-command
+      (if (commandp concept-insert-at-point-command-menu-last-command)
+          (call-interactively
+           concept-insert-at-point-command-menu-last-command)
+        (user-error "No command has been selected from the menu yet"))
+    (let ((path nil))
+      (catch 'done
+        (while t
+          (let* ((matching
                   (seq-filter
                    (lambda (item)
-                     (> (length item) (length prefix)))
-                   matching)))))
-          (unless choices
-            (user-error "No menu entries below %s" prefix))
-          (let* ((choice (completing-read "Choose: " choices nil t))
-                 (path (append prefix (list choice)))
-                 (command
-                  (seq-some
-                   (lambda (item)
-                     (and (equal path (butlast item))
-                          (car (last item))))
-                   concept-insert-at-point-command-menu)))
-            (setq prefix path)
-            (when command
-              (unless (commandp command)
-                (user-error "%S is not an interactive command" command))
-              (call-interactively command)
-              (throw 'done t))))))))
+                     (equal path (seq-take item (length path))))
+                   concept-insert-at-point-command-menu))
+                 (choices
+                  (delete-dups
+                   (mapcar
+                    (lambda (item) (nth (length path) item))
+                    (seq-filter
+                     (lambda (item)
+                       (> (length item) (length path)))
+                     matching)))))
+            (unless choices
+              (user-error "No menu entries below %s" path))
+            (let* ((choice (completing-read "Choose: " choices nil t))
+                   (new-path (append path (list choice)))
+                   (command
+                    (seq-some
+                     (lambda (item)
+                       (and (equal new-path (butlast item))
+                            (car (last item))))
+                     concept-insert-at-point-command-menu)))
+              (if command
+                  (progn
+                    (unless (commandp command)
+                      (user-error "%S is not an interactive command" command))
+                    (setq concept-insert-at-point-command-menu-last-command
+                          command)
+                    (call-interactively command)
+                    (throw 'done t))
+                (setq path new-path)))))))))
 
 (defun concept-do-nothing ()
   (interactive)
