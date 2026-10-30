@@ -5567,6 +5567,28 @@ This is a wrapper function useful for interactive usage."
   (when (concept-on-relationship-line)
     (concept-change-relationship)))
 
+(defun concept-insert-elisp-function-name-at-point (function)
+  "Insert the name of a FUNCTION at point."
+  (interactive
+   (list
+    (completing-read
+     "Function: "
+     #'help--symbol-completion-table
+     #'fboundp
+     t)))
+  (insert function))
+
+(defun concept-insert-emacs-variable-name-at-point (variable)
+  "Insert the name of a VARIABLE at point."
+  (interactive
+   (list
+    (completing-read
+     "Variable: "
+     #'help--symbol-completion-table
+     #'boundp
+     t)))
+  (insert variable))
+
 (defun concept-change-dwim ()
   "Change the thing at point."
   (interactive)
