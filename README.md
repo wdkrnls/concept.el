@@ -1291,6 +1291,10 @@ In other situations, the order of groups matters, and in some of those situation
 
 There is an issue with bar overlays when concept maps are embedded into markdown documents in Emacs. They get applied to the whole buffer, inside every verbatim block, whether or not that block is in concept-mode. This seems more like a problem with markdown-mode, but maybe there is something I can do about.
 
+### Issues with followable overlays
+
+I have noticed a intermittent but frequent performance bug when moving back and forth between the end of the buffer and the top of the buffer. From profiling, this appears to be related to `concept-show-followable-refresh-overlays`.
+
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
 <!-- End: -->
