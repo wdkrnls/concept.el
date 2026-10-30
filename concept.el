@@ -2661,7 +2661,9 @@ relationship has a colon at the beginning of the statement."
       (when (concept-on-relationship-line)
         (concept-cycle-relationships))
       (when (concept-on-exposition-line)
-        (concept-cycle-expression-brackets)))))
+        (concept-cycle-expression-brackets)
+        (end-of-line)
+        (backward-char)))))
 
 (defun concept--count-hyphens-per-string (strings)
   "Return a list containing the number of hyphens in each string in STRINGS."
