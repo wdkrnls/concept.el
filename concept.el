@@ -5780,13 +5780,13 @@ This is a wrapper function useful for interactive usage."
 (defun concept-goto-next-exposition ()
   "Navigate forward until the next resource line"
   (interactive)
-  (when (not (eobp))
-    (forward-line))
-  (beginning-of-line)
-  (while (and (not (eobp))
-              (not (concept-on-exposition-line)))
-    (forward-line))
-  (end-of-line))
+  (end-of-line)
+  (if (concept-map-has-more-exposition-lines)
+      (progn
+        (re-search-forward "^| [[{‘]")
+        (end-of-line)
+        (backward-char))
+    (goto-char (point-max))))
 
 (defun concept-goto-next-thing ()
   "Navigate forward until the next thing like the current thing."
