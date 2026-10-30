@@ -13468,21 +13468,25 @@ This is useful in conjunction with `concept-funcall-with-string-args'."
      concept-insert-elisp-function-name-at-point)
     ("Emacs Lisp"
      "Variable"
-     concept-insert-emacs-variable-name-at-point))
+     concept-insert-emacs-variable-name-at-point)
+    ("Concept Map"
+     "Concept"
+     concept-insert-concept-at-point))
   "Menu paths and commands for `concept-insert-at-point-dwim'.
 Each entry is a list of menu-label strings followed by an
 interactive command."
   :type '(repeat sexp)
   :group 'convenience)
 
-(defvar concept-insert-at-point-command-menu-last-command nil
+(defvar concept-insert-at-point-command-menu-last-command
+  #'concept-insert-concept-at-point
   "Last command selected from `concept-insert-at-point-command-menu'.")
 
-(defun concept-insert-at-point-dwim (repeat-last-command)
+(defun concept-insert-at-point-dwim (dont-repeat-last-command)
   "Choose and run a command from `concept-insert-at-point-command-menu'.
-With a prefix argument, run the last command selected from the menu."
+Without a prefix argument, run the last command selected from the menu."
   (interactive "P")
-  (if repeat-last-command
+  (if (not dont-repeat-last-command)
       (if (commandp concept-insert-at-point-command-menu-last-command)
           (call-interactively
            concept-insert-at-point-command-menu-last-command)
