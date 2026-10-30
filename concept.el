@@ -5060,7 +5060,8 @@ Choose the new concept from initially ordered list of all concepts."
                   nil t current)))
       (when (< 0 (length pick))
         (beginning-of-line)
-        (forward-char 1)
+        (skip-syntax-forward " ")
+        (forward-char)
         (unless (or (equal (point) (line-end-position))
                     (equal (point) (- (line-end-position) 1)))
           (kill-line))
@@ -5068,6 +5069,7 @@ Choose the new concept from initially ordered list of all concepts."
         (insert pick)
         (when (looking-at "~")
           (insert "\n"))
+        (end-of-line)
         (delete-horizontal-space)))))
 
 (defun concept-kill-concept-at-point ()
