@@ -5665,16 +5665,6 @@ This is a wrapper function useful for interactive usage."
        nil t))))
   (insert executable))
 
-(defun concept-insert-shell-command-name-at-point (executable)
-  "Insert the name of one of the existing shell commands at point."
-  (interactive
-   (list
-    (completing-read
-     "Executable: "
-     (concept--list-path-executables)
-     nil t)))
-  (insert executable))
-
 (defun concept-insert-emacs-variable-name-at-point (variable)
   "Insert the name of a VARIABLE at point."
   (interactive
