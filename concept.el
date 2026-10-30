@@ -5125,6 +5125,20 @@ Choose the new concept from initially ordered list of all concepts."
         (concept-kill-concept-at-point))
       (insert pick))))
 
+(defun concept-insert-concept-at-point ()
+  "Insert an existing concept at point.
+
+Choose the new concept from the ordered list of all concepts."
+  (interactive)
+  (let* ((choices (concept-find-all-concepts))
+         (vertico-sort-function nil)
+         (pick (completing-read
+                "Concept: "
+                choices
+                nil t)))
+    (when (< 0 (length pick))
+      (insert pick))))
+
 (defun concept-change-exposition ()
   "Replace the current data with other data with the same attribute elsewhere."
   (interactive)
@@ -6965,7 +6979,10 @@ Place each relationship into its own block."
               (concept-insert-next-concept-as-focus k))
           (if (concept-on-last-concept)
               (concept-insert-last-concept-as-new k)
-            (concept-insert-next-concept-as-data-2 k))))))
+            (concept-insert-next-concept-as-data-2 k)))
+      (when (and (concept-on-exposition-line)
+                 (concept-inside-delimiters-p))
+        (concept-insert-concept-at-point)))))
 
 (defun concept-split-dwim ()
   "Split blocks up into two."
