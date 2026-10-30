@@ -13433,6 +13433,59 @@ This is useful in conjunction with `concept-funcall-with-string-args'."
           (end (cdr reg)))
       (buffer-substring-no-properties beg end))))
 
+(defcustom concept-insert-at-point-command-menu
+  '(("Emacs Lisp"
+     "Function"
+     concept-insert-elisp-function-name-at-point)
+    ("Emacs Lisp"
+     "Variable"
+     concept-insert-emacs-variable-name-at-point))
+  "Menu paths and commands for `concept-insert-at-point-dwim'.
+Each entry is a list of menu-label strings followed by an
+interactive command."
+  :type '(repeat sexp)
+  :group 'convenience)
+
+(defvar concept-insert-at-point-command-menu-last-source nil
+  "Menu path of the last completion source used by the command menu.")
+
+(defun concept-insert-at-point-dwim ()
+  "Choose and run a command from `concept-insert-at-point-command-menu'."
+  (interactive)
+  (let ((prefix nil))
+    (catch 'done
+      (while t
+        (let* ((matching
+                (seq-filter
+                 (lambda (item)
+                   (equal prefix (seq-take item (length prefix))))
+                 concept-insert-at-point-command-menu))
+               (choices
+                (delete-dups
+                 (mapcar
+                  (lambda (item)
+                    (nth (length prefix) item))
+                  (seq-filter
+                   (lambda (item)
+                     (> (length item) (length prefix)))
+                   matching)))))
+          (unless choices
+            (user-error "No menu entries below %s" prefix))
+          (let* ((choice (completing-read "Choose: " choices nil t))
+                 (path (append prefix (list choice)))
+                 (command
+                  (seq-some
+                   (lambda (item)
+                     (and (equal path (butlast item))
+                          (car (last item))))
+                   concept-insert-at-point-command-menu)))
+            (setq prefix path)
+            (when command
+              (unless (commandp command)
+                (user-error "%S is not an interactive command" command))
+              (call-interactively command)
+              (throw 'done t))))))))
+
 (defun concept-do-nothing ()
   (interactive)
   (message "Nothing was done because the common behavior of this keybinding is a bad idea in concept maps.")
@@ -13518,5 +13571,7 @@ This is useful in conjunction with `concept-funcall-with-string-args'."
 (define-key concept-mode-map (kbd "C-c M-f")     #'concept-show-followable-mode)
 (define-key concept-mode-map (kbd "C-c M-t")     #'concept-enter-new-tempel-template)
 (define-key concept-mode-map (kbd "C-M-h")       #'concept-mark-block)
+(define-key concept-mode-map (kbd "C-c .")       #'concept-insert-at-point-dwim)
+
 (provide 'concept)
 ;;; concept.el ends here
