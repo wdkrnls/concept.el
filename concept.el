@@ -6346,23 +6346,24 @@ See also `concept-current-delimiter'."
         (goto-char beg)
         (when (not (concept-on-exposition-line))
           (concept-goto-next-exposition))
-        (beginning-of-line)
-        (while (< (point) end)
-          (when-let ((bounds (concept-show-followable-region-on-line)))
-            (let* ((overlay (make-overlay (car bounds) (cdr bounds)))
-                   (keyword (concept-current-attribute))
-                   (face    (cdr (assoc keyword concept-show-followable-keywords))))
-              (when face
-                (pcase face
-                  ('link
-                   (overlay-put overlay 'face '(:underline t))
-                   (overlay-put overlay 'mouse-face 'highlight))
-                  ('box
-                   (overlay-put overlay 'face 'concept-region-box)
-                   (overlay-put overlay 'mouse-face 'highlight)))
-                (overlay-put overlay 'evaporate t)
-                (push overlay concept-show-followable-overlays))))
-          (concept-goto-next-exposition))))))
+        (when (< (point) end)
+          (beginning-of-line)
+          (while (< (point) end)
+            (when-let ((bounds (concept-show-followable-region-on-line)))
+              (let* ((overlay (make-overlay (car bounds) (cdr bounds)))
+                     (keyword (concept-current-attribute))
+                     (face    (cdr (assoc keyword concept-show-followable-keywords))))
+                (when face
+                  (pcase face
+                    ('link
+                     (overlay-put overlay 'face '(:underline t))
+                     (overlay-put overlay 'mouse-face 'highlight))
+                    ('box
+                     (overlay-put overlay 'face 'concept-region-box)
+                     (overlay-put overlay 'mouse-face 'highlight)))
+                  (overlay-put overlay 'evaporate t)
+                  (push overlay concept-show-followable-overlays))))
+            (concept-goto-next-exposition)))))))
 
 (defvar-local concept-show-followable-last-visible-range nil)
 
