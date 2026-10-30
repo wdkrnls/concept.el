@@ -6332,6 +6332,8 @@ See also `concept-current-delimiter'."
 
 (defun concept-show-followable-refresh-overlays ()
   "Underline followable delimited regions visible in the selected window."
+  ;; TODO: This seems to be causing a big slowdown when moving from the bottom
+  ;;       of the buffer to the top of the buffer.
   (interactive)
   (let* ((window (selected-window))
          (buffer (window-buffer window))
