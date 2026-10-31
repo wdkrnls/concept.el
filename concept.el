@@ -2732,6 +2732,16 @@ enumerate the relationships."
            objects
            "\n| ")))
 
+(defun concept-expand-list-relationships-harness (data)
+  "Template harness around `concept-expand-list-relationships'."
+  (let* ((args (concept-funcall-with-string-args #'list data))
+         (n    (length args)))
+    (if (< n 3)
+        (format "Please supply 3 or more arguments! Only %d have been supplied so far." n)
+      (concept-funcall-with-string-args
+       #'concept-expand-list-relationships
+       data))))
+
 (defun concept-expand-feature-relationships (concept relationship &rest features)
   "Construct a relationship block with FEATURES of a CONCEPT.
 Given the concept `cats', this makes relationship blocks holding
@@ -3096,6 +3106,16 @@ passing in scientific laws such as: `zeroth-laws-of-thermodynamics'."
                       subject))))
         idx
         "\n")))))
+
+(defun concept-expand-ordered-relationships-harness (data)
+  "Helper function for building a tempel template for ordered lists given DATA."
+  (let* ((args (concept-funcall-with-string-args #'list data))
+         (n    (length args)))
+    (if (< n 1)
+        (format "Please supply 1 or more arguments! Only %d have been supplied so far." n)
+      (concept-funcall-with-string-args
+       #'concept-expand-ordered-relationships
+       data))))
 
 (defun concept-expand-sibling-relationships (parent subject relationship &rest objects)
   "Construct a relationship block with shared PARENT and RELATIONSHIP, a
