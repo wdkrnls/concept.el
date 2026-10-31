@@ -3028,11 +3028,13 @@ These apply to numbers with values greater than or equal to: (exp 10 (*
   "Pad a number with leading zeros to keep the same length string."
   (format (format "%%0%dd" width) number))
 
-(defun concept-expand-ordered-relationships (subject relationship &optional category from count width roman word rank)
+(defun concept-expand-ordered-relationships (subject &optional relationship category from count width roman word rank)
   "Construct a relationship block with ordered subjects.
-The focus concept is SUBJECT. The relationship is RELATIONSHIP. An
-optional category can be included as well. The category is useful for
-situations like: `type-II-civilizations' on the Kardashev scale.
+The focus concept is SUBJECT. The relationship is RELATIONSHIP, which is
+optional and will be `include' if not supplied. An optional CATEGORY can
+be included as well which puts a prefix on the on generated data
+concepts. The CATEGORY variable is useful for situations like:
+`type-II-civilizations' on the Kardashev scale. Here CATEGORY is `type'.
 
 This supports the most common ways of expressing numbers in English (and
 Roman). Passing ROMAN will make roman numbers. Passing WORD will
@@ -3044,6 +3046,8 @@ a positive integer. This can be useful when preserving order in lists
 with more than 10 elements. Counting begins at 1 by default, unless FROM
 is supplied another non-negative number like 0. This is useful for
 passing in scientific laws such as: `zeroth-laws-of-thermodynamics'."
+  (when (null relationship)
+    (setq relationship "include"))
   (when (and roman word)
     (user-error "Cannot specify both words and roman numerals at the same time!"))
   (when (and roman rank)
@@ -3087,7 +3091,7 @@ passing in scientific laws such as: `zeroth-laws-of-thermodynamics'."
               (format "| %s-%s"
                       category
                       (cond (roman (concept-number-to-roman i))
-                            (word (concept-number-to-english i))
+                            (word  (concept-number-to-english i))
                             (t (concept--pad-number i width)))
                       subject))))
         idx
