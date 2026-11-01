@@ -13658,7 +13658,11 @@ Without a prefix argument, run the last command selected from the menu."
                       (user-error "%S is not an interactive command" command))
                     (setq concept-insert-at-point-command-menu-last-command
                           command)
-                    (call-interactively command)
+                    (when (or (and (concept-in-relationship-block)
+                                   (not (concept-on-relationship-line)))
+                              (and (concept-on-exposition-line)
+                                   (concept-inside-delimiters-p)))
+                      (call-interactively command))
                     (throw 'done t))
                 (setq path new-path)))))))))
 
