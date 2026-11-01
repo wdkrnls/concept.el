@@ -150,7 +150,6 @@
 ;; understanding, and all of them are in scope for `concept.el'. However,
 ;; memorization is not in scope. Use another tool for that.
 ;;
-;;
 ;; Other kinds of data are relevant when naming more complicated concepts. In
 ;; general, names for concepts, as far as `concept.el' is concerned, have three
 ;; parts: categories, core concepts, and definitions. All three can be
