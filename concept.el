@@ -2245,11 +2245,11 @@ place."
          (backward-sexp)
          (kill-line))))
   
-(defun concept-kill-dwim ()
+(defun concept-kill-dwim (arg)
   "Kill whole concept map elements.
 When you don't want to kill the whole concept map element, call
 `concept-kill-data-dwim' instead."
-  (interactive)
+  (interactive "P")
   (when (derived-mode-p 'concept-mode)
     (cond ((concept-on-focus-line)
            (kill-region (line-beginning-position) (save-excursion (outline-end-of-subtree) (point)))
@@ -2260,7 +2260,11 @@ When you don't want to kill the whole concept map element, call
            (previous-line)
            (end-of-line))
           ((concept-on-data-concept-line)
-           (kill-whole-line)
+           (if arg
+               (progn
+                 (while (concept-on-data-concept-line)
+                   (kill-whole-line)))
+             (kill-whole-line))
            (when (not (concept-on-data-concept-line))
              (previous-line))
            (end-of-line))
@@ -2280,7 +2284,10 @@ When you don't want to kill the whole concept map element, call
                  (goto-char resource-line-end)))
            (end-of-line))
           ((concept-on-exposition-line)
-           (kill-whole-line)
+           (if arg
+               (while (concept-on-exposition-line)
+                 (kill-whole-line))
+             (kill-whole-line))
            (if (and (concept-on-exposition-line)
                     (save-excursion
                       (previous-line)
