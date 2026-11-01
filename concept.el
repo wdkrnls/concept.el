@@ -4740,7 +4740,8 @@ A resource line starts with an `@' symbol."
   "Test if the current line is a relationship line."
   (and (not (concept-on-exposition-line))
        (let ((line (concept-current-line)))
-         (string-match-p "^| +:[^: ]+" line))))
+         (or (string-match-p "^| +:$" line)
+             (string-match-p "^| +:[^: ]+" line)))))
 
 (defun concept-on-attribute-line ()
   "Test if the current line is an attribute line.
