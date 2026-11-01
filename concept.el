@@ -5571,7 +5571,8 @@ Choose the new relationship from initially ordered list of all relationships."
       (when (< 0 (length pick))
         (beginning-of-line)
         (re-search-forward ":" nil t)
-        (kill-line)
+        (when (not (looking-at " *$"))
+          (kill-line))
         (insert pick)))))
 
 (defun concept-change-attribute ()
