@@ -1295,6 +1295,10 @@ There is an issue with bar overlays when concept maps are embedded into markdown
 
 I have noticed a intermittent but frequent performance bug when moving back and forth between the end of the buffer and the top of the buffer. From profiling, this appears to be related to `concept-show-followable-refresh-overlays`.
 
+### Inserting multiple completion candidates at a time
+
+When forming relationship blocks it can be useful to insert all of the remaining completion candidates as new data concepts in the current relationship block. I implemented a way to do that when inside a vertico-enabled minibuffer. However, maybe there is also a way to do this without vertico as well? Look into it!
+
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
 <!-- End: -->
