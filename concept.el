@@ -5639,6 +5639,59 @@ This is a wrapper function useful for interactive usage."
   (when (concept-on-relationship-line)
     (concept-change-relationship)))
 
+(defun concept-paste-matches-as-data (only-unique)
+  "Paste data on the kill ring intelligently into a concept map."
+  (interactive "P")
+  (when (derived-mode-p 'concept-mode)
+    (let ((as-concepts (concept-in-relationship-block))
+          (buffer (current-buffer)))
+      (let ((matches
+             (with-temp-buffer
+               (yank-pop)
+               (buffer-string))))
+        (insert
+         (mapconcat
+          (if as-concepts
+              (lambda (match)
+                (downcase (replace-regexp-in-string " +" "-" match)))
+            (lambda (match)
+              (let ((delims (concept-pick-needed-data-delimiters match)))
+                (with-temp-buffer
+                  (insert delims)
+                  (backward-char)
+                  (insert match)
+                  (buffer-string)))))
+          (let ((data (split-string matches "\n" t "[\n\t ]+")))
+            (if only-unique (delete-dups data) data))
+          "\n| "))))))
+
+(defun concept-isearch-copy-all-matches ()
+  "End isearch and copy all matches of its current search.
+
+This places the data on the kill ring separated by new lines."
+  (interactive)
+  (let ((query isearch-string)
+        (regexp isearch-regexp)
+        (case-fold-search isearch-case-fold-search)
+        matches)
+    (isearch-done)
+    (unless (string-empty-p query)
+      (save-excursion
+        (goto-char (point-min))
+        (while (if regexp
+                   (re-search-forward query nil t)
+                 (search-forward query nil t))
+          (push (match-string-no-properties 0) matches)))
+      (if matches
+          (progn
+            (kill-new
+             (mapconcat
+              #'identity
+              (nreverse matches)
+              "\n"))
+            (message "Copied %d matches" (length matches)))
+        (message "No matches")))))
+
 (defun concept-vertico-insert-current-candidates ()
   "Replace text before the original point with Vertico's remaining candidates.
 
