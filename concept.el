@@ -230,6 +230,7 @@
 
 (require 'seq)
 (require 'subr-x)
+(require 'help-fns)
 (require 'outline)
 (require 'peg)
 (require 'consult)
