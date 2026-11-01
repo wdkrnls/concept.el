@@ -5366,6 +5366,17 @@ by this command in practice."
                       (concept-on-last-line-in-block-p)))
              (concept-on-relationship-line))
          (concept-slurp-next-concept))
+        ((and (concept-on-data-concept-line)
+              (save-excursion
+                (forward-line)
+                (concept-on-data-concept-line)))
+         (end-of-line)
+         (let ((beg (point)))
+           (skip-chars-forward "\n| ")
+           (delete-region beg (point)))
+         (insert "-")
+         (end-of-line)
+         (skip-chars-backward " \t"))
         ((and (concept-on-exposition-line)
               (save-excursion
                 (forward-line)
