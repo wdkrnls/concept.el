@@ -5367,6 +5367,19 @@ by this command in practice."
              (concept-on-relationship-line))
          (concept-slurp-next-concept))
         ((and (concept-on-exposition-line)
+              (save-excursion
+                (forward-line)
+                (concept-on-exposition-line)))
+         (end-of-line)
+         (skip-syntax-backward " ")
+         (backward-char)
+         (delete-region
+          (point)
+          (save-excursion
+            (skip-chars-forward "|}{][‘’\n ")
+            (point)))
+         (insert " "))
+        ((and (concept-on-exposition-line)
               (concept-on-last-line-in-block-p))
          (concept-slurp-next-resource))
         ((and (concept-on-exposition-line)
