@@ -5652,27 +5652,27 @@ This is intended to enter multiple data concepts at the same time."
   (interactive
    (list
     (completing-read
-     "Function: "
+     "Call: "
      #'help--symbol-completion-table
      #'fboundp
      t)))
-  (insert function))
+  (insert function "-calls"))
 
 (defun concept-insert-emacs-command-name-at-point (function)
   "Insert the name of a FUNCTION at point."
   (interactive
    (list
     (completing-read
-     "Function: "
+     "Command: "
      #'help--symbol-completion-table
      (lambda (x) (and (fboundp x) (commandp (symbol-function x))))
      t)))
-  (insert function))
+  (insert function "-commands"))
 
 (defun concept-insert-environment-variable-name-at-point ()
   "Insert the name of one of the existing environment variables at point."
   (interactive)
-  (insert (call-interactively #'getenv)))
+  (insert (call-interactively #'getenv) "-environment-variables"))
 
 (defun concept--list-path-executables ()
   "Return unique executable names found in `exec-path'."
@@ -5718,11 +5718,11 @@ This is intended to enter multiple data concepts at the same time."
    (let ((candidates (concept--list-path-executables)))
      (list
       (completing-read
-       "Executable: "
+       "Shell Command: "
        (apply-partially
         #'concept--shell-command-completion-table candidates)
        nil t))))
-  (insert executable))
+  (insert executable "-shell-commands"))
 
 (defun concept-insert-emacs-variable-name-at-point (variable)
   "Insert the name of a VARIABLE at point."
@@ -5733,7 +5733,7 @@ This is intended to enter multiple data concepts at the same time."
      #'help--symbol-completion-table
      #'boundp
      t)))
-  (insert variable))
+  (insert variable "-variables"))
 
 (defun concept-change-dwim ()
   "Change the thing at point."
