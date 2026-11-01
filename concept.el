@@ -5697,7 +5697,7 @@ This is intended to enter multiple data concepts at the same time."
        (buffer-substring-no-properties (point) (line-end-position))))))
 
 (defun concept--shell-command-annotate (executable)
-  (when-let ((description (concept--whatis-executable executable)))
+  (when-let* ((description (concept--whatis-executable executable)))
     (concat
      (propertize " " 'display '(space :align-to 32))
      (propertize description 'face 'shadow))))
@@ -6490,7 +6490,7 @@ See also `concept-current-delimiter'."
         (when (< (point) end)
           (beginning-of-line)
           (while (< (point) end)
-            (when-let ((bounds (concept-show-followable-region-on-line)))
+            (when-let* ((bounds (concept-show-followable-region-on-line)))
               (let* ((overlay (make-overlay (car bounds) (cdr bounds)))
                      (keyword (concept-current-attribute))
                      (face    (cdr (assoc keyword concept-show-followable-keywords))))
@@ -7546,7 +7546,7 @@ simple."
                       (and (not (string= word fragment))
                            (string-prefix-p fragment word)))
                     (concept-find-all-concept-words)))))))
-    (when-let ((candidate (pop concept-he-candidates-cache)))
+    (when-let* ((candidate (pop concept-he-candidates-cache)))
       (he-substitute-string candidate)
       t)))
 
@@ -9033,11 +9033,11 @@ The query `old\;@new' matches all query blocks with old but not new terms.
                  :require-match t
                  :state (lambda (action cand)
                           (when (eq action 'preview)
-                            (when-let ((pos (cdr (assoc cand alist))))
+                            (when-let* ((pos (cdr (assoc cand alist))))
                               (with-current-buffer buf
                                 (goto-char pos)
                                 (concept--show-preview-line pos))))))))
-          (when-let ((pos (cdr (assoc choice alist))))
+          (when-let* ((pos (cdr (assoc choice alist))))
             (with-current-buffer buf
               (goto-char pos)
               (save-restriction
@@ -9066,11 +9066,11 @@ The query `old\;@new' matches all query blocks with old but not new terms.
                  :require-match t
                  :state (lambda (action cand)
                           (when (eq action 'preview)
-                            (when-let ((pos (cdr (assoc cand alist))))
+                            (when-let* ((pos (cdr (assoc cand alist))))
                               (with-current-buffer buf
                                 (goto-char pos)
                                 (concept--show-preview-line pos))))))))
-          (when-let ((pos (cdr (assoc choice alist))))
+          (when-let* ((pos (cdr (assoc choice alist))))
             (with-current-buffer buf
               (goto-char pos)
               (save-restriction
@@ -9998,7 +9998,7 @@ modifying `mailcap-user-mime-data'."
 (defun concept-copy-current-file-path ()
   "Copy the current buffer's file path to the kill ring."
   (interactive)
-  (if-let ((file (buffer-file-name)))
+  (if-let* ((file (buffer-file-name)))
       (progn
         (kill-new (expand-file-name file))
         (when (called-interactively-p)
@@ -13362,7 +13362,7 @@ relationship block."
 
 (defun concept-get-temporary-block-region-before-current-line ()
   "Push back by a line the current temporary block region."
-  (when-let ((reg (concept-get-temporary-block-region)))
+  (when-let* ((reg (concept-get-temporary-block-region)))
     (let ((beg (car reg))
           (end (cdr reg)))
     (save-excursion
@@ -13415,12 +13415,12 @@ along with it."
           (concept-activate-temporary-block-region)
         (concept-mark-idea))
     (cond ((concept-in-relationship-block)
-           (when-let ((reg (concept-find-relationship-block-extent t)))
+           (when-let* ((reg (concept-find-relationship-block-extent t)))
              (goto-char (car reg))
              (set-mark (cdr reg))
              (activate-mark)))
           ((concept-in-resource-block)
-           (when-let ((reg (concept-find-resource-block-extent t)))
+           (when-let* ((reg (concept-find-resource-block-extent t)))
              (goto-char (car reg))
              (set-mark (cdr reg))
              (activate-mark)))
@@ -13468,13 +13468,13 @@ This only works if called within a resource block."
 (defun concept-goto-last-line-in-temporary-block ()
   "Move point to the last line of a temporary block.
 This only works if inside a temporary configuration block already."
-  (when-let ((reg (concept-get-temporary-block-region)))
+  (when-let* ((reg (concept-get-temporary-block-region)))
     (goto-char (cdr reg))))
 
 (defun concept-goto-first-line-in-temporary-block ()
   "Move point to the first line of a temporary block.
 This only works if inside a temporary configuration block already."
-  (when-let ((reg (concept-get-temporary-block-region)))
+  (when-let* ((reg (concept-get-temporary-block-region)))
     (goto-char (car reg))))
 
 (defun concept-goto-last-line-in-block ()
@@ -13490,7 +13490,7 @@ This only works if inside a temporary configuration block already."
   "Navigate to the next boundary between relationship, resource, or temporary blocks."
   ;; TODO: this might now be obsolete.
   (if (concept-in-temporary-block)
-      (when-let ((reg (concept-get-temporary-block-region)))
+      (when-let* ((reg (concept-get-temporary-block-region)))
         (goto-char (1+ (cdr reg))))
     (if (concept-on-last-line-in-block-p)
         (if (looking-at " *$")
@@ -13504,7 +13504,7 @@ This only works if inside a temporary configuration block already."
 (defun concept-goto-previous-block-boundary ()
   "Navigate to the previous boundary between relationship, resource, or temporary blocks."
   (if (concept-in-temporary-block)
-      (when-let ((reg (concept-get-temporary-block-region)))
+      (when-let* ((reg (concept-get-temporary-block-region)))
         (goto-char (1- (car reg))))
     (beginning-of-line)
     (outline-previous-heading)
