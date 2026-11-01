@@ -5674,6 +5674,18 @@ This is intended to enter multiple data concepts at the same time."
      t)))
   (insert function "-calls"))
 
+
+(defun concept-insert-emacs-face-name-at-point (face)
+  "Insert the name of a FACE at point."
+  (interactive
+   (list
+    (completing-read
+     "Face: "
+     (mapcar #'symbol-name (face-list))
+     #'facep
+     t)))
+  (insert face "-faces"))
+
 (defun concept-insert-emacs-command-name-at-point (function)
   "Insert the name of a FUNCTION at point."
   (interactive
@@ -13615,6 +13627,9 @@ This is useful in conjunction with `concept-funcall-with-string-args'."
     ("Emacs Lisp"
      "Command"
      concept-insert-emacs-command-name-at-point)
+    ("Emacs Lisp"
+     "Face"
+     concept-insert-emacs-face-name-at-point)
     ("UNIX Shell"
      "Environment Variable"
      concept-insert-environment-variable-name-at-point)
