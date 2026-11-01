@@ -28,16 +28,17 @@
 
 ;; `concept.el' provides a plain-text conceptual knowledge editor for Emacs. In
 ;; short, it allows users to construct concept maps. The theory of concept
-;; mapping it builds on top of is based on ideas from the psychologist David
-;; Ausibel and later Joseph D. Novak. The latter building on top of the former's
-;; work studying how best students can learn for understanding, as opposed to
+;; mapping it builds on top of is based on ideas from the psychologists David
+;; Ausibel and Joseph D. Novak. The latter building on top of the former's work
+;; studying how best students can learn for understanding, as opposed to
 ;; memorization: what they call 'Meaningful Learning'. Novak, in particular,
-;; focused his research in educational psychology on exploring how David
-;; Ausibel's ideas related to concept maps. He further investigated how concept
-;; maps fit wholistically into the overall educational process of learning a
-;; mathematical, technical or scientific discipline. Together with what he calls
-;; a "Vee" diagram, concept maps form the backbone of the verbal component of
-;; learning for understanding and mastery.
+;; focused much of his research in educational psychology on exploring how David
+;; Ausibel's ideas pertained to concept maps. He along with Gowin further
+;; investigated how concept maps fit wholistically into the overall educational
+;; process of learning a mathematical, technical or scientific
+;; discipline. Together with what he calls a "Vee" diagram, concept maps form
+;; the backbone of the verbal component of learning for understanding and
+;; mastery.
 ;;
 ;; Novak-style concept maps can be concstructed using the non-free program
 ;; `cmaptools' (https://cmap.ihmc.us/cmaptools/) his team developed. Maps
