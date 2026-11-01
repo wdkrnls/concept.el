@@ -5662,14 +5662,15 @@ This is intended to enter multiple data concepts at the same time."
   (define-key vertico-map (kbd "C-c C-a")
               #'concept-vertico-insert-current-candidates))
 
-(defun concept-insert-elisp-function-name-at-point (function)
+(defun concept-insert-elisp-call-name-at-point (function)
   "Insert the name of a FUNCTION at point."
   (interactive
    (list
     (completing-read
      "Call: "
      #'help--symbol-completion-table
-     #'fboundp
+     (lambda (x)
+       (and (fboundp x) (not (commandp (symbol-function x)))))
      t)))
   (insert function "-calls"))
 
@@ -13606,8 +13607,8 @@ This is useful in conjunction with `concept-funcall-with-string-args'."
 
 (defcustom concept-insert-at-point-command-menu
   '(("Emacs Lisp"
-     "Function"
-     concept-insert-elisp-function-name-at-point)
+     "Call"
+     concept-insert-elisp-call-name-at-point)
     ("Emacs Lisp"
      "Variable"
      concept-insert-emacs-variable-name-at-point)
