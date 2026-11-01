@@ -1299,6 +1299,10 @@ I have noticed a intermittent but frequent performance bug when moving back and 
 
 When forming relationship blocks it can be useful to insert all of the remaining completion candidates as new data concepts in the current relationship block. I implemented a way to do that when inside a vertico-enabled minibuffer. However, maybe there is also a way to do this without vertico as well? Look into it!
 
+### Copying all matches while performign incremental search in a buffer
+
+One rich data source is buffer text. A frequently valuable kind of buffer text is search pattern matches. I want to create a wrapper around incremental search which lets me copy all matching strings in the buffer together and then paste it in as concepts or pieces of data. This feature is largely implemented, however, it's not yet documented here. In particular, setting up this feature requires the user to edit their init.el file since to make it useful, they need to modify the key map for isearch minibuffers.
+
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
 <!-- End: -->
