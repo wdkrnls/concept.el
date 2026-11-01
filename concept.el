@@ -11816,6 +11816,7 @@ This variable is stored in `concept-map-network-graph'."
 
 (defun concept-map-tear-down-network-updating ()
   "Disable automatic network updates for the current buffer."
+  ;; TODO: consider whether we need to force it
   (concept-map--cancel-network-update-after-long-idle-timer)
   (concept-map--cancel-network-update-timer)
   (concept-map--tear-down-network-updating-hooks))
