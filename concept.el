@@ -5635,28 +5635,46 @@ This is intended to enter multiple data concepts at the same time."
   (interactive)
   (unless (and (minibufferp) (boundp 'vertico--candidates))
     (user-error "No active Vertico completion"))
-  (let* ((candidates (copy-sequence vertico--candidates))
-         (prompt (minibuffer-prompt))
-         (suffix (replace-regexp-in-string " +" "-" (concat (downcase (substring prompt 0 (string-match ":" prompt))) "s")))
-         (text (mapconcat (lambda (x) (concat x "-" suffix)) candidates "\n| "))
-         (target (window-buffer (minibuffer-selected-window)))
-         (marker (with-current-buffer target (copy-marker (point) t))))
-    (if (not (with-current-buffer target
-               (and (derived-mode-p 'concept-mode)
-                    (concept-in-relationship-block)
-                    (not (concept-on-relationship-line))
-                    (not (concept-on-focus-line)))))
-        (message "The target buffer position is not appropriate!")
-      (run-at-time
-       0 nil
-       (lambda ()
-         (when (buffer-live-p target)
-           (with-current-buffer target
-             (goto-char marker)
-             (delete-region (line-beginning-position) (point))
-             (insert "| " text)))
-         (set-marker marker nil)))
-      (exit-minibuffer))))
+  (when-let* ((target (window-buffer (minibuffer-selected-window)))
+              (in-concept-mode
+               (with-current-buffer target (derived-mode-p 'concept-mode)))
+              (in-rel-block
+               (with-current-buffer target (concept-in-relationship-block)))
+              (on-data-concept-line
+               (with-current-buffer target
+                 (and (not (concept-on-relationship-line))
+                      (not (concept-on-focus-line)))))
+              (candidates (copy-sequence vertico--candidates))
+              (prompt (minibuffer-prompt))
+              (has-colon (string-match-p ":" prompt))
+              (suffix
+               (let ((raw-suffix
+                      (replace-regexp-in-string
+                       " +" "-"
+                       (downcase
+                        (substring prompt
+                                   0
+                                   (string-match ":" prompt))))))
+                 (if (string-suffix-p "s" raw-suffix)
+                     raw-suffix
+                   (concat raw-suffix "s"))))
+              (text (mapconcat
+                     (lambda (x)
+                       (if (string= suffix "concepts")
+                           x
+                         (concat x "-" suffix)))
+                     candidates "\n| "))
+              (marker (with-current-buffer target (copy-marker (point) t))))
+    (run-at-time
+     0 nil
+     (lambda ()
+       (when (buffer-live-p target)
+         (with-current-buffer target
+           (goto-char marker)
+           (delete-region (line-beginning-position) (point))
+           (insert "| " text)))
+       (set-marker marker nil)))
+    (exit-minibuffer)))
 
 (with-eval-after-load 'vertico
   (define-key vertico-map (kbd "C-c C-a")
