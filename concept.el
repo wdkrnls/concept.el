@@ -13811,8 +13811,8 @@ We expect WORDS to be a list of strings."
                 "-"
                 (string-join remaining "-"))))))
 
-(defcustom concept-no-overlap-suffix-alist
-  '(("emacs-variables" . "variables"))
+(defcustom concept-preferred-suffix-alist
+  '(("emacs-variables" . "variables") ("elisp-calls" . "calls"))
   "Fallback suffixes for focus phrases when there is no overlap with their
 data concepts.
 
@@ -13855,7 +13855,7 @@ Return (0 nil nil) when there is no overlap."
 
 If there is no overlap, use the configured suffix for FOCUS, or
 the whole FOCUS if it has no entry in
-`concept-no-overlap-suffix-alist'."
+`concept-preferred-suffix-alist'."
   (let* ((focus-words (split-string focus "-" t))
          (text-words  (split-string text "-" t))
          (overlap (concept--longest-contiguous-word-overlap
@@ -13866,7 +13866,7 @@ the whole FOCUS if it has no entry in
           (if (> length 0)
               (nthcdr focus-end focus-words)
             (split-string
-             (or (cdr (assoc focus concept-no-overlap-suffix-alist))
+             (or (cdr (assoc focus concept-preferred-suffix-alist))
                  focus)
              "-" t))))
     (if (null remaining)
@@ -13874,6 +13874,13 @@ the whole FOCUS if it has no entry in
       (concept--append-missing-words remaining text))))
 
 (defun concept-make-shared-suffix-with-focus (arg)
+  "Try to make the current data concept look more like the suffix at the end.
+
+It won't do anything if the data concept ends with an s. If there is no
+overlap in words between the two, then the focus will be appended to the
+data concept, unless there is a match in the customizable variable
+`concept-preferred-suffix-alist'. In that case, whatever the associate
+text is gets inserted as the suffix."
   (interactive "P")
   (when (and (concept-in-relationship-block)
              (concept-on-data-concept-line))
