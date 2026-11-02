@@ -13535,11 +13535,19 @@ along with it."
       (activate-mark))))
 
 (defun concept-mark-block (arg)
+  "Marks the whole block so you can act on it.
+
+When ARG is supplied it marks the whole idea instead. The number
+supplied should be positive, in which case that number of ideas in total
+will be marked."
   (interactive "P")
   (if arg
       (if (concept-in-temporary-block)
           (concept-activate-temporary-block-region)
-        (concept-mark-idea))
+        (concept-mark-idea
+         (cond ((listp arg) 1)
+               ((natnump arg) arg)
+               (t 1))))
     (cond ((concept-in-relationship-block)
            (when-let* ((reg (concept-find-relationship-block-extent t)))
              (goto-char (car reg))
