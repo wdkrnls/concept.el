@@ -1305,7 +1305,11 @@ One rich data source is buffer text. A frequently valuable kind of buffer text i
 
 ### Adding to the swiss army knife
 
-I made a new utility command `concept-make-shared-with-focus-dwim` and bound it to `C-,`. When the cursor is near the beginning of the concept symbol, it zealously auto-fills the prefixes of the focus concept on a data concept line when they don't match. When near the end of the symbol, it zealously auto-fills the suffixes of the focus concept when they don't match. I've been testing several iterations, but the work is not quite complete. In an earlier iteration, I had a few rules to handle the situation where the focus concept is quite short being only one or two parts long. In those cases, the suffix should just be the last part, and their should be no prefix to fill in. That is not the current behavior. I need to fix that. Once, that edge case is fixed, this command should be good to go. It seems like it would have been quite useful in many situations I had encountered in the past.
+I made a new utility command `concept-make-shared-with-focus-dwim` and bound it to `C-,`. When the cursor is near the beginning of the concept symbol, it zealously auto-fills the prefixes of the focus concept on a data concept line when they don't match. When near the end of the symbol, it zealously auto-fills the suffixes of the focus concept when they don't match. I've been testing several iterations and it's in a pretty reasonable state. Now it's behavior can be customized by editing the customizable variable `concept-preferred-preferred-suffix-alist`. It just seems to me that this thing could be integrated in the broader interactive configuration tools using lists of lists of strings.
+
+### Yanking from the minibuffer
+
+I added another command which makes it easy to access strings entered by the user interactively from the minibuffer and paste them into resource blocks. I frequently encountered the situation where I would make a regular expression to filter down to certain related shell commands or elisp variables and I wanted to document what got me to that list. This minibuffer yanking command really helps make that process less annoying.
 
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
