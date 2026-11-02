@@ -2218,6 +2218,11 @@ the current data."
            (backward-char)))
         (t (message "Not sure what to do yet!"))))
 
+(defun concept-kill-concept-or-resource-data ()
+  (end-of-line)
+  (backward-sexp)
+  (kill-line))
+
 (defun concept-kill-data-dwim ()
   "Kill just the data associated with a concept map element.
 Unlike `concept-kill-dwim', this leaves the conceptual element entry in
@@ -2241,10 +2246,8 @@ place."
          (zap-up-to-char 1 ?\:))
         ((or (concept-on-concept-line)
              (concept-on-resource-line))
-         (end-of-line)
-         (backward-sexp)
-         (kill-line))))
-  
+         (concept-kill-concept-or-resource-data))))
+
 (defun concept-kill-dwim (arg)
   "Kill whole concept map elements.
 When you don't want to kill the whole concept map element, call
@@ -13787,6 +13790,168 @@ Without a prefix argument, run the last command selected from the menu."
                     (throw 'done t))
                 (setq path new-path)))))))))
 
+(defun concept--complete-string-suffix-old (prefix text)
+  "Append the appropriate hyphen-separated suffix from PREFIX to TEXT."
+  (let* ((words (split-string prefix "-" t))
+         (words-to-match
+          (cond
+           ((= (length words) 1) words)
+           ((= (length words) 2) (list (cadr words)))
+           (t words)))
+         (text-words (split-string text "-" t))
+         (n (min (length words-to-match) (length text-words)))
+         (overlap 0))
+    (while (< 0 n)
+      (if (equal (last text-words n) (seq-take words-to-match n))
+          (setq overlap n
+                n 0)
+        (setq n (1- n))))
+    (let ((remaining (nthcdr overlap words-to-match)))
+      (if (null remaining)
+          text
+        (concat (string-remove-suffix "-" text)
+                "-"
+                (string-join remaining "-"))))))
+
+(defun concept--append-missing-words (words text)
+  "Append WORDS to TEXT, avoiding whole-word overlap at the join."
+  (let* ((text-words (split-string text "-" t))
+         (n          (min (length words) (length text-words)))
+         (overlap    0))
+    (while (> n 0)
+      (if (equal (last text-words n) (seq-take words n))
+          (setq overlap n
+                n 0)
+        (setq n (1- n))))
+    (let ((remaining (nthcdr overlap words)))
+      (if (null remaining)
+          text
+        (concat (string-remove-suffix "-" text)
+                "-"
+                (string-join remaining "-"))))))
+
+(defun concept--complete-string-suffix (focus text)
+  "Complete TEXT using words after its longest shared sequence with FOCUS."
+  (let* ((focus-words (split-string focus "-" t))
+         (text-words  (split-string text "-" t))
+         (best-length 0)
+         (best-end    nil)
+         (i 0))
+    ;; Find the longest contiguous sequence shared by FOCUS and TEXT.
+    (while (< i (length focus-words))
+      (let ((j 0))
+        (while (< j (length text-words))
+          (let ((length 0))
+            (while (and (< (+ i length) (length focus-words))
+                        (< (+ j length) (length text-words))
+                        (equal (nth (+ i length) focus-words)
+                               (nth (+ j length) text-words)))
+              (setq length (1+ length)))
+            (when (> length best-length)
+              (setq best-length length
+                    best-end (+ i length))))
+          (setq j (1+ j))))
+      (setq i (1+ i)))
+    (if (= best-length 0)
+        text
+      (concept--append-missing-words
+       (nthcdr best-end focus-words)
+       text))))
+
+(defun concept-make-shared-suffix-with-focus (arg)
+  (interactive "P")
+  (when (and (concept-in-relationship-block)
+             (concept-on-data-concept-line))
+    (let ((focus (concept-current-focus)))
+      (if arg
+          (progn
+            (concept-goto-first-data-concept-in-relationship-group)
+            (while (concept-on-data-concept-line)
+              (concept-make-shared-suffix-with-focus nil)
+              (forward-line))
+            (previous-line)
+            (end-of-line))
+        (let ((data (concept-current-concept)))
+          (when (not (string-blank-p data))
+            (concept-kill-concept-or-resource-data)
+            (insert (concept--complete-string-suffix focus data))))))))
+
+(defun concept--complete-string-prefix (focus text)
+  "Prepend FOCUS's words before its shared ending with TEXT."
+  (let* ((focus-words (split-string focus "-" t))
+         (text-words  (split-string text "-" t))
+         (n           (min (length focus-words) (length text-words)))
+         (shared      0))
+    ;; Find the longest shared ending of FOCUS and TEXT.
+    (while (< 0 n)
+      (if (equal (last focus-words n)
+                 (last text-words n))
+          (setq shared n
+                n 0)
+        (setq n (1- n))))
+    (let* ((leading (seq-take focus-words
+                              (- (length focus-words) shared)))
+           (m (min (length leading) (length text-words)))
+           (duplicate 0))
+      ;; Avoid repeating words where LEADING meets the start of TEXT.
+      (while (> m 0)
+        (if (equal (last leading m)
+                   (seq-take text-words m))
+            (setq duplicate m
+                  m 0)
+          (setq m (1- m))))
+      (setq leading (seq-take leading
+                              (- (length leading) duplicate)))
+      (if (null leading)
+          text
+        (concat (string-remove-suffix "-" (string-join leading "-"))
+                "-"
+                (string-remove-prefix "-" text))))))
+
+(defun concept-make-shared-prefix-with-focus (arg)
+  (interactive "P")
+  (when (and (concept-in-relationship-block)
+             (concept-on-data-concept-line))
+    (let ((focus (concept-current-focus)))
+      (if arg
+          (progn
+            (concept-goto-first-data-concept-in-relationship-group)
+            (while (concept-on-data-concept-line)
+              (concept-make-shared-prefix-with-focus nil)
+              (forward-line))
+            (previous-line)
+            (end-of-line))
+        (let ((data (concept-current-concept)))
+          (when (not (string-blank-p data))
+            (concept-kill-concept-or-resource-data)
+            (insert (concept--complete-string-prefix focus data))))))))
+
+(defun concept-make-shared-with-focus-dwim (arg)
+  "Make data concepts look more like the current focus concept.
+
+When on the left side of concept symbol, it makes sure the prefixes are
+aligned, and when on the right side of the concept symbol, it makes sure
+the suffixes are aligned."
+  (interactive "P")
+  (when (and (concept-on-data-concept-line)
+             (looking-at "[^| \t]"))
+    (let ((beg (if (eq (char-before) ?\s)
+                   (point)
+                 (save-excursion
+                   (concept-backward nil)
+                   (point))))
+          (end (if (eq (char-after) ?\s)
+                   (point)
+                 (save-excursion
+                   (concept-forward nil)
+                   (point)))))
+      (if (< (- (point) beg)
+             (- end (point)))
+          (progn
+            (concept-make-shared-prefix-with-focus arg)
+            (concept-backward nil))
+        (concept-make-shared-suffix-with-focus arg)))))
+
 (defun concept-do-nothing ()
   (interactive)
   (message "Nothing was done because the common behavior of this keybinding is a bad idea in concept maps.")
@@ -13873,6 +14038,7 @@ Without a prefix argument, run the last command selected from the menu."
 (define-key concept-mode-map (kbd "C-c M-t")     #'concept-enter-new-tempel-template)
 (define-key concept-mode-map (kbd "C-M-h")       #'concept-mark-block)
 (define-key concept-mode-map (kbd "C-c .")       #'concept-insert-at-point-dwim)
+(define-key concept-mode-map (kbd "C-,")         #'concept-make-shared-with-focus-dwim)
 
 (provide 'concept)
 ;;; concept.el ends here
