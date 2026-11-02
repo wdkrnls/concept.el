@@ -1309,7 +1309,7 @@ I made a new utility command `concept-make-shared-with-focus-dwim` and bound it 
 
 ### Yanking from the minibuffer
 
-I added another command which makes it easy to access strings entered by the user interactively from the minibuffer and paste them into resource blocks. I frequently encountered the situation where I would make a regular expression to filter down to certain related shell commands or elisp variables and I wanted to document what got me to that list. This minibuffer yanking command really helps make that process less annoying.
+I added another command which makes it easy to access strings entered by the user interactively from the minibuffer and paste them into resource blocks. I frequently encountered the situation where I would make a regular expression to filter down to certain related shell commands or elisp variables and I wanted to document what got me to the list of concepts in that particular idea. This minibuffer yanking command really helps make that process less annoying.
 
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
