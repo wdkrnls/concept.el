@@ -13982,6 +13982,60 @@ the suffixes are aligned."
             (concept-backward nil))
         (concept-make-shared-suffix-with-focus arg)))))
 
+(defvar concept-minibuffer-history-picker-history nil)
+
+(defvar concept-minibuffer-history-sources
+  '(("Default minibuffer" . minibuffer-history)
+    ("Regexp search"      . regexp-search-ring)
+    ("Query replace"      . query-replace-history)
+    ("Idea search"        . search-concept-blocks-history)
+    ("Resource search"    . search-resource-blocks-history)
+    ("Focus edit"         . concept-focus-editing-history)
+    ("Concept edit"       . concept-concept-editing-history)
+    ("Relationship edit"  . concept-relationship-editing-history)
+    ("Resource edit"      . concept-resource-editing-history)
+    ("Attribute edit"     . concept-attribute-editing-history)
+    ("Exposition edit"    . concept-editing-exposition-history))
+  "Minibuffer history sources for easy yanking into concept buffers.")
+
+(defun concept-minibuffer-history-table ()
+  (let* ((groups
+          (mapcar
+           (lambda (source)
+             (cons (car source)
+                   (when (and (boundp (cdr source))
+                              (listp (symbol-value (cdr source))))
+                     (seq-filter #'stringp (symbol-value (cdr source))))))
+           concept-minibuffer-history-sources))
+         (owners (make-hash-table :test #'equal))
+         candidates)
+    ;; Remember the first group containing each candidate.
+    (dolist (group groups)
+      (dolist (candidate (cdr group))
+        (unless (gethash candidate owners)
+          (puthash candidate (car group) owners)
+          (push candidate candidates))))
+    (setq candidates (nreverse candidates))
+    (lambda (string predicate action)
+      (if (eq action 'metadata)
+          `(metadata
+            (group-function
+             . ,(lambda (candidate transform)
+                  (if transform
+                      candidate
+                    (gethash candidate owners)))))
+        (complete-with-action action candidates string predicate))))))
+
+(defun concept-copy-minibuffer-history-entry ()
+  (interactive)
+  (let ((entry
+         (completing-read
+          "Copy history entry: "
+          (concept-minibuffer-history-table)
+          nil t nil 'concept-minibuffer-history-picker-history)))
+    (kill-new entry)
+    (message "Copied: %s" entry)))
+
 (defun concept-do-nothing ()
   (interactive)
   (message "Nothing was done because the common behavior of this keybinding is a bad idea in concept maps.")
@@ -14002,7 +14056,8 @@ the suffixes are aligned."
 (define-key concept-mode-map (kbd "M-<tab>")     #'concept-change-dwim)
 (define-key concept-mode-map (kbd "C-M-<tab>")   #'concept-change-concept-at-point-dwim)
 (define-key concept-mode-map (kbd "M-r")         #'concept-cycle-context)
-(define-key concept-mode-map (kbd "C-M-y")       #'concept-repeat-current-block)
+(define-key concept-mode-map (kbd "M-:")         #'concept-repeat-current-block)
+(define-key concept-mode-map (kbd "C-M-y")       #'concept-copy-minibuffer-history-entry)
 (define-key concept-mode-map (kbd "M-.")         #'concept-insert-focus-as-new)
 (define-key concept-mode-map (kbd "C-M-.")       #'concept-insert-concept-dwim)
 (define-key concept-mode-map (kbd "C-.")         #'concept-insert-last-concept-as-new)
