@@ -4748,17 +4748,19 @@ A resource line starts with an `@' symbol."
 
 (defun concept-on-relationship-line ()
   "Test if the current line is a relationship line."
-  (and (not (concept-on-exposition-line))
+  (and (not (concept-in-resource-block))
        (let ((line (concept-current-line)))
-         (or (string-match-p "^| +:$" line)
-             (string-match-p "^| +:[^: ]+" line)))))
+         (or (string-match-p "^| +: *$" line)
+             (string-match-p "^| +:[^: ]+ *$" line)))))
 
 (defun concept-on-attribute-line ()
   "Test if the current line is an attribute line.
 An attribute line ends with a colon."
-  (let ((line (concept-current-line)))
-    (and (string-match-p "^| +" line)
-         (string-match-p "[^: ]+: *$" line))))
+  (and (concept-in-resource-block)
+       (let ((line (concept-current-line)))
+         (and (string-match-p "^| +" line)
+              (or (string-match-p "^| +: *$" line)
+                  (string-match-p "[^: ]+: *$" line))))))
 
 (defun concept-get-attribute ()
   "Store the attribute group keyword as a string."
