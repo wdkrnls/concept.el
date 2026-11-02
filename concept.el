@@ -13790,29 +13790,6 @@ Without a prefix argument, run the last command selected from the menu."
                     (throw 'done t))
                 (setq path new-path)))))))))
 
-(defun concept--complete-string-suffix-old (prefix text)
-  "Append the appropriate hyphen-separated suffix from PREFIX to TEXT."
-  (let* ((words (split-string prefix "-" t))
-         (words-to-match
-          (cond
-           ((= (length words) 1) words)
-           ((= (length words) 2) (list (cadr words)))
-           (t words)))
-         (text-words (split-string text "-" t))
-         (n (min (length words-to-match) (length text-words)))
-         (overlap 0))
-    (while (< 0 n)
-      (if (equal (last text-words n) (seq-take words-to-match n))
-          (setq overlap n
-                n 0)
-        (setq n (1- n))))
-    (let ((remaining (nthcdr overlap words-to-match)))
-      (if (null remaining)
-          text
-        (concat (string-remove-suffix "-" text)
-                "-"
-                (string-join remaining "-"))))))
-
 (defun concept--append-missing-words (words text)
   "Append WORDS to TEXT, avoiding whole-word overlap at the join."
   (let* ((text-words (split-string text "-" t))
