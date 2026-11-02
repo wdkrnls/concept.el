@@ -13791,7 +13791,9 @@ Without a prefix argument, run the last command selected from the menu."
                 (setq path new-path)))))))))
 
 (defun concept--append-missing-words (words text)
-  "Append WORDS to TEXT, avoiding whole-word overlap at the join."
+  "Append WORDS to TEXT, avoiding whole-word overlap at the join.
+
+We expect WORDS to be a list of strings."
   (let* ((text-words (split-string text "-" t))
          (n          (min (length words) (length text-words)))
          (overlap    0))
@@ -13807,33 +13809,67 @@ Without a prefix argument, run the last command selected from the menu."
                 "-"
                 (string-join remaining "-"))))))
 
-(defun concept--complete-string-suffix (focus text)
-  "Complete TEXT using words after its longest shared sequence with FOCUS."
-  (let* ((focus-words (split-string focus "-" t))
-         (text-words  (split-string text "-" t))
-         (best-length 0)
-         (best-end    nil)
-         (i 0))
-    ;; Find the longest contiguous sequence shared by FOCUS and TEXT.
-    (while (< i (length focus-words))
+(defcustom concept-no-overlap-suffix-alist
+  '(("emacs-variables" . "variables"))
+  "Fallback suffixes for focus phrases when there is no overlap with their
+data concepts.
+
+Each entry is (FOCUS . SUFFIX). If a FOCUS is not listed, the
+whole focus phrase is inserted.
+
+By default we illustrate with the case of emacs-variables. We have been
+dropping emacs from the suffix and sticking just to variables."
+  :type '(alist :key-type string :value-type string))
+
+(defun concept--longest-contiguous-word-overlap (words-a words-b)
+  "Return the longest contiguous overlap between WORDS-A and WORDS-B.
+
+The result is (LENGTH A-END B-END), where A-END and B-END are
+exclusive indexes of the matching sequence in each list.
+Return (0 nil nil) when there is no overlap."
+  (let ((best-length 0)
+        (best-a-end nil)
+        (best-b-end nil)
+        (i 0))
+    (while (< i (length words-a))
       (let ((j 0))
-        (while (< j (length text-words))
+        (while (< j (length words-b))
           (let ((length 0))
-            (while (and (< (+ i length) (length focus-words))
-                        (< (+ j length) (length text-words))
-                        (equal (nth (+ i length) focus-words)
-                               (nth (+ j length) text-words)))
+            (while (and (< (+ i length) (length words-a))
+                        (< (+ j length) (length words-b))
+                        (equal (nth (+ i length) words-a)
+                               (nth (+ j length) words-b)))
               (setq length (1+ length)))
             (when (> length best-length)
               (setq best-length length
-                    best-end (+ i length))))
+                    best-a-end (+ i length)
+                    best-b-end (+ j length))))
           (setq j (1+ j))))
       (setq i (1+ i)))
-    (if (= best-length 0)
+    (list best-length best-a-end best-b-end)))
+
+(defun concept--complete-string-suffix (focus text)
+  "Complete TEXT with words after its longest overlap with FOCUS.
+
+If there is no overlap, use the configured suffix for FOCUS, or
+the whole FOCUS if it has no entry in
+`concept-no-overlap-suffix-alist'."
+  (let* ((focus-words (split-string focus "-" t))
+         (text-words  (split-string text "-" t))
+         (overlap (concept--longest-contiguous-word-overlap
+                   focus-words text-words))
+         (length    (nth 0 overlap))
+         (focus-end (nth 1 overlap))
+         (remaining
+          (if (> length 0)
+              (nthcdr focus-end focus-words)
+            (split-string
+             (or (cdr (assoc focus concept-no-overlap-suffix-alist))
+                 focus)
+             "-" t))))
+    (if (null remaining)
         text
-      (concept--append-missing-words
-       (nthcdr best-end focus-words)
-       text))))
+      (concept--append-missing-words remaining text))))
 
 (defun concept-make-shared-suffix-with-focus (arg)
   (interactive "P")
@@ -13849,18 +13885,22 @@ Without a prefix argument, run the last command selected from the menu."
             (previous-line)
             (end-of-line))
         (let ((data (concept-current-concept)))
-          (when (not (string-blank-p data))
+          (when (and (not (string-blank-p data))
+                     (not (string-suffix-p "s" data)))
             (concept-kill-concept-or-resource-data)
             (insert (concept--complete-string-suffix focus data))))))))
 
 (defun concept--complete-string-prefix (focus text)
-  "Prepend FOCUS's words before its shared ending with TEXT."
+  "Prepend FOCUS's words before its shared ending with TEXT.
+
+Also allow overlap where the end of FOCUS meets the start of TEXT.
+Leave TEXT unchanged when neither kind of overlap exists."
   (let* ((focus-words (split-string focus "-" t))
-         (text-words  (split-string text "-" t))
+         (text-words  (split-string text  "-" t))
          (n           (min (length focus-words) (length text-words)))
          (shared      0))
     ;; Find the longest shared ending of FOCUS and TEXT.
-    (while (< 0 n)
+    (while (> n 0)
       (if (equal (last focus-words n)
                  (last text-words n))
           (setq shared n
@@ -13870,22 +13910,26 @@ Without a prefix argument, run the last command selected from the menu."
                               (- (length focus-words) shared)))
            (m (min (length leading) (length text-words)))
            (duplicate 0))
-      ;; Avoid repeating words where LEADING meets the start of TEXT.
+      ;; Find overlap where LEADING meets the start of TEXT.
       (while (> m 0)
         (if (equal (last leading m)
                    (seq-take text-words m))
             (setq duplicate m
                   m 0)
           (setq m (1- m))))
-      (setq leading (seq-take leading
-                              (- (length leading) duplicate)))
-      (if (null leading)
+      (if (and (= shared 0)
+               (= duplicate 0))
           text
-        (concat (string-remove-suffix "-" (string-join leading "-"))
-                "-"
-                (string-remove-prefix "-" text))))))
+        (setq leading (seq-take leading
+                                (- (length leading) duplicate)))
+        (if (null leading)
+            text
+          (concat (string-remove-suffix "-" (string-join leading "-"))
+                  "-"
+                  (string-remove-prefix "-" text)))))))
 
 (defun concept-make-shared-prefix-with-focus (arg)
+  "Prepend a shared prefix if there is some overlap between data and focus concepts."
   (interactive "P")
   (when (and (concept-in-relationship-block)
              (concept-on-data-concept-line))
