@@ -13923,7 +13923,7 @@ the suffixes are aligned."
                    (concept-forward nil)
                    (point)))))
       (if (< (- (point) beg)
-             (- end (point)))
+             (- end     (point)))
           (progn
             (concept-make-shared-prefix-with-focus arg)
             (concept-backward nil))
