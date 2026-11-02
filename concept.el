@@ -5634,12 +5634,15 @@ This is a wrapper convenience function."
 (defun concept-change-concept-at-point-dwim ()
   "Change the concept at point on exposition lines."
   (interactive)
-  (when (and (concept-on-exposition-line)
+  (cond ((and (concept-on-exposition-line)
              (concept-inside-delimiters-p))
-    (concept-change-concept-at-point))
-  (when (not (or (concept-in-relationship-block)
-                 (concept-in-resource-block)))
-    (concept-change-concept-at-point)))
+         (concept-change-concept-at-point))
+        ((and (concept-on-concept-line)
+              (looking-at "[^~| ]"))
+         (concept-change-concept))
+        ((not (or (concept-in-relationship-block)
+                  (concept-in-resource-block)))
+         (concept-change-concept-at-point))))
 
 (defun concept-change-attribute-or-relationship ()
   "Replace the current attribute or relationship with another one.
@@ -14024,7 +14027,7 @@ the suffixes are aligned."
                   (if transform
                       candidate
                     (gethash candidate owners)))))
-        (complete-with-action action candidates string predicate))))))
+        (complete-with-action action candidates string predicate)))))
 
 (defun concept-copy-minibuffer-history-entry ()
   (interactive)
