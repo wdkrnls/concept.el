@@ -261,33 +261,45 @@
 
 ;;;; Visual interface to concept maps
 
+(defgroup concept nil
+  "Customization group for Concept mode."
+  :group 'text
+  :prefix "concept-")
+
 (defface concept-subject
   '((t :inherit outline-1 :height 1.2 :weight normal))
-  "Face for a focus concept starting a new relationship block..")
+  "Face for a focus concept starting a new relationship block."
+  :group 'concept)
 
 (defface concept-object
   '((t :inherit default))
-  "Face for a data concept in an relationship block.")
+  "Face for a data concept in an relationship block."
+  :group 'concept)
 
 (defface concept-feature
   '((t :inherit font-lock-string-face))
-  "Face for an attribute group keyword.")
+  "Face for an attribute group keyword."
+  :group 'concept)
 
 (defface concept-thought
   '((t :inherit shadow))
-  "Face for the beginning of an expository piece of data.")
+  "Face for the beginning of an expository piece of data."
+  :group 'concept)
 
 (defface concept-example
   '((t :inherit outline-2 :height 1.2 :weight normal))
-  "Face for the beginning of a new resource block.")
+  "Face for the beginning of a new resource block."
+  :group 'concept)
 
 (defface concept-relationship
   '((t :inherit font-lock-constant-face))
-  "Face for a keyword starting a new relationship group.")
+  "Face for a keyword starting a new relationship group."
+  :group 'concept)
 
 (defface concept-attribute
   '((t :inherit default))
-  "Face for a piece of expository data.")
+  "Face for a piece of expository data."
+  :group 'concept)
 
 ;; For face names, check `M-x list-faces-display'.
 (defconst concept-mode-font-lock-keywords
@@ -1266,7 +1278,8 @@ selected line then this will return nil.
            (length (concept-get-attribute-data))))))
 
 (defun concept-reverse-attribute-data ()
-  "Reverse the order of the attribute data included in the current attribute group."
+  "Reverse the order of the attribute data included in the current
+ attribute group."
   (interactive)
   (when (concept-on-exposition-line)
     (let ((n (concept-attribute-group-data-count)))
@@ -1277,14 +1290,16 @@ selected line then this will return nil.
             (concept-exchange-exposition-down)))))))
 
 (defun concept-on-first-relationship-line ()
-  "Test if the current position is on the first relationship line in the relationship block."
+  "Test if the current position is on the first relationship line in the
+ relationship block."
   (and (concept-on-relationship-line)
        (save-excursion
          (previous-line)
          (concept-on-focus-line))))
 
 (defun concept-on-first-attribute-line ()
-  "Test if the current position is on the first attribute line in the resource block."
+  "Test if the current position is on the first attribute line in the
+ resource block."
   (and (concept-on-attribute-line)
        (save-excursion
          (previous-line)
@@ -3764,7 +3779,7 @@ There are many kinds of data recognized by this function."
              ((concept--arithmetic-expression-p             string)   'arith    )
              ((concept--algebraic-expression-p              string)   'algebra  )
              ((concept--valid-elisp-symbol-p                string)   'lisp-sym )
-             ((concept--valid-elisp-expression-p            string)   'lisp     )
+             ((concept--valid-elisp-expression-p            string)   'lisp     ) ; TODO: missing predicate definition!
              ((string-match-p "[][(){}‘’]"                  string)
               (if (concept--string-balanced-p string)
                                                                       'balblk
@@ -4864,15 +4879,6 @@ characteristic syntax to flesh out details on a data concept line."
   (backward-char)
   (concept-insert-relationship-line name)
   (concept-add-new-data))
-
-(defun concept-toggle-brackets ()
-  "Toggle brackets between {} and [].
-This has been deprecated in favor of M-r which rotates between three
-distinct behaviors."
-  (when (concept-on-exposition-line)
-    (if (string= "{" (concept--exposition-bracket))
-        (concept--squiggle-to-square-bracket)
-      (concept--square-to-squiggle-bracket)))) ; TODO: missing definition!
 
 (defun concept-turn-squiggly-into-square-brackets (string)
   (replace-regexp-in-string "{\\([^}]+\\)}" "[\\1]" string))
@@ -7034,7 +7040,7 @@ control is exercised through modifying the global variables:
             ((concept-on-relationship-line)
              (concept-relationship-group-canonical-sort))
             ((concept-on-resource-line)
-             (concept-resource-canonical-sort))
+             (concept-resource-canonical-sort)) ; TODO: none of these are implemented yet!
             ((concept-on-focus-line)
              (concept-canonical-sort)))
     (concept--goto-first-heading)
