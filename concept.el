@@ -13704,7 +13704,8 @@ This only works if inside a temporary configuration block already."
          (concept-goto-last-line-in-temporary-block))))
 
 (defun concept-goto-next-block-boundary ()
-  "Navigate to the next boundary between relationship, resource, or temporary blocks."
+  "Navigate to the next boundary between relationship, resource, or
+temporary blocks."
   ;; TODO: this might now be obsolete.
   (if (concept-in-temporary-block)
       (when-let* ((reg (concept-get-temporary-block-region)))
@@ -13719,7 +13720,8 @@ This only works if inside a temporary configuration block already."
       (forward-char))))
 
 (defun concept-goto-previous-block-boundary ()
-  "Navigate to the previous boundary between relationship, resource, or temporary blocks."
+  "Navigate to the previous boundary between relationship, resource, or
+temporary blocks."
   (if (concept-in-temporary-block)
       (when-let* ((reg (concept-get-temporary-block-region)))
         (goto-char (1- (car reg))))
