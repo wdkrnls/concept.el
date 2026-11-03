@@ -14102,12 +14102,16 @@ uses majority vote to decide on the prefix/suffix."
                  (save-excursion
                    (concept-forward nil)
                    (point)))))
-      (if (< (- (point) beg)
-             (- end     (point)))
-          (progn
-            (concept-make-shared-prefix-with-focus arg)
-            (concept-backward nil))
-        (concept-make-shared-suffix-with-focus arg)))))
+      (let ((should-vote (and arg (natnump arg))))
+        (if (< (- (point) beg)
+               (- end     (point)))
+            (if should-vote
+                (concept-make-shared-prefix-by-vote)
+              (concept-make-shared-prefix-with-focus arg)
+              (concept-backward nil))
+          (if should-vote
+              (concept-make-shared-suffix-by-vote)
+            (concept-make-shared-suffix-with-focus arg)))))))
 
 (defvar concept-minibuffer-history-picker-history nil)
 
