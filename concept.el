@@ -8274,29 +8274,33 @@ next version."
   "Go to the next thing depending on what line you are currently on."
   (interactive "P")
   (outline-show-all)
-  (when (concept-on-concept-line)
+  (cond
+   ((concept-on-concept-line)
     (concept-goto-next-relationship-block-of-size prefix))
-  (when (concept-on-relationship-line)
+   ((concept-on-relationship-line)
     (concept-goto-next-relationship-block-with-group-size prefix))
-  (when (concept-on-resource-line)
+   ((concept-on-resource-line)
     (concept-goto-next-relationship-block-with-resource-count prefix))
-  (when (or (concept-on-attribute-line)
-            (concept-on-exposition-line))
-    (concept-goto-next-relationship-block-with-attribute-count prefix)))
+   ((or (concept-on-attribute-line)
+        (concept-on-exposition-line))
+    (concept-goto-next-relationship-block-with-attribute-count prefix))))
 
 (defun concept-goto-previous-dwim (prefix)
   "Go to the previous thing depending on what line you are currently on."
+  ;; TODO: bit-rot with "P" - I'm not sure what this is even supposed to be
+  ;; doing.
   (interactive "P")
   (outline-show-all)
-  (when (concept-on-concept-line)
+  (cond
+   ((concept-on-concept-line)
     (concept-goto-previous-relationship-block-of-size prefix))
-  (when (concept-on-relationship-line)
+   ((concept-on-relationship-line)
     (concept-goto-previous-relationship-block-with-group-size prefix))
-  (when (concept-on-resource-line)
+   ((concept-on-resource-line)
     (concept-goto-previous-relationship-block-with-resource-count prefix))
-  (when (or (concept-on-attribute-line)
-            (concept-on-exposition-line))
-    (concept-goto-previous-relationship-block-with-attribute-count prefix)))
+   ((or (concept-on-attribute-line)
+        (concept-on-exposition-line))
+    (concept-goto-previous-relationship-block-with-attribute-count prefix))))
 
 (defun concept-map-has-more-resources ()
   "Check if there are more resources to search through in the concept map."
