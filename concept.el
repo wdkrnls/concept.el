@@ -4872,7 +4872,7 @@ distinct behaviors."
   (when (concept-on-exposition-line)
     (if (string= "{" (concept--exposition-bracket))
         (concept--squiggle-to-square-bracket)
-      (concept--square-to-squiggle-bracket))))
+      (concept--square-to-squiggle-bracket)))) ; TODO: missing definition!
 
 (defun concept-turn-squiggly-into-square-brackets (string)
   (replace-regexp-in-string "{\\([^}]+\\)}" "[\\1]" string))
@@ -6018,7 +6018,7 @@ This is intended to enter multiple data concepts at the same time."
   "Navigate forward until the next concept focus line as long as you aren't on one."
   (interactive)
   (when (not (concept-on-focus-line))
-    (concept-goto-previous-concept-block)))
+    (concept-goto-previous-concept-block))) ; TODO: missing definition!
 
 (defun concept-goto-last-resource-or-stay ()
   "Navigate backward to last resource line as long as you aren't on one."
@@ -7969,7 +7969,7 @@ to implement that functionality."
     (ignore-errors
       (outline-backward-same-level 1))
     (setq concept-last-relationship-group-size size)
-    (setq count (concept-relationship-block-group-size-count))
+    (setq count (concept-relationship-block-group-size-count)) ; TODO: missing definition!
     (let ((starting-line (line-number-at-pos))
           current-line)
       (while (and (not (concept-on-last-line-p))
