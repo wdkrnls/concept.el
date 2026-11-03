@@ -8029,70 +8029,87 @@ Either `all', `unique', or `diff'. `diff' means the difference between
 `all' and `unique'. Note that this functionality totals up all the
 attributes in all the resource blocks under the given idea.")
 
+(defconst concept-last-behavior-choices
+  '(("All"    . all)
+    ("Unique" . unique)
+    ("Diff"   . diff))
+  "Choices for `concept-last-*-behavior' settings.")
+
+(defun concept--read-last-behavior (prompt)
+  "Prompt with PROMPT and return one of `all', `unique', or `diff'."
+  (cdr (assoc (completing-read prompt concept-last-behavior-choices nil t)
+              concept-last-behavior-choices)))
+
 (defun concept-set-last-attribute-count-behavior ()
   "Set the desired behavior for counting attribute keywords associated with
 a relationship block."
   (interactive)
-  (let ((choice (read-multiple-choice "Select an option for attribute count behavior"
-                                      '((?a "All" "Count all keywords")
-                                        (?b "Unique" "Count only unique keywords")
-                                        (?c "Diff" "Difference between all and unique")))))
-    (pcase (car choice)
-      (?a (setq-local concept-last-attribute-count-behavior 'all))
-      (?b (setq-local concept-last-attribute-count-behavior 'unique))
-      (?c (setq-local concept-last-attribute-count-behavior 'diff)))
-    (message "Setting `concept-last-attribute-count-behavior' to `%S'."
-             concept-last-attribute-count-behavior)))
+  (setq-local concept-last-attribute-count-behavior
+              (concept--read-last-behavior "Attribute count behavior: "))
+  (message "Setting `concept-last-attribute-count-behavior' to `%S'."
+           concept-last-attribute-count-behavior))
 
 (defun concept-set-last-relationship-size-behavior ()
   "Set the desired behavior for counting relationship keywords associated with
 a relationship block. See also `concept-set-last-attribute-count-behavior'."
   (interactive)
-  (let ((choice (read-multiple-choice "Select an option for relationship count behavior"
-                                      '((?a "All" "Count all keywords")
-                                        (?b "Unique" "Count only unique keywords")
-                                        (?c "Diff" "Difference between all and unique")))))
-    (pcase (car choice)
-      (?a (setq-local concept-last-relationship-group-size-behavior 'all))
-      (?b (setq-local concept-last-relationship-group-size-behavior 'unique))
-      (?c (setq-local concept-last-relationship-group-size-behavior 'diff)))
-    (message "Setting `concept-last-relationship-group-size-behavior' to `%S'."
-             concept-last-relationship-group-size-behavior)))
+  (setq-local concept-last-relationship-group-size-behavior
+              (concept--read-last-behavior "Relationship size behavior: "))
+  (message "Setting `concept-last-relationship-group-size-behavior' to `%S'."
+           concept-last-relationship-group-size-behavior))
 
 (defun concept-set-last-resource-count-behavior ()
-  "Set the desired behavior for counting attribute keywords associated with
+  "Set the desired behavior for counting resource keywords associated with
 a relationship block. See also `concept-set-last-attribute-count-behavior'."
   (interactive)
-  (let ((choice (read-multiple-choice "Select an option for resource count behavior"
-                                      '((?a "All" "Count all keywords")
-                                        (?b "Unique" "Count only unique keywords")
-                                        (?c "Diff" "Difference between all and unique")))))
-    (pcase (car choice)
-      (?a (setq-local concept-last-resource-count-behavior 'all))
-      (?b (setq-local concept-last-resource-count-behavior 'unique))
-      (?c (setq-local concept-last-resource-count-behavior 'diff)))
-    (message "Setting `concept-last-resource-count-behavior' to `%S'."
-             concept-last-resource-count-behavior)))
+  (setq-local concept-last-resource-count-behavior
+              (concept--read-last-behavior "Resource count behavior: "))
+  (message "Setting `concept-last-resource-count-behavior' to `%S'."
+           concept-last-resource-count-behavior))
 
 (defvar concept-last-size-comparison-behavior
   '=
   "Determine how comparisons based on relevant sizes of ideas are made.
  Allowed values are '=, '<=, and '>")
 
+(defconst concept-last-size-comparison-choices
+  '(("="  . "Keep idea sizes which match exactly")
+    ("<=" . "Keep sizes less than or equal to")
+    (">"  . "Keep sizes greater than the level"))
+  "Choices for `concept-last-size-comparison-behavior'.")
+
 (defun concept-set-last-size-comparison-behavior ()
   "Set the desired behavior for comparing sizes in a concept map.
 This modifies the global variable `concept-last-size-comparison-behavior'."
   (interactive)
-  (let ((choice (read-multiple-choice "Select an option for size comparison behavior"
-                                      '((?a "="  "Keep idea sizes which match exactly")
-                                        (?b "<=" "Keep sizes less than or equal to")
-                                        (?c ">"  "Keep sizes greater than the level")))))
-    (pcase (car choice)
-      (?a (setq-local concept-last-size-comparison-behavior '=))
-      (?b (setq-local concept-last-size-comparison-behavior '<=))
-      (?c (setq-local concept-last-size-comparison-behavior '>)))
-    (message "Setting `concept-last-size-comparison-behavior' to `%S'."
-             concept-last-size-comparison-behavior)))
+  (setq-local concept-last-size-comparison-behavior
+              (intern (completing-read "Size comparison behavior: "
+                                       concept-last-size-comparison-choices nil t)))
+  (message "Setting `concept-last-size-comparison-behavior' to `%S'."
+           concept-last-size-comparison-behavior))
+
+(defconst concept-set-last-behavior-menu
+  '(("Attribute count behavior"    . concept-set-last-attribute-count-behavior)
+    ("Relationship count behavior" . concept-set-last-relationship-size-behavior)
+    ("Resource count behavior"     . concept-set-last-resource-count-behavior)
+    ("Size comparison behavior"    . concept-set-last-size-comparison-behavior)
+    ("Exit"                        . nil))
+  "Menu entries for `concept-set-last-behaviors'.")
+
+(defun concept-set-last-behaviors ()
+  "Interactively set any of the `concept-last-*-behavior' variables.
+Loops until you choose \"Exit\"."
+  (interactive)
+  (catch 'done
+    (while t
+      (let* ((choice (completing-read "Set which behavior? "
+                                      concept-set-last-behavior-menu nil t))
+             (fn (cdr (assoc choice concept-set-last-behavior-menu))))
+        (if fn
+            (progn
+              (call-interactively fn)
+              (sit-for 2))
+          (throw 'done nil))))))
 
 (defun concept-resource-keyword-count ()
   "Count the number of keywords associated with a resource."
