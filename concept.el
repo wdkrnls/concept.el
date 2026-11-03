@@ -14187,7 +14187,7 @@ uses majority vote to decide on the prefix/suffix."
 (define-key concept-mode-map (kbd "M-<tab>")     #'concept-change-dwim)
 (define-key concept-mode-map (kbd "C-M-<tab>")   #'concept-change-concept-at-point-dwim)
 (define-key concept-mode-map (kbd "M-r")         #'concept-cycle-context)
-(define-key concept-mode-map (kbd "M-:")         #'concept-repeat-current-block)
+(define-key concept-mode-map (kbd "C-M-:")       #'concept-repeat-current-block)
 (define-key concept-mode-map (kbd "C-M-y")       #'concept-copy-minibuffer-history-entry)
 (define-key concept-mode-map (kbd "M-.")         #'concept-insert-focus-as-new)
 (define-key concept-mode-map (kbd "C-M-.")       #'concept-insert-concept-dwim)
