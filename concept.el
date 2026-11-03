@@ -8849,7 +8849,7 @@ the beginning of the buffer.
     (or
      (prog1
        (re-search-forward re nil t)
-       (previous-line)
+       (forward-line -1)
        (end-of-line))
      (goto-char (point-max)))))
 
@@ -11346,7 +11346,7 @@ occurred. This test only makes sense within an insertion change block."
               (concept--goto-line next-shared)
               (and (concept-on-relationship-line)
                    (progn
-                     (previous-line)
+                     (forward-line -1)
                      (and (concept-on-focus-line)
                           (eq last-line (line-number-at-pos (point)))))))))))))
 
@@ -12832,7 +12832,7 @@ the buffer, and corner bars boxing in expository text."
          ((looking-at-p "^~") (setq has-focus-line t))
          ((and (looking-at-p "^| +:")
                (save-excursion
-                 (previous-line)
+                 (forward-line -1)
                  (looking-at-p "^~")))
           (setq has-relationship-line t))
          (t
@@ -12857,22 +12857,22 @@ the buffer, and corner bars boxing in expository text."
           (setq has-focus-line t))
          ((and (looking-at-p "^| +:")
                (save-excursion
-                 (previous-line)
+                 (forward-line -1)
                  (or (looking-at-p "^~")
                      (looking-at-p concept-object-line-regexp))))
           (setq has-relationship-line t))
          ((and (looking-at-p concept-object-line-regexp)
                (save-excursion
-                 (previous-line)
+                 (forward-line -1)
                  (and (looking-at-p "^| +:")
                       (progn
-                        (previous-line)
+                        (forward-line -1)
                         (looking-at-p "^~")))))
           (setq has-full-block t
                 has-data-concept-line t))
          ((and (looking-at-p concept-object-line-regexp)
                (save-excursion
-                 (previous-line)
+                 (forward-line -1)
                  (or (looking-at-p "^| +:")
                      (looking-at-p concept-object-line-regexp))))
           (setq has-data-concept-line t))
@@ -12901,28 +12901,28 @@ the buffer, and corner bars boxing in expository text."
           (setq has-focus-line t))
          ((and (looking-at-p "^| +:")
                (save-excursion
-                 (previous-line)
+                 (forward-line -1)
                  (or (looking-at-p "^~")
                      (looking-at-p concept-object-line-regexp))))
           (setq has-relationship-line t))
          ((and (looking-at-p concept-object-line-regexp)
                (save-excursion
-                 (previous-line)
+                 (forward-line -1)
                  (and (looking-at-p "^| +:")
                       (progn
-                        (previous-line)
+                        (forward-line -1)
                         (looking-at-p "^~")))))
           (setq has-full-block t
                 has-data-concept-line t))
          ((and (looking-at-p concept-object-line-regexp)
                (save-excursion
-                 (previous-line)
+                 (forward-line -1)
                  (or (looking-at-p "^| +:")
                      (looking-at-p concept-object-line-regexp))))
           (setq has-data-concept-line t))
          ((and (looking-at-p "^@")
                (save-excursion
-                 (previous-line)
+                 (forward-line -1)
                  (looking-at-p concept-object-line-regexp)))
           (setq has-resource-line t))
          ((looking-at-p concept-attribute-group-keyword-regexp)
@@ -13071,7 +13071,7 @@ completion candidates."
            (progn
              (end-of-line)
              (newline)
-             (previous-line)))
+             (forward-line -1)))
          (concept-add-new-data)
          (insert ":"))
         ((and (concept-on-relationship-line)
@@ -13080,7 +13080,7 @@ completion candidates."
                 (concept-on-data-concept-line)))
          (concept-goto-next-relationship-boundary)
          (insert "| :\n")
-         (previous-line)
+         (forward-line -1)
          (end-of-line))))
 
 (defun concept-insert-new-attribute-group ()
@@ -13091,7 +13091,7 @@ completion candidates."
            (progn
              (end-of-line)
              (newline)
-             (previous-line)))
+             (forward-line -1)))
          (concept-add-new-data)
          (insert ":")
          (backward-char))
@@ -13102,7 +13102,7 @@ completion candidates."
          (forward-line)
          (concept-goto-next-attribute-boundary)
          (insert "| :\n")
-         (previous-line)
+         (forward-line -1)
          (end-of-line)
          (backward-char))
         ((concept-on-exposition-line)
@@ -13175,7 +13175,7 @@ data if it already exists."
             (progn
               (beginning-of-line)
               (open-line 1))
-          (previous-line)
+          (forward-line -1)
           (beginning-of-line)
           (unless (concept-in-temporary-block)
             (outline-end-of-subtree)
@@ -13210,7 +13210,7 @@ Unlike `outline-end-of-subtree', this recognizes temporary blocks and acts accor
 (defun concept-end-of-previous-subtree ()
   (interactive)
   (concept-goto-current-focus)
-  (previous-line)
+  (forward-line -1)
   (outline-end-of-subtree))
 
 (defun concept-forward (arg)
@@ -13306,12 +13306,12 @@ Unlike `outline-end-of-subtree', this recognizes temporary blocks and acts accor
              (on-sigil (member thing '("|" "@" "~"))))
         (cond ((and (concept-in-temporary-block)
                     (save-excursion
-                      (previous-line)
+                      (forward-line -1)
                       (beginning-of-line)
                       (or (concept-in-relationship-block)
                           (concept-in-resource-block)))
                     (bolp))
-               (previous-line)
+               (forward-line -1)
                (end-of-line)
                (skip-chars-backward " ")
                (when (concept-on-exposition-line)
@@ -13321,7 +13321,7 @@ Unlike `outline-end-of-subtree', this recognizes temporary blocks and acts accor
                  (if (not (save-excursion (search-forward delim (line-end-position) t)))
                      (if (not (save-excursion (backward-char) (looking-at delim)))
                          (progn (search-backward delim) (forward-char))
-                       (previous-line)
+                       (forward-line -1)
                        (if (concept-on-exposition-line)
                            (progn
                              (beginning-of-line)
@@ -13330,7 +13330,7 @@ Unlike `outline-end-of-subtree', this recognizes temporary blocks and acts accor
                          (skip-syntax-backward " ")
                          (backward-char))))))
               ((member (char-before) (mapcar #'string-to-char (list "|" "@" "~")))
-               (previous-line)
+               (forward-line -1)
                (end-of-line)
                (skip-chars-backward " ")
                (when (concept-on-exposition-line)
@@ -13340,7 +13340,7 @@ Unlike `outline-end-of-subtree', this recognizes temporary blocks and acts accor
                    (eq (char-before) ?\s)
                    (and (looking-at " +[^ ]")
                         (not (looking-at " +$"))))
-               (previous-line)
+               (forward-line -1)
                (end-of-line)
                (if (concept-on-exposition-line)
                    (progn
@@ -13365,7 +13365,7 @@ Unlike `outline-end-of-subtree', this recognizes temporary blocks and acts accor
                    (progn
                      (re-search-backward ":" (line-beginning-position) t)
                      (forward-char))
-                 (previous-line)
+                 (forward-line -1)
                  (end-of-line)
                  (skip-chars-backward " ")))
               (t
@@ -13485,7 +13485,7 @@ want to enter a literal `t' value, type TRUE in capital letters."
         (end-of-line))
       (forward-line)
       (concept-kill-temporary-block-region)
-      (previous-line)
+      (forward-line -1)
       (end-of-line)
       (backward-char))))
 
@@ -13509,7 +13509,7 @@ want to enter a literal `t' value, type TRUE in capital letters."
         (dolist (line data)
           (insert (format "%s\n" line)))
         (kill-line)
-        (previous-line)
+        (forward-line -1)
         (end-of-line)))))
 
 (defun concept-serialize-all-temporary-blocks-below ()
@@ -13536,7 +13536,7 @@ relationship block."
            (concept-in-resource-block)
            (when (not (concept-on-first-line-p))
              (save-excursion
-               (previous-line)
+               (forward-line -1)
                (or (concept-on-focus-line)
                    (concept-on-resource-line)
                    (concept-on-relationship-line)
@@ -13556,7 +13556,7 @@ relationship block."
       (save-excursion
         (beginning-of-line)
         (while (and (not (bobp)) (concept-in-temporary-block))
-          (previous-line))
+          (forward-line -1))
         (unless (concept-in-temporary-block)
           (forward-line))
         (setq beg (point))
@@ -13564,7 +13564,7 @@ relationship block."
         (while (or (eobp) (concept-in-temporary-block))
           (forward-line))
         (unless (concept-in-temporary-block)
-          (previous-line))
+          (forward-line -1))
         (end-of-line)
         (setq end (point)))
       (cons beg end))))
@@ -13576,7 +13576,7 @@ relationship block."
           (end (cdr reg)))
     (save-excursion
       (goto-char end)
-      (previous-line)
+      (forward-line -1)
       (when (concept-in-temporary-block)
         (end-of-line)
         (cons beg (point)))))))
@@ -13648,7 +13648,7 @@ will be marked."
   (when (derived-mode-p 'concept-mode)
     (unless (concept-in-temporary-block)
       (concept-goto-current-focus)
-      (previous-line))
+      (forward-line -1))
     (when-let* ((reg (concept-get-temporary-block-region)))
       (let ((beg (car reg))
             (end (cdr reg)))
@@ -13738,7 +13738,7 @@ This only works if inside a temporary configuration block already."
       (let ((beg (car reg))
             (end (cdr reg)))
         (kill-region beg (1+ end)))
-      (previous-line)
+      (forward-line -1)
       (end-of-line))))
 
 (defun concept-map-has-more-temporary-blocks (&optional direction)
@@ -13781,10 +13781,10 @@ This only works if inside a temporary configuration block already."
     (if (concept-in-temporary-block)
         (progn
           (concept-goto-first-line-in-temporary-block)
-          (previous-line))
+          (forward-line -1))
       (when (concept-map-has-more-temporary-blocks -1)
         (concept-goto-current-focus)
-        (previous-line)
+        (forward-line -1)
         (unless (concept-in-temporary-block)
           (forward-line)
           (concept-goto-next-temporary-block))))))
@@ -13984,7 +13984,7 @@ text is gets inserted as the suffix."
           (while (concept-on-data-concept-line)
             (concept-make-shared-suffix-with-focus nil)
             (forward-line))
-          (previous-line)
+          (forward-line -1)
           (end-of-line))
       (let ((data  (concept-current-concept))
             (focus (concept-current-focus)))
@@ -14051,7 +14051,7 @@ SUFFIX has no leading hyphen."
               (concept--goto-end-of-concept)
               (insert "-" (concept--suffix-to-insert data-concept suffix)))
             (forward-line))))
-      (previous-line)
+      (forward-line -1)
       (concept--goto-end-of-concept))))
 
 (defun concept--complete-string-prefix (focus text)
@@ -14104,7 +14104,7 @@ Leave TEXT unchanged when neither kind of overlap exists."
             (while (concept-on-data-concept-line)
               (concept-make-shared-prefix-with-focus nil)
               (forward-line))
-            (previous-line)
+            (forward-line -1)
             (end-of-line))
         (let ((data (concept-current-concept)))
           (when (not (string-blank-p data))
@@ -14161,7 +14161,7 @@ PREFIX has no trailing hyphen."
               (concept--goto-beginning-of-concept)
               (insert (concept--prefix-to-insert data-concept prefix) "-"))
             (forward-line))))
-      (previous-line)
+      (forward-line -1)
       (concept--goto-beginning-of-concept))))
 
 (defun concept-make-shared-with-focus-dwim (arg)
