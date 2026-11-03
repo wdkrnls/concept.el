@@ -8233,20 +8233,23 @@ determine the count boundary. The global variable
 This is useful for finding combinatorial relationships. See also the
 next version."
   (interactive "P")
-  (let ((count 0)
-        (size (if prefix
-                  (abs (prefix-numeric-value prefix))
-                (string-to-number
-                 (read-string (format "Relationships (%S): "
-                                      (symbol-name concept-last-size-comparison-behavior))
-                              (number-to-string concept-last-relationship-size))))))
+  (let* ((count 0)
+         (size
+          (if prefix
+              (prefix-numeric-value prefix)
+            (read-number (format "Relationships (%S): "
+                                 (symbol-name concept-last-size-comparison-behavior))
+                         concept-last-relationship-size))))
     (ignore-errors
       (outline-up-heading 1))
-    (outline-backward-same-level 1)
+    (ignore-errors
+      (outline-backward-same-level 1))
+    (setq concept-last-relationship-size size)
     (setq count (concept-relationship-count))
     (while (and (not (concept-on-first-line-p))
                 (not (concept-make-last-size-comparison count size)))
-      (outline-backward-same-level 1)
+      (ignore-errors
+        (outline-backward-same-level 1))
       (setq count (concept-relationship-count)))
     (concept-goto-current-focus)))
 
