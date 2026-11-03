@@ -9246,6 +9246,8 @@ The query `old\;@new' matches all query blocks with old but not new terms.
           (message "Idea copied to kill ring"))))))
 
 (defun concept-copy-all-ideas ()
+  "Copy all the ideas in the buffer.
+This is used for completion tasks such as yanking from ideas."
   (interactive)
   (save-excursion
     (beginning-of-buffer)
