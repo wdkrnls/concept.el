@@ -9267,7 +9267,7 @@ The query `old\;@new' matches all query blocks with old but not new terms.
         (outline-end-of-subtree)
         (let ((end (point)))
           (kill-new (buffer-substring beg end))
-          (when (called-interactively-p)
+          (when (called-interactively-p 'interactive)
             (message "Resource copied to kill ring")))))))
 
 (defun concept-copy-all-resources ()
@@ -9290,7 +9290,7 @@ The query `old\;@new' matches all query blocks with old but not new terms.
       (outline-end-of-subtree)
       (let ((end (point)))
         (kill-new (buffer-substring beg end))
-        (when (called-interactively-p)
+        (when (called-interactively-p 'interactive)
           (message "Idea copied to kill ring"))))))
 
 (defun concept-copy-all-ideas ()
@@ -9993,7 +9993,7 @@ modifying `mailcap-user-mime-data'."
                     (forward-line)
                     (concept-follow-dwim)
                     (with-current-buffer "*info*"
-                      (beginning-of-buffer)
+                      (goto-char (point-min))
                       (goto-char (string-to-number value)))))))
           ((and (concept-on-exposition-line)
                 (let ((key (concept-exposition-parent-key)))
@@ -10179,7 +10179,7 @@ modifying `mailcap-user-mime-data'."
   (if-let* ((file (buffer-file-name)))
       (progn
         (kill-new (expand-file-name file))
-        (when (called-interactively-p)
+        (when (called-interactively-p 'interactive)
           (message "Copied Path: %s" file)))
     (user-error "Current buffer is not visiting a file")))
 
@@ -10189,7 +10189,7 @@ modifying `mailcap-user-mime-data'."
   (let ((buf (buffer-name)))
     (progn
       (kill-new buf)
-      (when (called-interactively-p)
+      (when (called-interactively-p 'interactive)
         (message "Copied buffer named %s to the kill ring" buf)))))
 
 (defun concept-insert-delimited--helper (arg separator)
@@ -13147,7 +13147,7 @@ to do is type the keystrokes over and over."
      (list choice)))
   (pcase choice
     ("Focus Concept"
-     (concept-insert-new-focus-foncept))
+     (concept-insert-new-focus-concept))
     ("Data Concept"
      (concept-insert-new-data-concept))
     ("Relationship"
@@ -13159,7 +13159,7 @@ to do is type the keystrokes over and over."
     ("Exposition"
      (concept-insert-new-expository-data))
     ("Template"
-     (concept-enter-new-tempel-template))))
+     (concept-enter-new-tempel-template nil))))
 
 (defun concept-enter-new-tempel-template (arg)
   "Enter a new template at the end of the current idea.
