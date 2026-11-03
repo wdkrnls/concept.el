@@ -13910,6 +13910,66 @@ text is gets inserted as the suffix."
           (concept-kill-concept-or-resource-data)
           (insert (concept--complete-string-suffix focus data)))))))
 
+(defun concept--entry-hyphen-suffixes (entry)
+  "Return suffixes beginning at each hyphen-separated word boundary."
+  (let ((words (split-string entry "-" t)))
+    (seq-map
+     (lambda (n)
+       (string-join (seq-drop words n) "-"))
+     (number-sequence 1 (1- (length words))))))
+
+(defun concept--hyphen-suffix-statistics (entries)
+  "Return (SUFFIX . COUNT) for the most frequent suffix in ENTRIES."
+  (let* ((candidates
+          (seq-mapcat #'concept--entry-hyphen-suffixes entries))
+         (groups (seq-group-by #'identity candidates)))
+    (mapcar (lambda (group)
+              (cons (car group) (1- (length group))))
+            groups)))
+
+(defun concept--goto-end-of-concept ()
+  (when (concept-on-concept-line)
+    (end-of-line)
+    (skip-chars-backward " ")))
+
+(defun concept--goto-beginning-of-concept ()
+  (when (concept-on-concept-line)
+    (beginning-of-line)
+    (skip-chars-forward "| ")))
+
+(defun concept--suffix-to-insert (entry suffix)
+  "Return the part of SUFFIX not already at the end of ENTRY.
+SUFFIX has no leading hyphen."
+  (let* ((entry-parts (split-string entry "-" t))
+         (suffix-parts (split-string suffix "-" t))
+         (overlap (min (length entry-parts) (length suffix-parts))))
+    ;; Reduce OVERLAP until ENTRY's ending parts match SUFFIX's starting parts.
+    (while (and (> overlap 0)
+                (not (equal (last entry-parts overlap)
+                            (seq-take suffix-parts overlap))))
+      (setq overlap (1- overlap)))
+    (string-join (nthcdr overlap suffix-parts) "-")))
+
+(defun concept-make-shared-suffix-by-vote ()
+  "Use majority vote to find and append a suffix to a data concept."
+  (interactive)
+  (when (and (concept-in-relationship-block)
+             (concept-on-data-concept-line))
+    (concept-goto-previous-relationship-boundary)
+    (end-of-line)
+    (when-let* ((data       (concept-get-child-concepts))
+                (statistics (concept--hyphen-suffix-statistics data)))
+      (let ((suffix (car (seq-first (seq-sort-by #'cdr #'> statistics)))))
+        (concept-goto-first-data-concept-in-relationship-group)
+        (while (concept-on-data-concept-line)
+          (end-of-line)
+          (let ((data-concept (concept-current-concept)))
+            (unless (string-suffix-p suffix data-concept)
+              (concept--goto-end-of-concept)
+              (insert "-" (concept--suffix-to-insert data-concept suffix)))
+            (forward-line))))
+      (previous-line)
+      (concept--goto-end-of-concept))))
 
 (defun concept--complete-string-prefix (focus text)
   "Prepend FOCUS's words before its shared ending with TEXT.
