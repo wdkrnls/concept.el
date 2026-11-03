@@ -8030,15 +8030,33 @@ Either `all', `unique', or `diff'. `diff' means the difference between
 attributes in all the resource blocks under the given idea.")
 
 (defconst concept-last-behavior-choices
-  '(("All"    . all)
-    ("Unique" . unique)
-    ("Diff"   . diff))
-  "Choices for `concept-last-*-behavior' settings.")
+  '(("All"    all    "Count all elements")
+    ("Unique" unique "Count only unique elements")
+    ("Diff"   diff   "Compute difference between `All' and `Unique'")))
+
+(defun concept--annotate-properties (text)
+  "Return TEXT as a right-aligned, shadowed completions annotation."
+  ;; TODO: change alignment
+  (propertize (format "%40s" text) 'face 'shadow))
+
+(defun concept--read-annotated (prompt choices)
+  "Read a choice from CHOICES with PROMPT, showing right-aligned descriptions.
+CHOICES is a list of (KEY VALUE DESCRIPTION).  Returns VALUE."
+  (let* ((affix (lambda (candidates)
+                  (mapcar (lambda (c)
+                            (list c ""
+                                  (concept--annotate-properties
+                                   (or (caddr (assoc c choices)) ""))))
+                          candidates)))
+         (choice (completing-read
+                  prompt
+                  (completion-table-with-metadata
+                   choices `((affixation-function . ,affix)))
+                  nil t)))
+    (cadr (assoc choice choices))))
 
 (defun concept--read-last-behavior (prompt)
-  "Prompt with PROMPT and return one of `all', `unique', or `diff'."
-  (cdr (assoc (completing-read prompt concept-last-behavior-choices nil t)
-              concept-last-behavior-choices)))
+  (concept--read-annotated prompt concept-last-behavior-choices))
 
 (defun concept-set-last-attribute-count-behavior ()
   "Set the desired behavior for counting attribute keywords associated with
@@ -8067,15 +8085,24 @@ a relationship block. See also `concept-set-last-attribute-count-behavior'."
   (message "Setting `concept-last-resource-count-behavior' to `%S'."
            concept-last-resource-count-behavior))
 
+(defun concept-set-last-attribute-count-behavior ()
+  "Set the desired behavior for counting attribute keywords associated with
+a relationship block."
+  (interactive)
+  (setq-local concept-last-attribute-count-behavior
+              (concept--read-last-behavior "Attribute count behavior: "))
+  (message "Setting `concept-last-attribute-count-behavior' to `%S'."
+           concept-last-attribute-count-behavior))
+
 (defvar concept-last-size-comparison-behavior
   '=
   "Determine how comparisons based on relevant sizes of ideas are made.
  Allowed values are '=, '<=, and '>")
 
 (defconst concept-last-size-comparison-choices
-  '(("="  . "Keep idea sizes which match exactly")
-    ("<=" . "Keep sizes less than or equal to")
-    (">"  . "Keep sizes greater than the level"))
+  '(("="  =  "Keep sizes which match exactly")
+    ("<=" <= "Keep sizes less than or equal to")
+    (">"  >  "Keep sizes greater than the level"))
   "Choices for `concept-last-size-comparison-behavior'.")
 
 (defun concept-set-last-size-comparison-behavior ()
@@ -8083,8 +8110,8 @@ a relationship block. See also `concept-set-last-attribute-count-behavior'."
 This modifies the global variable `concept-last-size-comparison-behavior'."
   (interactive)
   (setq-local concept-last-size-comparison-behavior
-              (intern (completing-read "Size comparison behavior: "
-                                       concept-last-size-comparison-choices nil t)))
+              (concept--read-annotated "Size comparison behavior: "
+                                       concept-last-size-comparison-choices))
   (message "Setting `concept-last-size-comparison-behavior' to `%S'."
            concept-last-size-comparison-behavior))
 
