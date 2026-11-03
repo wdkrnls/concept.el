@@ -13895,20 +13895,21 @@ text is gets inserted as the suffix."
   (interactive "P")
   (when (and (concept-in-relationship-block)
              (concept-on-data-concept-line))
-    (let ((focus (concept-current-focus)))
-      (if arg
-          (progn
-            (concept-goto-first-data-concept-in-relationship-group)
-            (while (concept-on-data-concept-line)
-              (concept-make-shared-suffix-with-focus nil)
-              (forward-line))
-            (previous-line)
-            (end-of-line))
-        (let ((data (concept-current-concept)))
-          (when (and (not (string-blank-p data))
-                     (not (string-suffix-p "s" data)))
-            (concept-kill-concept-or-resource-data)
-            (insert (concept--complete-string-suffix focus data))))))))
+    (if arg
+        (progn
+          (concept-goto-first-data-concept-in-relationship-group)
+          (while (concept-on-data-concept-line)
+            (concept-make-shared-suffix-with-focus nil)
+            (forward-line))
+          (previous-line)
+          (end-of-line))
+      (let ((data  (concept-current-concept))
+            (focus (concept-current-focus)))
+        (when (and (not (string-blank-p data))
+                   (not (string-suffix-p "s" data)))
+          (concept-kill-concept-or-resource-data)
+          (insert (concept--complete-string-suffix focus data)))))))
+
 
 (defun concept--complete-string-prefix (focus text)
   "Prepend FOCUS's words before its shared ending with TEXT.
