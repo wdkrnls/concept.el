@@ -14212,6 +14212,8 @@ uses majority vote to decide on the prefix/suffix."
 (define-key concept-mode-map (kbd "C-c y r")     #'concept-consult-yank-from-resources)
 (define-key concept-mode-map (kbd "C-c y c")     #'concept-consult-yank-from-ideas)
 (define-key concept-mode-map (kbd "C-c y i")     #'concept-consult-yank-from-ideas)
+(define-key concept-mode-map (kbd "C-c y p")     #'concept-paste-matches-as-data)
+(define-key concept-mode-map (kbd "C-c y m")     #'concept-copy-minibuffer-history-entry)
 (define-key concept-mode-map (kbd "C-c s")       #'concept-consult-search-concept-blocks)
 (define-key concept-mode-map (kbd "C-c C-s")     #'concept-consult-search-resource-blocks)
 (define-key concept-mode-map (kbd "C-c [")       #'concept-insert-unicode-quote-brackets)
