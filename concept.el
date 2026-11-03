@@ -14028,12 +14028,67 @@ Leave TEXT unchanged when neither kind of overlap exists."
             (concept-kill-concept-or-resource-data)
             (insert (concept--complete-string-prefix focus data))))))))
 
+(defun concept--entry-hyphen-prefixes (entry)
+  "Return prefixes ending at each hyphen-separated word boundary."
+  (let ((words (split-string entry "-" t)))
+    (seq-map
+     (lambda (n)
+       (string-join (seq-take words n) "-"))
+     (number-sequence 1 (1- (length words))))))
+
+(defun concept--hyphen-prefix-statistics (entries)
+  "Return (PREFIX . COUNT) for the most frequent prefix in ENTRIES."
+  (let* ((candidates
+          (seq-mapcat #'concept--entry-hyphen-prefixes entries))
+         (groups (seq-group-by #'identity candidates)))
+    (mapcar (lambda (group)
+              (cons (car group) (1- (length group))))
+            groups)))
+
+(defun concept--prefix-to-insert (entry prefix)
+  "Return the part of PREFIX not already at the beginning of ENTRY.
+PREFIX has no trailing hyphen."
+  (let* ((entry-parts (split-string entry "-" t))
+         (prefix-parts (split-string prefix "-" t))
+         (overlap (min (length entry-parts) (length prefix-parts))))
+    ;; Reduce OVERLAP until PREFIX's ending parts match ENTRY's starting parts.
+    (while (and (> overlap 0)
+                (not (equal (last prefix-parts overlap)
+                            (seq-take entry-parts overlap))))
+      (setq overlap (1- overlap)))
+    (string-join (seq-take prefix-parts
+                           (- (length prefix-parts) overlap))
+                 "-")))
+
+(defun concept-make-shared-prefix-by-vote ()
+  "Use majority vote to find and append a suffix to a data concept."
+  (interactive)
+  (when (and (concept-in-relationship-block)
+             (concept-on-data-concept-line))
+    (concept-goto-previous-relationship-boundary)
+    (end-of-line)
+    (when-let* ((data       (concept-get-child-concepts))
+                (statistics (concept--hyphen-prefix-statistics data)))
+      (let ((prefix (car (seq-first (seq-sort-by #'cdr #'> statistics)))))
+        (concept-goto-first-data-concept-in-relationship-group)
+        (while (concept-on-data-concept-line)
+          (end-of-line)
+          (let ((data-concept (concept-current-concept)))
+            (unless (string-prefix-p prefix data-concept)
+              (concept--goto-beginning-of-concept)
+              (insert (concept--prefix-to-insert data-concept prefix) "-"))
+            (forward-line))))
+      (previous-line)
+      (concept--goto-beginning-of-concept))))
+
 (defun concept-make-shared-with-focus-dwim (arg)
   "Make data concepts look more like the current focus concept.
 
 When on the left side of concept symbol, it makes sure the prefixes are
-aligned, and when on the right side of the concept symbol, it makes sure
-the suffixes are aligned."
+aligned with the focus concept, and when on the right side of the
+concept symbol, it makes sure the suffixes are aligned with the focus
+concept. However, when a natural integer prefix argument is given, it
+uses majority vote to decide on the prefix/suffix."
   (interactive "P")
   (when (and (concept-on-data-concept-line)
              (looking-at "[^| \t]"))
