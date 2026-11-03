@@ -1301,11 +1301,15 @@ When forming relationship blocks it can be useful to insert all of the remaining
 
 ### Copying all matches while performing incremental search in a buffer
 
-One rich data source is buffer text. A frequently valuable kind of buffer text is search pattern matches. I want to create a wrapper around incremental search which lets me copy all matching strings in the buffer together and then paste it in as concepts or pieces of data. This feature is largely implemented, however, it's not yet documented here. In particular, setting up this feature requires the user to edit their init.el file since to make it useful, they need to modify the key map for isearch minibuffers.
+One rich data source is buffer text. A frequently valuable kind of buffer text is search pattern matches. I have created a incremental search which lets me copy all matching strings in the buffer together and then paste them in as concepts or pieces of data. This feature is largely implemented, however, it's not yet documented here. In particular, setting up this feature requires the user to edit their init.el file since to make it useful, they need to modify the key map for isearch minibuffers.
+
+The trick to making the feature work is to get the right mapconcat going.
 
 ### Adding to the swiss army knife
 
-I made a new utility command `concept-make-shared-with-focus-dwim` and bound it to `C-,`. When the cursor is near the beginning of the concept symbol, it zealously auto-fills the prefixes of the focus concept on a data concept line when they don't match. When near the end of the symbol, it zealously auto-fills the suffixes of the focus concept when they don't match. I've been testing several iterations and it's in a pretty reasonable state. Now it's behavior can be customized by editing the customizable variable `concept-preferred-preferred-suffix-alist`. It just seems to me that this thing could be integrated in the broader interactive configuration tools using lists of lists of strings.
+I made a new utility command `concept-make-shared-with-focus-dwim` and bound it to `C-,`. When the cursor is near the beginning of the concept symbol, it zealously auto-fills the prefixes of the focus concept on a data concept line when they don't match. When near the end of the symbol, it zealously auto-fills the suffixes of the focus concept when they don't match. When called with the universal argument as a list (the default with no numbers), it applies this rule across the whole relationship group. When called with an integer instead, it takes a majority vote across all the data concepts in the relationship group to determine the appropriate prefix/suffix.
+
+I've been testing several iterations and it's getting to be in a pretty reasonable state. Now it's behavior can be customized by editing the customizable variable `concept-preferred-preferred-suffix-alist`. It just seems to me that this thing could be integrated in the broader interactive configuration tools using lists of lists of strings.
 
 ### Yanking from the minibuffer
 
