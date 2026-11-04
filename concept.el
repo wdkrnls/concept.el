@@ -1295,7 +1295,7 @@ selected line then this will return nil.
  relationship block."
   (and (concept-on-relationship-line)
        (save-excursion
-         (previous-line)
+         (forward-line -1)
          (concept-on-focus-line))))
 
 (defun concept-on-first-attribute-line ()
@@ -1303,7 +1303,7 @@ selected line then this will return nil.
  resource block."
   (and (concept-on-attribute-line)
        (save-excursion
-         (previous-line)
+           (forward-line -1)
          (concept-on-resource-line))))
 
 (defun concept-reverse-order-dwim (arg)
@@ -1601,7 +1601,7 @@ reordering resource blocks alphabetically."
       (while (concept-on-data-line)
         (forward-line))
       (when (< 0 n)
-        (previous-line))
+        (forward-line -1))
     (end-of-line))))
 
 (defun concept-goto-first-data-concept-in-relationship-group ()
@@ -1894,7 +1894,7 @@ This procedure takes an option argument ARG which advances multiple concepts at 
   "Get the last concept before the current position if on a data line."
   (when (concept-in-relationship-block)
     (save-excursion
-      (previous-line)
+      (forward-line -1)
       (beginning-of-line)
       (when (and (not (concept-on-relationship-line)))
         (forward-char 2)
@@ -1906,12 +1906,12 @@ This procedure takes an option argument ARG which advances multiple concepts at 
          (save-excursion
            (concept-goto-current-focus)
            (concept-goto-next-resource)
-           (previous-line)
+           (forward-line -1)
            (end-of-line)
            (concept-current-concept)))
         ((concept-in-relationship-block)
          (save-excursion
-           (previous-line)
+           (forward-line -1)
            (beginning-of-line)
            (when (and (not (concept-on-relationship-line)))
              (forward-char 2)
@@ -2158,9 +2158,9 @@ is blank, insert it. Otherwise, make a new line and insert it."
               (if (concept-on-last-line-p)
                   (newline)
                 (progn
-                  (next-line)
+                  (forward-line)
                   (end-of-line)))))))
-      (previous-line)
+      (forward-line -1)
       (end-of-line)
       (newline)
       (yank)
@@ -2183,8 +2183,8 @@ is blank, insert it. Otherwise, make a new line and insert it."
           (while (not (concept-current-line-blank-p))
             (if (concept-on-last-line-p)
                 (newline)
-              (next-line)))))
-      (previous-line)
+              (forward-line)))))
+      (forward-line -1)
       (end-of-line)
       (newline)
       (yank)
@@ -2205,14 +2205,14 @@ the current data."
                 (concept-repeat-current-block)
                 (outline-end-of-subtree))
                ((save-excursion
-                  (previous-line)
+                  (forward-line -1)
                   (concept-on-data-concept-line))
                 (beginning-of-line)
                 (let ((focus (concept-current-focus)))
                   (open-line 1)
                   (insert "~ " focus)))
                ((and (save-excursion
-                       (previous-line)
+                       (forward-line -1)
                        (concept-on-focus-line))
                      (save-excursion
                        (forward-line)
@@ -2276,7 +2276,7 @@ When you don't want to kill the whole concept map element, call
            (end-of-line))
           ((concept-on-relationship-line)
            (kill-region (line-beginning-position) (save-excursion (concept-goto-next-relationship-boundary) (point)))
-           (previous-line)
+           (forward-line -1)
            (end-of-line))
           ((concept-on-data-concept-line)
            (if arg
@@ -2285,7 +2285,7 @@ When you don't want to kill the whole concept map element, call
                    (kill-whole-line)))
              (kill-whole-line))
            (when (not (concept-on-data-concept-line))
-             (previous-line))
+             (forward-line -1))
            (end-of-line))
           ((concept-on-resource-line)
            (concept-kill-resource))
@@ -2309,14 +2309,14 @@ When you don't want to kill the whole concept map element, call
              (kill-whole-line))
            (if (and (concept-on-exposition-line)
                     (save-excursion
-                      (previous-line)
+                      (forward-line -1)
                       (concept-on-attribute-line))
                     (save-excursion
                       (forward-line)
                       (not (concept-on-exposition-line))))
                (progn (end-of-line)
                       (backward-char))
-             (previous-line)
+             (forward-line -1)
              (end-of-line)
              (when (concept-on-exposition-line)
                (backward-char))))
@@ -2549,7 +2549,7 @@ supplied, in which case it goes below."
                       (concept-goto-first-blank-data-in-resource-block)
                     (concept-add-data)
                     (concept-insert-keyword-block "note")
-                    (previous-line 2)
+                    (forward-line -2)
                     (kill-whole-line)
                     (forward-line 2)
                     (backward-char 2)))
@@ -4999,7 +4999,7 @@ Sort these names in order of usage frequency."
   "Get the current attribute and return it as a string."
   (if (concept-on-exposition-line)
       (save-excursion
-        (previous-line)
+        (forward-line -1)
         (concept-current-attribute))
     (and (concept-on-attribute-line)
          (save-excursion
@@ -5231,7 +5231,7 @@ by this command in practice."
              (end-of-line))
             (is-blank
              (kill-whole-line)
-             (previous-line)
+             (forward-line -1)
              (end-of-line))
             ((and (concept-on-data-concept-line)
                   (save-excursion
@@ -5272,7 +5272,7 @@ by this command in practice."
            (kill-whole-line)
            (beginning-of-line)
            (re-search-forward "[^| ]" (line-end-position) t)
-           (previous-line)
+           (forward-line -1)
            (end-of-line)
            (when (concept-on-exposition-line)
              (backward-char)))
@@ -5293,7 +5293,7 @@ by this command in practice."
                      (when (equal last-keyword next-keyword)
                        (kill-whole-line))
                      (end-of-line))
-                 (previous-line)
+                 (forward-line -1)
                  (end-of-line)
                  (when (concept-on-exposition-line)
                    (backward-char)))))))))
@@ -5307,12 +5307,12 @@ by this command in practice."
     (cond ((concept-on-blank-exposition-line)
            (kill-whole-line)
            (if (save-excursion
-                   (previous-line)
+                   (forward-line -1)
                    (concept-on-attribute-line))
                (progn
-                 (previous-line)
+                 (forward-line -1)
                  (kill-whole-line))
-             (previous-line))
+             (forward-line -1))
            (end-of-line)
            (when (concept-on-exposition-line)
              (backward-char)))
@@ -5337,7 +5337,7 @@ by this command in practice."
                    (progn
                      (kill-whole-line)
                      (end-of-line))
-                 (previous-line)
+                 (forward-line -1)
                  (end-of-line)
                  (when (concept-on-exposition-line)
                    (backward-char)))))))))
@@ -5358,7 +5358,7 @@ by this command in practice."
             (progn
               (kill-whole-line)
               (end-of-line))
-          (previous-line)
+          (forward-line -1)
           (end-of-line))))))
 
 (defun concept-kill-resource ()
@@ -5373,7 +5373,7 @@ by this command in practice."
                    (point))))
         (kill-region beg end)))
     (delete-line)
-    (previous-line)
+    (forward-line -1)
     (end-of-line)
     (skip-chars-backward " ")))
 
@@ -5419,7 +5419,7 @@ by this command in practice."
          (kill-whole-line)
          (if (concept-on-attribute-line)
              (progn
-               (previous-line)
+               (forward-line -1)
                (end-of-line))
            (end-of-line)
            (backward-char)))
@@ -5472,7 +5472,7 @@ by this command in practice."
                      (concept-get-attribute-data))))
       (when (and (< 1 (length data))
                  (not (save-excursion
-                        (previous-line)
+                        (forward-line -1)
                         (concept-on-attribute-line))))
         (beginning-of-line)
         (insert (format "| %s:\n" keyword))
@@ -5495,7 +5495,7 @@ by this command in practice."
       (end-of-line)
       (when (or (concept-on-resource-line)
                 (concept-on-focus-line))
-        (previous-line)
+        (forward-line -1)
         (beginning-of-line))
       (concept-end-of-subtree)
       (newline)
@@ -5518,7 +5518,7 @@ by this command in practice."
              (concept-map-has-more-concept-blocks -1))
     (concept-kill-resource)
     (concept-goto-current-focus)
-    (previous-line)
+    (forward-line -1)
     (beginning-of-line)
     (concept-end-of-subtree)
     (end-of-line)
@@ -5538,7 +5538,7 @@ by this command in practice."
           (data  (nreverse (concept-get-child-concepts))))
       (kill-region (line-beginning-position) (save-excursion (concept-goto-next-relationship-boundary) (point)))
       (end-of-line)
-      (previous-line)
+      (forward-line -1)
       (outline-end-of-subtree)
       (newline)
       (insert (format "~ %s\n" focus))
@@ -5935,7 +5935,7 @@ This is intended to enter multiple data concepts at the same time."
   (interactive)
   (let ((pattern "^[~|]")
         (line-move-visual nil))
-    (previous-line)
+    (forward-line -1)
     (end-of-line)
     (while (not (concept-on-concept-line))
       (re-search-backward pattern nil t))
@@ -5973,11 +5973,11 @@ This is intended to enter multiple data concepts at the same time."
   (interactive)
   (let ((pattern concept-next-relationship-group-line-regexp)
         (line-move-visual nil))
-    (previous-line)
+    (forward-line -1)
     (beginning-of-line)
     (while (and (not (bobp))
                 (not (concept-on-relationship-line)))
-      (previous-line))
+      (forward-line -1))
     (end-of-line)))
 
 (defun concept-goto-next-resource ()
@@ -6002,7 +6002,7 @@ This is intended to enter multiple data concepts at the same time."
     (or
      (prog1
        (re-search-forward re nil t)
-       (previous-line)
+       (forward-line -1)
        (end-of-line))
      (goto-char (point-max)))))
 
@@ -6085,10 +6085,10 @@ This is intended to enter multiple data concepts at the same time."
   "Navigate backward until the last resource line"
   (interactive)
   (let ((line-move-visual nil))
-    (previous-line)
+    (forward-line -1)
     (end-of-line)
     (while (not (concept-on-resource-line))
-      (previous-line))
+      (forward-line -1))
     (end-of-line)))
 
 (defun concept--exchange-concept (direction &optional times)
@@ -6106,18 +6106,18 @@ concepts."
       (dotimes (i times)
         (when (save-excursion
                 (if (equal direction "up")
-                    (previous-line)
+                    (forward-line -1)
                   (forward-line))
                 (and (concept-on-data-line)
                      (concept-on-concept-line)))
           (if (equal direction "up")
               (progn
                 (transpose-lines 1)
-                (previous-line 2))
+                (forward-line -2))
             (progn
               (forward-line)
               (transpose-lines 1)
-              (previous-line))))
+              (forward-line -1))))
         (end-of-line)))))
 
 (defun concept-exchange-concept-up (&optional times)
@@ -6145,17 +6145,17 @@ adjacent exposition line."
         (when (concept-on-exposition-line)
           (when (save-excursion
                   (if (equal direction "up")
-                      (previous-line)
+                      (forward-line -1)
                     (forward-line))
                   (concept-on-exposition-line))
             (if (equal direction "up")
                 (progn
                   (transpose-lines 1)
-                  (previous-line 2))
+                  (forward-line -2))
               (progn
                 (forward-line)
                 (transpose-lines 1)
-                (previous-line)))
+                (forward-line -1)))
             (end-of-line)
             (backward-char)))))))
 
@@ -6467,19 +6467,19 @@ new resource block."
   (interactive)
   (let ((line-move-visual nil))
     (beginning-of-line)
-    (previous-line)
+    (forward-line -1)
     (while (not (concept-on-exposition-line))
-      (previous-line))
+      (forward-line -1))
     (end-of-line)))
 
 (defun concept-goto-last-attribute ()
   "Navigate backward until the last exposition line"
   (interactive)
   (let ((line-move-visual nil))
-    (previous-line)
+    (forward-line -1)
     (beginning-of-line)
     (while (not (concept-on-attribute-line))
-      (previous-line))
+      (forward-line -1))
     (end-of-line)))
 
 (defun concept-go-one-group-up ()
@@ -6489,11 +6489,11 @@ new resource block."
              (concept-on-focus-line)
              (and (concept-on-attribute-line)
                   (save-excursion
-                    (previous-line)
+                    (forward-line -1)
                     (concept-on-resource-line)))
              (and (concept-on-relationship-line)
                   (save-excursion
-                    (previous-line)
+                    (forward-line -1)
                     (concept-on-focus-line))))
          (outline-previous-visible-heading 1)
          (end-of-line))
@@ -7187,7 +7187,7 @@ resource is found."
 (defun concept-insert-relationship-block (focus relationship concept)
   "Insert a new relationship block before the current line."
   (let ((line-move-visual nil))
-    (previous-line)
+    (forward-line -1)
     (end-of-line)
     (newline)
     (insert "~ ")
@@ -7287,7 +7287,7 @@ Place each relationship into its own block."
          (let ((keyword (concept-current-attribute)))
            (end-of-line)
            (insert (format "\n| %s:" keyword)))
-         (previous-line)
+         (forward-line -1)
          (end-of-line)
          (backward-char))
         ((and (concept-on-attribute-line)
@@ -7415,14 +7415,14 @@ can think of this as analogous to how C-. and M-. work."
   "Test if the current line is the first data concept line."
   (and (concept-on-data-concept-line)
        (save-excursion
-         (previous-line)
+         (forward-line -1)
          (concept-on-first-relationship-line))))
 
 (defun concept-on-first-data-concept-line ()
   "Test if the current line is the first data concept line."
   (and (concept-on-data-concept-line)
        (save-excursion
-         (previous-line)
+         (forward-line -1)
          (concept-on-relationship-line))))
 
 (defun concept-swap-focus-with-first-data ()
@@ -7467,7 +7467,7 @@ can think of this as analogous to how C-. and M-. work."
                       (forward-line)
                       (concept-on-data-concept-line))
                     (save-excursion
-                      (previous-line)
+                      (forward-line -1)
                       (concept-on-data-concept-line))))
            (when (not (concept-on-blank-line))
              (let ((focus (concept-current-focus))
@@ -7477,7 +7477,7 @@ can think of this as analogous to how C-. and M-. work."
                (concept-goto-current-focus)
                (beginning-of-line)
                (newline)
-               (previous-line)
+               (forward-line -1)
                (insert "~ ")
                (insert focus)
                (newline)
@@ -7492,14 +7492,14 @@ can think of this as analogous to how C-. and M-. work."
                (forward-line)
                (concept-on-exposition-line))
              (save-excursion
-               (previous-line)
+               (forward-line -1)
                (concept-on-exposition-line))))
     (let ((resource (concept-current-resource-name))
           (keyword  (concept-current-attribute))
           (data     (concept-current-line)))
       (kill-whole-line)
       (concept-goto-current-resource)
-      (previous-line)
+      (forward-line -1)
       (end-of-line)
       (newline)
       (insert "@ " resource)
@@ -7513,7 +7513,7 @@ can think of this as analogous to how C-. and M-. work."
   (when (concept-on-last-line-p)
     (end-of-line)
     (newline)
-    (previous-line)
+    (forward-line -1)
     (end-of-line)
     (skip-chars-backward " "))
   (when (concept-on-exposition-line)
@@ -7603,16 +7603,16 @@ If on a focused concept, then insert an :include line. Otherwise insert a blank 
            (when (concept-on-last-line-p)
              (end-of-line)
              (newline)
-             (previous-line))
+             (forward-line -1))
            (if (concept-on-blank-line)
                (if (concept-in-relationship-block)
                    (if (save-excursion
-                         (previous-line)
+                         (forward-line -1)
                          (concept-on-focus-line))
                        (insert ":")
                      (concept-insert-concept-as-data))
                  (if (save-excursion
-                       (previous-line)
+                       (forward-line -1)
                        (concept-on-resource-line))
                      (progn
                        (insert ":")
@@ -13559,7 +13559,7 @@ relationship block."
                    (concept-on-attribute-line))))
            (when (not (concept-on-last-line-p))
              (save-excursion
-               (next-line)
+               (forward-line)
                (or (concept-on-exposition-line)
                    (concept-on-data-concept-line)))))))
 
