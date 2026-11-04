@@ -3779,7 +3779,7 @@ There are many kinds of data recognized by this function."
              ((concept--arithmetic-expression-p             string)   'arith    )
              ((concept--algebraic-expression-p              string)   'algebra  )
              ((concept--valid-elisp-symbol-p                string)   'lisp-sym )
-             ((concept--valid-elisp-expression-p            string)   'lisp     ) ; TODO: missing predicate definition!
+             ((concept--valid-lisp-expression-p             string)   'lisp     )
              ((string-match-p "[][(){}‘’]"                  string)
               (if (concept--string-balanced-p string)
                                                                       'balblk
