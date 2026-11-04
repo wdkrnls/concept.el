@@ -7730,14 +7730,14 @@ simple."
 There should only be one space there, not several."
   (when (derived-mode-p 'concept-mode)
     (save-excursion
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (replace-regexp "^\\([|~@]\\) +" "\\1 "))))
 
 (defun concept-insert-missing-leading-whitespace ()
   "Insert missing whitespace between the opening sigil and the interesting content."
   (when (derived-mode-p 'concept-mode)
     (save-excursion
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (replace-regexp "^\\([|~@]\\)\\([^[:space:]]+\\)" "\\1 \\2"))))
 
 (defun concept-on-malformed-exposition-line ()
@@ -7751,7 +7751,7 @@ There should only be one space there, not several."
 This only affects resource blocks."
   (when (derived-mode-p 'concept-mode)
     (save-excursion
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (replace-regexp "^| +\\([^][{}‘’:~ ]+:\\).+$" "| \\1")
       (replace-regexp "}[^]’[:cntrl:]]+$" "}")
       (replace-regexp "][^}’[:cntrl:]]+$" "]")
@@ -9290,7 +9290,7 @@ The query `old\;@new' matches all query blocks with old but not new terms.
   "Copy all the resource blocks into the kill ring."
   (interactive)
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (while (concept-map-has-more-resources)
       (concept-goto-next-resource)
       (concept-copy-resource-at-point))))
@@ -9314,7 +9314,7 @@ The query `old\;@new' matches all query blocks with old but not new terms.
 This is used for completion tasks such as yanking from ideas."
   (interactive)
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (while (concept-map-has-more-concept-blocks)
       (concept-goto-next-concept-block)
       (concept-copy-idea-at-point))))
@@ -9975,7 +9975,7 @@ modifying `mailcap-user-mime-data'."
                     (forward-line)
                     (concept-follow-dwim)
                     (with-current-buffer "*info*"
-                      (beginning-of-buffer)
+                      (goto-char (point-min))
                       (occur value))))))
           ((and (concept-on-exposition-line)
                 (string= "point" (concept-exposition-parent-key)))
