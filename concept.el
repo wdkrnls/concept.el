@@ -13923,7 +13923,9 @@ We expect WORDS to be a list of strings."
                 (string-join remaining "-"))))))
 
 (defcustom concept-preferred-suffix-alist
-  '(("emacs-variables" . "variables") ("elisp-calls" . "calls"))
+  '(("emacs-variables" . "variables")
+    ("elisp-calls" . "calls")
+    ("emacs-commands" . "commands"))
   "Fallback suffixes for focus phrases when there is no overlap with their
 data concepts.
 
