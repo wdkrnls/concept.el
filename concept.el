@@ -7976,7 +7976,7 @@ to implement that functionality."
     (ignore-errors
       (outline-backward-same-level 1))
     (setq concept-last-relationship-group-size size)
-    (setq count (concept-relationship-block-group-size-count)) ; TODO: missing definition!
+    (setq count (concept-make-relationship-block-group-size-count))
     (let ((starting-line (line-number-at-pos))
           current-line)
       (while (and (not (concept-on-last-line-p))
@@ -7988,7 +7988,7 @@ to implement that functionality."
         (when (eq starting-line current-line)
           (user-error "Now in last relationship block. No more to search. Aborting!"))
         (setq starting-line current-line)
-        (setq count (concept-relationship-block-group-size-count)))
+        (setq count (concept-make-relationship-block-group-size-count)))
     (re-search-forward "^| +:" nil t)
     (end-of-line))))
 
