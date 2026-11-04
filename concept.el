@@ -8092,14 +8092,7 @@ a relationship block. See also `concept-set-last-attribute-count-behavior'."
   (message "Setting `concept-last-resource-count-behavior' to `%S'."
            concept-last-resource-count-behavior))
 
-(defun concept-set-last-attribute-count-behavior ()
-  "Set the desired behavior for counting attribute keywords associated with
-a relationship block."
-  (interactive)
-  (setq-local concept-last-attribute-count-behavior
-              (concept--read-last-behavior "Attribute count behavior: "))
-  (message "Setting `concept-last-attribute-count-behavior' to `%S'."
-           concept-last-attribute-count-behavior))
+
 
 (defvar concept-last-size-comparison-behavior
   '=
