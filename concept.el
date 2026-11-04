@@ -14289,7 +14289,7 @@ uses majority vote to decide on the prefix/suffix."
 (define-key concept-mode-map (kbd "C-c M-i f")   #'concept-insert-new-focus-concept)
 (define-key concept-mode-map (kbd "C-c M-i a")   #'concept-insert-new-attribute-group)
 (define-key concept-mode-map (kbd "C-c M-i g")   #'concept-insert-new-relationship-group)
-(define-key concept-mode-map (kbd "C-c M-i r")   #'concept-insert-resource-block)
+(define-key concept-mode-map (kbd "C-c M-i r")   #'concept-insert-new-resource-block)
 (define-key concept-mode-map (kbd "C-c M-i t")   #'concept-enter-new-tempel-template)
 (define-key concept-mode-map (kbd "M-RET")       #'concept-add-new-data)
 (define-key concept-mode-map (kbd "<tab>")       #'concept-change-dwim)
