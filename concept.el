@@ -229,6 +229,7 @@
 ;;; Code:
 
 (require 'seq)
+(require 'hippie-exp)
 (require 'subr-x)
 (require 'help-fns)
 (require 'outline)
