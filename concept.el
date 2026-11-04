@@ -13049,7 +13049,7 @@ completion candidates."
   (cond ((and (concept-on-focus-line)
               (< 1 (concept-relationship-count)))
          (concept-goto-next-concept)
-         (concept-add-dwim))
+         (concept-add-dwim 1))
         ((concept-on-focus-line)
          (end-of-line)
          (concept-insert-dwim))
