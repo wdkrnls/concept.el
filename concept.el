@@ -6024,7 +6024,7 @@ This is intended to enter multiple data concepts at the same time."
   "Navigate forward until the next concept focus line as long as you aren't on one."
   (interactive)
   (when (not (concept-on-focus-line))
-    (concept-goto-previous-concept-block))) ; TODO: missing definition!
+    (concept-goto-previous-concept-block)))
 
 (defun concept-goto-last-resource-or-stay ()
   "Navigate backward to last resource line as long as you aren't on one."
@@ -8400,6 +8400,15 @@ number, look in either the forward or backward direction."
       (concept-goto-current-focus)
       (beginning-of-line)
       (re-search-backward "^~ +" nil t))))
+
+(defun concept-goto-previous-concept-block ()
+  "Navigate backward until the previous concept focus line"
+  (interactive)
+  (when (not (concept-on-focus-line))
+    (ignore-errors
+      (outline-up-heading 1)))
+  (when (concept-map-has-more-concept-blocks -1)
+    (outline-backward-same-level 1)))
 
 (defun concept-map-has-more-attributes ()
   "Return non-nil if a later attribute line exists."
