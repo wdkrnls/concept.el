@@ -7731,14 +7731,16 @@ There should only be one space there, not several."
   (when (derived-mode-p 'concept-mode)
     (save-excursion
       (goto-char (point-min))
-      (replace-regexp "^\\([|~@]\\) +" "\\1 "))))
+      (while (re-search-forward "^\\([|~@]\\) +" nil t)
+        (replace-match "\\1 ")))))
 
 (defun concept-insert-missing-leading-whitespace ()
   "Insert missing whitespace between the opening sigil and the interesting content."
   (when (derived-mode-p 'concept-mode)
     (save-excursion
       (goto-char (point-min))
-      (replace-regexp "^\\([|~@]\\)\\([^[:space:]]+\\)" "\\1 \\2"))))
+      (while (re-search-forward "^\\([|~@]\\)\\([^[:space:]]+\\)" nil t)
+        (replace-match "\\1 \\2")))))
 
 (defun concept-on-malformed-exposition-line ()
   (and (concept-in-resource-block)
@@ -7752,10 +7754,14 @@ This only affects resource blocks."
   (when (derived-mode-p 'concept-mode)
     (save-excursion
       (goto-char (point-min))
-      (replace-regexp "^| +\\([^][{}‘’:~ ]+:\\).+$" "| \\1")
-      (replace-regexp "}[^]’[:cntrl:]]+$" "}")
-      (replace-regexp "][^}’[:cntrl:]]+$" "]")
-      (replace-regexp "’[^]}[:cntrl:]]+$" "’"))))
+      (while (re-search-forward "^| +\\([^][{}‘’:~ ]+:\\).+$" nil t)
+        (replace-match "| \\1"))
+      (while (re-search-forward "}[^]’[:cntrl:]]+$" nil t)
+        (replace-match "}"))
+      (while (re-search-forward "][^}’[:cntrl:]]+$" nil t)
+        (replace-match "]"))
+      (while (re-search-forward "’[^]}[:cntrl:]]+$" nil t)
+        (replace-match "’")))))
 
 (defun concept-cleanup-map ()
   "Remove whitespace, blank lines, and fix common mistakes with resource blocks."
