@@ -7005,14 +7005,24 @@ other piece of functionality become appealing.")
   ;; TODO: put the right number of capital letters and document!
   ;; NOTE: I haven't been thinking about canonical sorting recently. Hopefully,
   ;;       there are some useful hints/clues in the `README.md'.
-  "Some number of capital letters in a string setting the sorting order.
+  ;; TODO: I might have deleted this because it is no longer needed if tie-breaks
+  ;;       can use different letters in the original variable.
+  "Six more capital letters in a string setting the tie-breaking rule sorting order.
 
 This variable handles tie breakers for deciding the ordering of
 blocks. For example, suppose you have two relationship blocks with the
 same focus concept. This is not a rare occurrence, a letter in this
-string decides the ordering of ideas in this case.
+string decides the ordering of ideas in this case. This ordering can be
+based on the number of relationship groups in the concepts, the total
+number of data concepts in the idea, the total number of characters in
+the idea, etc.
 
-with the same The different letters mean:
+Similar logic applies to other concept map elements. When two
+relationship groups share the same relationship, their order can be
+decided according to the number of data concepts they contain or to the
+total number of characters in the relationship group. Or, it could be
+based on alphabetical sort of the first data concept. It's up to the
+user to decide what makes the most sense for their use case.
 
 A) for alphabetical sort with length tie break (i.e., `concept-alphabetical-sort-dwim')
 B) for alphabetical sort except for a few patterns which when matched come first in specified order
@@ -7037,10 +7047,10 @@ Similarly, there are 3 more levels for resource blocks.
 5. attribute group keywords
 6. exposition lines
 
-Note that sticking to just alphabetical can be fine as long as the diff
-is done after a git filter and not on the existing buffer. However, when
-you want to keep the buffer itself more organized, that's when these
-other piece of functionality become appealing.")
+Note that sticking to just alphabetical sorting can be fine as long as
+the diff is done after a git filter and not on the existing
+buffer. However, when you want to keep the buffer itself more organized,
+that's when these other piece of functionality become appealing.")
 
 (defun concept-canonical-sort-string-is-valid-p (string)
   "Test whether the value  of the variable `concept-canonical-sort-string' is valid."
