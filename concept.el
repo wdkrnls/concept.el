@@ -7389,7 +7389,11 @@ Unlike with concept-split-dwim which always reuses the current focus as
 the new focus, the focus of the new relationship block is the data
 concept at point. You can think of this as analogous to how C-. and
 M-. work. M-; is bound to concept-split-dwim which C-; is bound to
-concept-data-split."
+concept-data-split.
+
+With a positive prefix argument ARG, the split can happen further down
+the group than otherwise. However, it must be within the same
+relationship group."
   (interactive "p")
   (unless (natnump arg)
     (user-error "Expecting a positive integer prefix argument. Got a negative one!"))
