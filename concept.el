@@ -7690,7 +7690,7 @@ simple."
                         (not (string-match-p "\\] *$" text)))
                    (insert "]"))
                   ((and (string-match-p "^| +‘" text)
-                        (not (string-match-p "’ *$")))
+                        (not (string-match-p "’ *$" text)))
                    (insert "’"))
                   ((string-match-p "^| +[^][{}‘’: ]+ *$" text)
                    (insert ":")))))))))
