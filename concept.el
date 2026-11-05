@@ -7384,16 +7384,12 @@ Place each relationship into its own block."
   "Warning message to show the user when passing an impossible jump.")
 
 (defun concept-data-split-dwim (arg)
-  "Split the relationship block up into two or more ideas with data
-concepts as focus.  This differs from split-dwim in that this command
-creates new ideas based on former data concepts as the new focus. You
-can think of this as analogous to how C-. and M-. work."
-  ;; TODO: clearly distinguish data-split-dwim from split-dwim
-  ;; TODO: It would be nice if there was a prefix argument.
-  ;;       With an explicit integer count, it could split blocks/groups non-locally.
-  ;;       This would be helpful on data concept lines so I don't have to first reorder
-  ;;       the concepts before spliting the blocks.
-
+  "Split the relationship block up into two separate blocks.
+Unlike with concept-split-dwim which always reuses the current focus as
+the new focus, the focus of the new relationship block is the data
+concept at point. You can think of this as analogous to how C-. and
+M-. work. M-; is bound to concept-split-dwim which C-; is bound to
+concept-data-split."
   (interactive "p")
   (unless (natnump arg)
     (user-error "Expecting a positive integer prefix argument. Got a negative one!"))
