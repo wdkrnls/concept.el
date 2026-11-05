@@ -5053,6 +5053,16 @@ Sort these names in order of usage frequency."
         (re-search-backward "^| +:")
         (concept-get-relationship)))))
 
+(defun concept-current-relationship-line ()
+  "Get the line number of the current relationship."
+  (when (and (concept-in-relationship-block)
+             (concept-on-data-line))
+    (if (concept-on-relationship-line)
+        (line-number-at-pos)
+      (save-excursion
+        (re-search-backward "^| +:")
+        (line-number-at-pos)))))
+
 (defun concept-current-resource ()
   "Get the current resource and return as a string."
   (when (concept-in-resource-block)
@@ -7368,14 +7378,25 @@ Place each relationship into its own block."
         (beginning-of-line)
         (open-line 1)
         (insert "~ " focus)))))
-  
-(defun concept-data-split-dwim ()
+
+(defvar concept-data-split-jump-warning-text
+  "Line jump landed outside of the current relationship group!"
+  "Warning message to show the user when passing an impossible jump.")
+
+(defun concept-data-split-dwim (arg)
   "Split the relationship block up into two or more ideas with data
 concepts as focus.  This differs from split-dwim in that this command
 creates new ideas based on former data concepts as the new focus. You
 can think of this as analogous to how C-. and M-. work."
   ;; TODO: clearly distinguish data-split-dwim from split-dwim
-  (interactive)
+  ;; TODO: It would be nice if there was a prefix argument.
+  ;;       With an explicit integer count, it could split blocks/groups non-locally.
+  ;;       This would be helpful on data concept lines so I don't have to first reorder
+  ;;       the concepts before spliting the blocks.
+
+  (interactive "p")
+  (unless (natnump arg)
+    (user-error "Expecting a positive integer prefix argument. Got a negative one!"))
   (cond ((and (concept-on-data-concept-line)
               (save-excursion
                 (forward-line)
@@ -7420,12 +7441,18 @@ can think of this as analogous to how C-. and M-. work."
            (newline)
            (insert (format "~ %s" concept))))
         ((and (concept-on-data-concept-line)
-              (save-excursion
-                (forward-line)
-                (concept-on-data-concept-line)))
+              (let ((rel-line (concept-current-relationship-line)))
+                (save-excursion
+                  (forward-line arg)
+                  (and (or (concept-on-data-concept-line)
+                           (and (message concept-data-split-jump-warning-text) nil))
+                       (or (eq (concept-current-relationship-line) rel-line)
+                           (and (message concept-data-split-jump-warning-text) nil))))))
          (when (not (concept-on-blank-line))
            (let ((concept (concept-current-concept))
                  (relationship (concept-current-relationship)))
+             (when (< 1 arg)
+               (forward-line (1- arg)))
              (end-of-line)
              (newline)
              (insert "~ ")
