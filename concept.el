@@ -7860,8 +7860,6 @@ This is useful for finding combinatorial relationships. See also the
 previous version."
   (interactive "P")
   (let* ((count 0)
-         (default (and concept-last-relationship-size
-                       concept-last-relationship-size))
          (size
           (if prefix
               (prefix-numeric-value prefix)
@@ -7899,9 +7897,6 @@ groups. This is useful for finding combinatorial relationships. See also
 the previous of this command which goes (backwards) in the other direction."
   (interactive "P")
   (let* ((count 0)
-         ;; If it's defined, store the value
-         (default (and concept-last-relationship-group-size
-                       concept-last-relationship-group-size))
          (size
           (if prefix
               (prefix-numeric-value prefix)
@@ -7952,8 +7947,6 @@ The meaning of `group-size' depends on the value of
 to implement that functionality."
   (interactive "P")
   (let* ((count 0)
-         (default (and concept-last-relationship-group-size
-                       concept-last-relationship-group-size))
          (size
           (if prefix
               (prefix-numeric-value prefix)
@@ -7991,8 +7984,6 @@ blocks. See also the previous variant of this command which
 goes (backwards) in the other direction."
   (interactive "P")
   (let* ((count 0)
-         (default (and concept-last-resource-count
-                       concept-last-resource-count))
          (size
           (if prefix
               (abs (prefix-numeric-value prefix))
@@ -8190,8 +8181,6 @@ are the same options which make sense for
 `concept-set-last-relationship-size-behavior' as well."
   (interactive "P")
   (let* ((count 0)
-         (default (and concept-last-attribute-count
-                       concept-last-attribute-count))
          (size
           (if prefix
               (prefix-numeric-value prefix)
@@ -8235,8 +8224,6 @@ determine the count boundary. The global variable
 '> are used."
   (interactive "P")
   (let* ((count 0)
-         (default (and concept-last-attribute-count
-                       concept-last-attribute-count))
          (size
           (if prefix
               (abs (prefix-numeric-value prefix))
