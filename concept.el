@@ -3120,7 +3120,6 @@ passing in scientific laws such as: `zeroth-laws-of-thermodynamics'."
                               (t (concept--pad-number i width)))
                         subject)
               (format "| %s-%s"
-                      category
                       (cond (roman (concept-number-to-roman i))
                             (word  (concept-number-to-english i))
                             (t (concept--pad-number i width)))
