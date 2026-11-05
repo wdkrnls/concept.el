@@ -2337,12 +2337,6 @@ When you don't want to kill the whole concept map element, call
             (throw 'found t))
           (forward-line))))))
 
-(defun concept-goto-next-blank-line ()
-  "Navigate to the next (data) blank line."
-  (while (not (concept-on-blank-line))
-    (forward-line))
-  (end-of-line))
-
 (defun concept-on-blank-exposition-line ()
   (and (concept-on-exposition-line)
        (string-match-p "^[[:space:]]*$" (concept-current-exposition))))
