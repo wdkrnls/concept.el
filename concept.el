@@ -12355,7 +12355,7 @@ The form of this data structure is a hash table where the keys are
 concepts and the values are list of concepts that are children of the
 key:
 
- '((foo . (bar))
+ \\='((foo . (bar))
    (bar . (baz))
    (baz . ()))
 
