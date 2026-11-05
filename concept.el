@@ -6999,6 +6999,48 @@ is done after a git filter and not on the existing buffer. However, when
 you want to keep the buffer itself more organized, that's when these
 other piece of functionality become appealing.")
 
+(defvar concept-canonical-between-group-sort-string
+  "AAAAAA"
+  ;; TODO: This is just a copy of the non-group version
+  ;; TODO: put the right number of capital letters and document!
+  ;; NOTE: I haven't been thinking about canonical sorting recently. Hopefully,
+  ;;       there are some useful hints/clues in the `README.md'.
+  "Some number of capital letters in a string setting the sorting order.
+
+This variable handles tie breakers for deciding the ordering of
+blocks. For example, suppose you have two relationship blocks with the
+same focus concept. This is not a rare occurrence, a letter in this
+string decides the ordering of ideas in this case.
+
+with the same The different letters mean:
+
+A) for alphabetical sort with length tie break (i.e., `concept-alphabetical-sort-dwim')
+B) for alphabetical sort except for a few patterns which when matched come first in specified order
+E) for alphabetical sort except for a few patterns which when matched come last in specified order
+Z) for reverse alphabetical sort with length tie break (i.e., reversing `concept-alphabetical-sort-dwim')
+Y) for reverse alphabetical sort except for a few patterns which come last in a specified order
+X) for reverse alphabetical sort except for a few patterns which come first in a specified order
+J) for no sort leaving them just so (i.e., doing nothing)
+C) for a custom sort corresponding to `concept-canonical-custom-sort-dwim-function'
+S) for sorting purely based on string length short to long (TODO)
+L) for sorting purely based on string length long to short (TODO)
+
+There are six because there are 3 for the three levels of elements in relationship blocks:
+
+1. focus concepts (subjects)
+2. relationship groups
+3. data concepts (objects)
+
+Similarly, there are 3 more levels for resource blocks.
+
+4. resource blocks
+5. attribute group keywords
+6. exposition lines
+
+Note that sticking to just alphabetical can be fine as long as the diff
+is done after a git filter and not on the existing buffer. However, when
+you want to keep the buffer itself more organized, that's when these
+other piece of functionality become appealing.")
 
 (defun concept-canonical-sort-string-is-valid-p (string)
   "Test whether the value  of the variable `concept-canonical-sort-string' is valid."
