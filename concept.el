@@ -3368,16 +3368,6 @@ This was designed for editing lists of lists of strings."
          (string-match-p concept-string-list-config-regexp x)))
    (flatten-list list)))
 
-(defun concept--string-list-options (list &optional class)
-  "Return just the configuration data inside of a list of strings."
-  (when (null class)
-    (setq class (concept--string-list-classify-data list)))
-  (mapcar
-   (lambda (i)
-     (nth i list))
-   (concept--string-list-filter-class
-    list class '(ckv cflag))))
-
 (defun concept--parse-plain-data (string)
   (if (string-prefix-p "@" string)
       (cons nil (substring string 1))
