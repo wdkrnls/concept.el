@@ -6999,10 +6999,11 @@ is done after a git filter and not on the existing buffer. However, when
 you want to keep the buffer itself more organized, that's when these
 other piece of functionality become appealing.")
 
+
 (defun concept-canonical-sort-string-is-valid-p (string)
   "Test whether the value  of the variable `concept-canonical-sort-string' is valid."
   (and (eq 6 (length string))
-       (string-match-p "^[ABCEXYZLSJ]+$")))
+       (string-match-p "^[ABCEXYZLSJ]+$" string)))
 
 (defun concept-canonical-sort-dwim (arg)
   "Perform a canonical sort of the whole concept map.
