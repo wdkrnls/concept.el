@@ -2073,7 +2073,7 @@ That is up to the user at the moment!
 
 This version takes an optional argument for number to insert just the
 tail end of the match. This can be helpful in some situations. It also
-gives some leniency in the case you are editing a 'new' first data
+gives some leniency in the case you are editing a \\='new\\=' first data
 concept in a relationship group where you already had another one
 previously. In that case the command inserts the next data concept and
 calls it the last data concept. Since this function is only used for
