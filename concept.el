@@ -9524,10 +9524,7 @@ instead of `browse-url-new-window-flag'."
 
 (defun concept--is-image-file (path)
   "Test if the file has an image file format Emacs recognizes."
-  (condition-case err
-      (image-type-from-file-name path)
-    (err
-     nil)))
+  (image-supported-file-p path))
 
 (defun concept--is-pdf (path)
   "Test if the file looks like a PDF file."
