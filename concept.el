@@ -7503,11 +7503,12 @@ relationship group."
     (insert focus)))
 
 (defun concept-isolate-dwim (arg)
-  "Isolate the current thing into it's own block."
-  (interactive "p")
+  "Isolate the current thing into it's own block.
+With a prefix argument ARG, this does something else."
+  (interactive "P")
+  (unless (natnump (prefix-numeric-value arg))
+    (user-error "Prefix argument should be a positive number."))
   (cond
-   ((eq arg 4)
-    (concept-repeat-current-block))
    ((concept-on-relationship-line)
     (concept-isolate-each-concept-in-relationship-group))
    ((or (concept-on-focus-line)
@@ -7537,7 +7538,8 @@ relationship group."
              (let ((focus (concept-current-focus))
                    (relationship (concept-current-relationship))
                    (concept (concept-current-concept)))
-               (kill-whole-line)
+               (when (null arg)
+                 (kill-whole-line))
                (concept-goto-current-focus)
                (beginning-of-line)
                (newline)
