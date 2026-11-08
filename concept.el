@@ -9791,7 +9791,7 @@ they are inside the block."
      #'concept-shell-compilation-with-color
      t)))
 
-(defun concept-shell-command (string &optional expect-prompt)
+(defun concept-shell-command (string &optional expect-prompt side-effect)
   "Run shell command found in STRING with compilation-mode.
 When EXPECT-PROMPT is not nil, place into comint mode."
   (let ((compilation-buffer-name-function
@@ -9799,15 +9799,19 @@ When EXPECT-PROMPT is not nil, place into comint mode."
         (concept-last-shell-command-hash
          (substring (sha1 string) 0 6)))
     (let ((buf (concept-shell-command-compilation-buffer-name-function "shell"))
+          (cur (current-buffer))
+          (compilation-ask-about-save nil)
           (compilation-mode-hook
            (cons #'concept-compilation-mode compilation-mode-hook))
           (compilation-filter-hook
            (cons #'concept-shell-compilation-with-color compilation-filter-hook)))
-      (if (bufferp (get-buffer buf))
+      (if (and (bufferp (get-buffer buf)) (null side-effect))
           (switch-to-buffer buf)
         (if expect-prompt
             (compile string t)
-          (compile string))))))
+          (compile string))
+        (when side-effect
+          (switch-to-buffer cur))))))
 
 (defun concept-follow-man (page)
   "Follow to the man page synchronously."
@@ -10131,24 +10135,26 @@ modifying `mailcap-user-mime-data'."
            (save-excursion
              (beginning-of-line)
              (re-search-forward "[^| ]" (line-end-position) t)
-             (let ((default-directory
-                    (file-name-as-directory
-                     (or
-                      (and (member "directory" (concept-resource-block-keys))
-                           (let ((proposed-directory
-                                  (save-excursion
-                                    (concept-goto-key-in-resource-block "directory")
-                                    (forward-line)
-                                    (concept-get-expository-data))))
-                             (when (file-exists-p proposed-directory)
-                               (expand-file-name proposed-directory))))
-                      default-directory)))
-                   (should-run (not (member "dont-run" (concept-resource-block-keys)))))
-               (if should-run
-                 (concept-shell-command
-                  (concept-get-expository-data)
-                  (member "prompt" (concept-resource-block-keys)))
-                 (message "The shell command at point was not run because the `dont-run:' keyword was set!")))))
+             (let ((resource-keys (concept-resource-block-keys)))
+               (let ((default-directory
+                      (file-name-as-directory
+                       (or
+                        (and (member "directory" resource-keys)
+                             (let ((proposed-directory
+                                    (save-excursion
+                                      (concept-goto-key-in-resource-block "directory")
+                                      (forward-line)
+                                      (concept-get-expository-data))))
+                               (when (file-exists-p proposed-directory)
+                                 (expand-file-name proposed-directory))))
+                        default-directory)))
+                     (should-run (not (member "dont-run" resource-keys))))
+                 (if should-run
+                     (concept-shell-command
+                      (concept-get-expository-data)
+                      (member "prompt" resource-keys)
+                      (member "side-effect" resource-keys))
+                      (message "The shell command at point was not run because the `dont-run:' keyword was set!"))))))
           ((and (concept-on-exposition-line)
                 (or (string= "emacs-lisp" (concept-exposition-parent-key))
                     (string= "lisp" (concept-exposition-parent-key))))
