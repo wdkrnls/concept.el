@@ -14323,7 +14323,7 @@ uses majority vote to decide on the prefix/suffix."
           (concept-minibuffer-history-table)
           nil t nil 'concept-minibuffer-history-picker-history)))
     (kill-new entry)
-    (message "Copied: %s" entry)))
+    (insert entry)))
 
 (defun concept-do-nothing ()
   (interactive)
