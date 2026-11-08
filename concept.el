@@ -7462,6 +7462,7 @@ relationship group."
              (insert relationship))))))
 
 (defun concept-swap-data-with-focus ()
+  "Swap the current data concept with the focus line."
   (interactive)
   (when (concept-on-data-concept-line)
     (let ((focus (concept-current-focus))
