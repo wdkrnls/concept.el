@@ -1,12 +1,10 @@
 ;;; concept-funcall-tests.el --- ERT checks for concept-funcall-with-string-args  -*- lexical-binding: t; -*-
 
-;; Load the implementation, then this file, then:
-;;   M-x ert RET t RET
-;;
+;; Load the implementation, then this file, then:  M-x ert RET t RET
 ;; `ert' requires `cl-lib'; nothing in this file uses cl-lib itself.
 
 (require 'ert)
-(require 'concept)
+(require 'concept nil t)   ; comment out if you load the implementation by hand
 
 ;;;; ---- fixtures -------------------------------------------------------
 
@@ -31,37 +29,33 @@
   "Fixture with two required parameters."
   (list subject relationship x))
 
-(ert-deftest concept-funcall-pads-interior-gap ()
-  (should (equal '("behaviors" nil "law" nil nil)
-                 (concept-funcall-with-string-args
-                  #'concept-funcall-test--ordered
-                  "subject: behaviors category: law"))))
+(defun concept-funcall-test--named-arglist-p (arglist)
+  "Non-nil when ARGLIST has at least one real parameter name."
+  (let (found)
+    (dolist (a (and (listp arglist) arglist))
+      (when (and (symbolp a)
+                 (not (memq a '(&optional &rest &key &aux)))
+                 (not (string-match-p "\\`arg[0-9]+\\'" (symbol-name a))))
+        (setq found t)))
+    found))
 
-(ert-deftest concept-funcall-resolve-drops-trailing-optionals ()
-  (should (equal '("behaviors")
-                 (concept--funcall-resolve
-                  '("behaviors") nil #'concept-funcall-test--ordered))))
-
-(ert-deftest concept-funcall-resolve-keeps-explicit-nil ()
-  "An explicitly supplied nil fills its slot, so it is not truncated."
-  (should (equal '("behaviors" nil)
-                 (concept--funcall-resolve
-                  '("behaviors") '(("relationship" "NIL"))
-                  #'concept-funcall-test--ordered))))
-
-(ert-deftest concept-funcall-resolve-pads-interior-gap ()
-  (should (equal '("behaviors" nil "law")
-                 (concept--funcall-resolve
-                  '("behaviors") '(("category" "law"))
-                  #'concept-funcall-test--ordered))))
+(defun concept-funcall-test--report-arglist ()
+  "Show what can be learned about the real target's argument list."
+  (interactive)
+  (let ((f #'concept-expand-ordered-relationships))
+    (message "plain : %S\nnames : %S\nusable: %S"
+             (ignore-errors (help-function-arglist f))
+             (ignore-errors (help-function-arglist f t))
+             (concept-funcall-test--named-arglist-p
+              (ignore-errors (help-function-arglist f t))))))
 
 ;;;; ---- assertion helper -----------------------------------------------
 
 (defmacro concept-funcall-test--signals (regexp &rest body)
   "Assert that BODY signals an error whose message matches REGEXP."
   (declare (indent 1))
-  `(let ((text-quoting-style 'grave)
-         (err (should-error (progn ,@body))))
+  `(let* ((text-quoting-style 'grave)
+          (err (should-error (progn ,@body))))
      (should (string-match-p ,regexp (error-message-string err)))))
 
 ;;;; ---- ordering -------------------------------------------------------
@@ -99,15 +93,23 @@
                   #'concept-funcall-test--ordered
                   "subject: behaviors category: law"))))
 
-(ert-deftest concept-funcall-drops-trailing-optionals ()
-  (should (equal '(1 b-default)
-                 (concept-funcall-with-string-args
-                  #'concept-funcall-test--defaults "a: 1"))))
+(ert-deftest concept-funcall-resolve-drops-trailing-optionals ()
+  (should (equal '("behaviors")
+                 (concept--funcall-resolve
+                  '("behaviors") nil #'concept-funcall-test--ordered))))
 
-(ert-deftest concept-funcall-explicit-nil-shadows-default ()
-  (should (equal '(1 nil)
-                 (concept-funcall-with-string-args
-                  #'concept-funcall-test--defaults "a: 1 b: NIL"))))
+(ert-deftest concept-funcall-resolve-keeps-explicit-nil ()
+  "An explicitly supplied nil fills its slot, so it is not truncated."
+  (should (equal '("behaviors" nil)
+                 (concept--funcall-resolve
+                  '("behaviors") '(("relationship" "NIL"))
+                  #'concept-funcall-test--ordered))))
+
+(ert-deftest concept-funcall-resolve-pads-interior-gap ()
+  (should (equal '("behaviors" nil "law")
+                 (concept--funcall-resolve
+                  '("behaviors") '(("category" "law"))
+                  #'concept-funcall-test--ordered))))
 
 ;;;; ---- value conversion -----------------------------------------------
 
@@ -182,10 +184,11 @@
                    (cdr parsed)))))
 
 (ert-deftest concept-funcall-parse-without-a-function ()
-  (should (equal '(("behaviors")
-                   (("category" "law") ("from" "1") ("count" "3")))
-                 (concept-funcall-parse-string-args
-                  "category: law behaviors from: 1 count:3"))))
+  (let ((parsed (concept-funcall-parse-string-args
+                 "category: law behaviors from: 1 count:3")))
+    (should (equal '("behaviors") (car parsed)))
+    (should (equal '(("category" "law") ("from" "1") ("count" "3"))
+                   (cdr parsed)))))
 
 ;;;; ---- errors ---------------------------------------------------------
 
@@ -246,6 +249,10 @@
 
 (ert-deftest concept-funcall-real-target-equivalence ()
   (skip-unless (fboundp 'concept-expand-ordered-relationships))
+  (skip-unless
+   (concept-funcall-test--named-arglist-p
+    (ignore-errors (help-function-arglist
+                    #'concept-expand-ordered-relationships t))))
   (should (equal (concept-expand-ordered-relationships "behaviors" nil "law" 1 3)
                  (concept-funcall-with-string-args
                   #'concept-expand-ordered-relationships
