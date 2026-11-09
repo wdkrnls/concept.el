@@ -58,6 +58,100 @@
           (err (should-error (progn ,@body))))
      (should (string-match-p ,regexp (error-message-string err)))))
 
+
+;;;; ---- unterminated groups --------------------------------------------
+
+(ert-deftest concept-funcall-error-unterminated-after-keyword ()
+  (concept-funcall-test--signals
+   "Unterminated `{'"
+   (concept-funcall-with-string-args
+    #'concept-funcall-test--foo-bar "foo: {a bar: x")))
+
+(ert-deftest concept-funcall-error-unterminated-at-start ()
+  (concept-funcall-test--signals
+   "Unterminated `{'"
+   (concept-funcall-with-string-args
+    #'concept-funcall-test--foo-bar "{ a foo: b bar: x")))
+
+(ert-deftest concept-funcall-error-unterminated-at-start-tight ()
+  (concept-funcall-test--signals
+   "Unterminated `{'"
+   (concept-funcall-with-string-args
+    #'concept-funcall-test--foo-bar "{a foo: b bar: x")))
+
+(ert-deftest concept-funcall-error-lone-opener ()
+  (concept-funcall-test--signals
+   "Unterminated `{'"
+   (concept-funcall-with-string-args
+    #'concept-funcall-test--foo-bar "foo: {")))
+
+(ert-deftest concept-funcall-other-kind-inside-a-group-is-content ()
+  "`foo: [{a]' -- the `{' is content; only `[' and `]' delimit."
+  (should (equal '("{a" nil)
+                 (concept-funcall-with-string-args
+                  #'concept-funcall-test--foo-bar "foo: [{a]"))))
+
+(ert-deftest concept-funcall-closer-of-other-kind-is-content ()
+  "`bar: {b]}' -- the `]' is content; only `{' and `}' delimit."
+  (should (equal '("x" "b]")
+                 (concept-funcall-with-string-args
+                  #'concept-funcall-test--foo-bar "foo: x bar: {b]}"))))
+
+(ert-deftest concept-funcall-bracket-inside-a-word-is-content ()
+  (should (equal '("x" ")")
+                 (concept-funcall-with-string-args
+                  #'concept-funcall-test--foo-bar "x ‘)’"))))
+
+(ert-deftest concept-funcall-error-word-ending-in-bracket ()
+  (concept-funcall-test--signals
+   "Stray `}' in argument string"
+   (concept-funcall-with-string-args
+    #'concept-funcall-test--foo-bar "foo: {a} b} bar: x")))
+
+(ert-deftest concept-funcall-error-word-beginning-with-bracket ()
+  (concept-funcall-test--signals
+   "Stray `}' in argument string"
+   (concept-funcall-with-string-args
+    #'concept-funcall-test--foo-bar "foo: }b bar: x")))
+
+(ert-deftest concept-funcall-group-with-other-kind-bracket ()
+  "`foo: [{] bar: baz' -- content `{', and a keyword after the group."
+  (should (equal '("{" "baz")
+                 (concept-funcall-with-string-args
+                  #'concept-funcall-test--foo-bar "foo: [{] bar: baz"))))
+
+(ert-deftest concept-funcall-group-attached-to-colon ()
+  "`foo:{]}' -- group attached to the colon, content `]'."
+  (should (equal '("]" nil)
+                 (concept-funcall-with-string-args
+                  #'concept-funcall-test--foo-bar "foo:{]}"))))
+
+(ert-deftest concept-funcall-error-text-after-group ()
+  "`foo:[{]bar: baz' -- text may not follow the closing bracket."
+  (concept-funcall-test--signals
+   "immediately after `]'"
+   (concept-funcall-with-string-args
+    #'concept-funcall-test--foo-bar "foo:[{]bar: baz")))
+
+(ert-deftest concept-funcall-error-bracket-inside-a-word ()
+  (concept-funcall-test--signals
+   (regexp-quote "Stray `}' in argument string")
+   (concept-funcall-with-string-args
+    #'concept-funcall-test--foo-bar "x: b}b y: c d")))
+
+(ert-deftest concept-funcall-error-opening-bracket-inside-a-word ()
+  (concept-funcall-test--signals
+   (regexp-quote "Stray `[' in argument string")
+   (concept-funcall-with-string-args
+    #'concept-funcall-test--foo-bar "x: b[b")))
+
+(ert-deftest concept-funcall-other-kind-bracket-inside-a-group ()
+  "`x: {b[b}' -- inside a group, only a second `{' would be an error."
+  (should (equal '("b[b" nil)
+                 (concept-funcall-with-string-args
+                  #'concept-funcall-test--foo-bar
+                  "foo: {b[b}"))))
+
 ;;;; ---- ordering -------------------------------------------------------
 
 (ert-deftest concept-funcall-canonical-order ()

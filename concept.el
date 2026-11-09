@@ -3129,13 +3129,7 @@ passing in scientific laws such as: `zeroth-laws-of-thermodynamics'."
 
 (defun concept-expand-ordered-relationships-harness (data)
   "Helper function for building a tempel template for ordered lists given DATA."
-  (let* ((args (concept-funcall-with-string-args #'list data))
-         (n    (length args)))
-    (if (< n 1)
-        (format "Please supply 1 or more arguments! Only %d have been supplied so far." n)
-      (concept-funcall-with-string-args
-       #'concept-expand-ordered-relationships
-       data))))
+  (concept-funcall-with-string-args #'concept-expand-ordered-relationships data))
 
 (defun concept-expand-sibling-relationships (parent subject relationship &rest objects)
   "Construct a relationship block with shared PARENT and RELATIONSHIP, a
@@ -13443,101 +13437,277 @@ Unlike `outline-end-of-subtree', this recognizes temporary blocks and acts accor
                (search-backward " ")
                (forward-char)))))))
 
-(defun concept-funcall-with-string-args (function string &optional opening closing)
-  "Invoke FUNCTION with arguments parsed from STRING.
-Arguments are treated as strings by default (or numbers if
-numeric). Multi-word strings must use delimiters. These default to `{',
-and `}', but can be changed by the user with any single character string
-in the OPENING and CLOSING arguments. Not every function can be called
-with this, but functions useful for quickly generating relationship and
-resource block templates fit nicely into this regime.  When you want to
-enter a `nil' value, type `NIL' or `FALSE' in capital letters. When you
-want to enter a literal `t' value, type TRUE in capital letters."
-  (let* ((open  (or opening "{"))
-         (close (or closing "}"))
-         (arglist (help-function-arglist function))
-         (open-char (and (= 1 (length open))
-                         (string-to-char open)))
-         (close-char (and (= 1 (length close))
-                          (string-to-char close)))
-         (tokens (let ((i 0)
-                       (len (length string))
-                       (toks '()))
-                   (while (< i len)
-                     (while (and (< i len)
-                                 (string-match-p "[[:space:]]"
-                                                 (char-to-string (aref string i))))
-                       (setq i (1+ i)))
-                     (when (< i len)
-                       (let ((first-char (aref string i)))
-                         (if (and open-char (= first-char open-char))
-                             (progn
-                               (setq i (1+ i))
-                               (let ((tok-start i))
-                                 (while (and (< i len)
-                                             (/= (aref string i) close-char))
-                                   (setq i (1+ i)))
-                                 (push (substring string tok-start i) toks)
-                                 (when (< i len)
-                                   (setq i (1+ i)))))
-                           (let ((tok-start i))
-                             (while (and (< i len)
-                                         (not (string-match-p "[[:space:]]"
-                                                              (char-to-string (aref string i)))))
-                               (setq i (1+ i)))
-                             (push (substring string tok-start i) toks))))))
-                   (nreverse toks)))
-         (provided-args (make-hash-table :test 'equal))
-         (positional-args '()))
-    (let ((i 0)
-          (len (length tokens)))
-      (while (< i len)
-        (let ((token (nth i tokens)))
-          (if (string-suffix-p ":" token)
-              (let* ((kw-name (substring token 0 -1))
-                     (val (nth (1+ i) tokens)))
-                (if val
-                    (progn
-                      (puthash kw-name val provided-args)
-                      (setq i (+ i 2)))
-                  (error "Missing value for keyword argument: %s" token)))
-            (push token positional-args)
-            (setq i (1+ i)))))
-      (setq positional-args (nreverse positional-args)))
-    (let ((parse-val
-           (lambda (s)
-             (cond ((member s (list "NIL" "FALSE")) nil)
-                   ((member s (list "TRUE")) t)
-                   ((string-match-p "\\`-?[0-9]+\\(?:\\.[0-9]+\\)?\\'" s)
-                    (string-to-number s))
-                   (t s)))))
-      (let ((final-args '())
-            (pos-iter positional-args)
-            (parsing-mode :required))
-        (dolist (arg arglist)
-          (cond
-           ((eq arg '&optional) (setq parsing-mode :optional))
-           ((eq arg '&rest)     (setq parsing-mode :rest))
-           ((eq parsing-mode :rest)
-            (when pos-iter
-              (dolist (p pos-iter)
-                (push (funcall parse-val p) final-args))
-              (setq pos-iter nil)))
-           (t
-            (let* ((is-list (listp arg))
-                   (arg-sym (if is-list (car arg) arg))
-                   (default-expr (if is-list (cadr arg) nil))
-                   (arg-str (symbol-name arg-sym))
-                   (val-str (or (gethash arg-str provided-args)
-                                (pop pos-iter))))
-              (if val-str
-                  (push (funcall parse-val val-str) final-args)
+;;; --- BEGIN
+
+(defconst concept--funcall-bracket-pairs
+  '((?\( . ?\)) (?\[ . ?\]) (?\{ . ?\}) (?\u2018 . ?\u2019))
+  "Opening brackets paired with their closers.
+Add (?< . ?>) here if you want angle brackets to quote values too.")
+
+(defun concept--funcall-closer-for (char)
+  "Return the closing bracket matching CHAR, or nil if CHAR is not one."
+  (cdr (assq char concept--funcall-bracket-pairs)))
+
+(defun concept--funcall-convert-value (s)
+  "Interpret string S as a Lisp value."
+  (cond ((member s '("NIL" "FALSE" "NO")) nil)
+        ((member s '("T"   "TRUE" "YES")) t)
+        ((string-match-p "\\`-?[0-9]+\\'" s)
+         (string-to-number s))
+        ((string-match-p "\\`-?[0-9]*\\.[0-9]+\\'" s)
+         (string-to-number s))
+        (t s)))
+
+(defun concept--funcall-normalize-arglist (arglist)
+  "Split ARGLIST into (REQUIRED OPTIONAL REST)."
+  (let ((req '()) (opt '()) (rest nil) (state 'req))
+    (dolist (a arglist)
+      (cond
+       ((eq a '&optional) (setq state 'opt))
+       ((eq a '&rest)     (setq state 'rest))
+       ((memq a '(&key &allow-other-keys)) (setq state 'opt))
+       ((eq a '&aux)      (setq state 'aux))
+       ((eq state 'aux)   nil)
+       (t (let ((name (if (consp a) (car a) a)))
+            (when (symbolp name)
+              (cond ((eq state 'req)  (push name req))
+                    ((eq state 'opt)  (push name opt))
+                    ((eq state 'rest) (setq rest name))))))))
+    (list (nreverse req) (nreverse opt) rest)))
+
+(defun concept--funcall-match-param (name params)
+  "Return the parameter in PARAMS matching NAME, or nil.
+Matching is exact first, then by unambiguous prefix."
+  (let ((name (downcase name)))
+    (or (seq-find (lambda (p)
+                    (string= name (downcase (symbol-name p))))
+                  params)
+        (let ((hits (seq-filter
+                     (lambda (p)
+                       (string-prefix-p name (downcase (symbol-name p))))
+                     params)))
+          (when (= 1 (length hits)) (car hits))))))
+
+(defconst concept--funcall-closers
+  (mapcar #'cdr concept--funcall-bracket-pairs)
+  "The closing brackets, derived from `concept--funcall-bracket-pairs'.")
+
+(defun concept--funcall-tokenize (string)
+  "Split STRING into tokens.
+A token is (t . CONTENT) for a bracketed value whose outermost bracket
+pair has been stripped, or (nil . TEXT) for a bare word.
+
+Bracket characters are special only at the start of a token.  A token
+that begins with one of the delimiters in
+`concept--funcall-bracket-pairs' is a bracketed value, closed by the
+matching bracket; a second opening bracket of the same kind inside it
+is an error, as is running off the end of STRING.  Brackets of any
+other kind inside a group are ordinary content, so `[{a]' yields the
+literal string `{a' and `{b]}' yields `b]'.
+
+A bare word may not contain a bracket character at all, so `b}b' and
+`b[b' are errors.  The one exception is an opening bracket that
+directly follows a colon, which ends the word and begins a group, so
+`foo:[a b]' attaches the group `[a b]' to the keyword `foo'.
+
+Nothing may immediately follow a closing bracket: after a group the
+next character must be whitespace or the end of STRING."
+  (let ((i 0) (len (length string)) (tokens '()))
+    (while (< i len)
+      (let ((c (aref string i)))
+        (cond
+         ((memq c '(?\s ?\t ?\n ?\r ?\f))
+          (setq i (1+ i)))
+         ((concept--funcall-closer-for c)
+          (let ((closer (concept--funcall-closer-for c))
+                (start (1+ i)))
+            (setq i (1+ i))
+            (while (and (< i len) (not (eq (aref string i) closer)))
+              (when (eq (aref string i) c)
+                (error "More than one `%c' in the same argument group" c))
+              (setq i (1+ i)))
+            (when (>= i len)
+              (error "Unterminated `%c' in argument string" c))
+            (push (cons t (substring string start i)) tokens)
+            (setq i (1+ i))
+            (when (and (< i len)
+                       (not (memq (aref string i) '(?\s ?\t ?\n ?\r ?\f))))
+              (error "Unexpected `%c' immediately after `%c'"
+                     (aref string i) closer))))
+         (t
+          (let ((start i) (done nil))
+            (while (and (< i len) (not done))
+              (let ((ch (aref string i)))
                 (cond
-                 ((eq parsing-mode :required)
-                  (error "Missing required argument: %s" arg-sym))
-                 ((eq parsing-mode :optional)
-                  (push (if is-list (eval default-expr t) nil) final-args))))))))
-        (apply function (nreverse final-args))))))
+                 ((memq ch '(?\s ?\t ?\n ?\r ?\f))
+                  (setq done t))
+                 ((and (> i start)
+                       (eq (aref string (1- i)) ?:)
+                       (concept--funcall-closer-for ch))
+                  (setq done t))
+                 ((or (concept--funcall-closer-for ch)
+                      (memq ch concept--funcall-closers))
+                  (error "Stray `%c' in argument string" ch))
+                 (t
+                  (setq i (1+ i))))))
+            (push (cons nil (substring string start i)) tokens))))))
+    (nreverse tokens)))
+
+(defun concept--funcall-events (tokens)
+  "Flatten TOKENS into a list of events.
+An event is (:keyword . NAME) or (:value . STRING).  A bare token of
+the form `name:value' yields two events; `name:' yields only the first."
+  (let (events)
+    (dolist (tok tokens)
+      (let ((braced (car tok))
+            (text   (cdr tok)))
+        (if (and (not braced)
+                 (string-match "\\`\\([[:alnum:]_-]+\\):\\(.*\\)\\'" text))
+            (progn
+              (push (cons :keyword (match-string 1 text)) events)
+              (let ((v (match-string 2 text)))
+                (unless (string= v "")
+                  (push (cons :value v) events))))
+          (push (cons :value text) events))))
+    (nreverse events)))
+
+(defun concept-funcall-parse-string-args (string &optional function)
+  "Parse STRING into (POSITIONAL . KEYWORDS).
+POSITIONAL is a list of value strings.  KEYWORDS is an alist mapping
+keyword names to either a single value string, or, when FUNCTION is
+given and the keyword names its `&rest' parameter, a list of them.
+
+FUNCTION, when supplied, provides the formal parameter list used to
+decide how many values a keyword absorbs.  Without it every keyword
+absorbs at most one value, and any further values are positional."
+  (let* ((arglist (and function
+                       (ignore-errors (help-function-arglist function))))
+         (norm    (concept--funcall-normalize-arglist arglist))
+         (req     (nth 0 norm))
+         (opt     (nth 1 norm))
+         (rest    (nth 2 norm))
+         (all     (append req opt (and rest (list rest))))
+         (events  (concept--funcall-events
+                   (concept--funcall-tokenize string)))
+         (positional '())
+         (keywords   '())
+         (current    nil))
+    (dolist (ev events)
+      (if (eq (car ev) :keyword)
+          (let* ((name  (cdr ev))
+                 (param (and all (concept--funcall-match-param name all))))
+            (when (and function all (null param))
+              (error "Unknown keyword `%s' for `%S'" name function))
+            (when (and current
+                       (null (cdr (assoc (car current) keywords))))
+              (error "Missing value for keyword `%s'" (car current)))
+            (setq current (cons name param))
+            (push (cons name nil) keywords))
+        (let ((val (cdr ev)))
+          (cond
+           ((null current)
+            (push val positional))
+           ((and rest (eq (cdr current) rest))
+            (setcdr (assoc (car current) keywords)
+                    (append (cdr (assoc (car current) keywords)) (list val))))
+           (t
+            (setcdr (assoc (car current) keywords) (list val))
+            (setq current nil))))))
+    (when (and current (null (cdr (assoc (car current) keywords))))
+      (error "Missing value for keyword `%s'" (car current)))
+    (cons (nreverse positional) (nreverse keywords))))
+
+(defun concept--funcall-resolve (positional keywords function)
+  "Assemble the final argument list for FUNCTION.
+POSITIONAL is a list of value strings and KEYWORDS an alist mapping
+keyword names to lists of value strings, as returned by
+`concept-funcall-parse-string-args'.  Return a list of Lisp values
+ready for FUNCTION, filling gaps between supplied optional arguments
+with nil and appending the `&rest' parameter last.  Signal an error
+naming any required argument that was not supplied."
+  (let* ((arglist (ignore-errors (help-function-arglist function)))
+         (norm    (concept--funcall-normalize-arglist arglist))
+         (req     (nth 0 norm))
+         (opt     (nth 1 norm))
+         (rest    (nth 2 norm))
+         (params  (append req opt))
+         (all     (if rest (append params (list rest)) params)))
+    (if (null all)
+        ;; Unknown arglist: pass every value through, in order.
+        (append (mapcar #'concept--funcall-convert-value positional)
+                (seq-mapcat (lambda (kw)
+                              (mapcar #'concept--funcall-convert-value
+                                      (cdr kw)))
+                            keywords))
+      (let ((slots  (make-vector (length params) nil))
+            (filled (make-vector (length params) nil))
+            (rest-vals nil))
+        ;; Keywords claim their slots.
+        (dolist (kw keywords)
+          (let* ((name  (car kw))
+                 (raw   (cdr kw))
+                 (param (concept--funcall-match-param name all)))
+            (unless param
+              (error "Unknown keyword `%s' for `%S'" name function))
+            (if (and rest (eq param rest))
+                (setq rest-vals
+                      (append rest-vals
+                              (mapcar #'concept--funcall-convert-value raw)))
+              (let ((idx (seq-position params param #'eq)))
+                (aset slots idx (concept--funcall-convert-value (car raw)))
+                (aset filled idx t)))))
+        ;; Positional values fill the remaining slots, in order.
+        (let ((pos positional) (idx 0))
+          (while (< idx (length params))
+            (unless (aref filled idx)
+              (when pos
+                (aset slots idx (concept--funcall-convert-value (car pos)))
+                (aset filled idx t)
+                (setq pos (cdr pos))))
+            (setq idx (1+ idx)))
+          (when pos
+            (if rest
+                (setq rest-vals
+                      (append rest-vals
+                              (mapcar #'concept--funcall-convert-value pos)))
+              (error "Too many positional arguments for `%S'" function))))
+        ;; Every required parameter must be present.
+        (let ((missing '()) (idx 0))
+          (while (< idx (length req))
+            (unless (aref filled idx) (push (nth idx req) missing))
+            (setq idx (1+ idx)))
+          (when missing
+            (setq missing (nreverse missing))
+            (error "Missing required argument%s %s for `%S'%s"
+                   (if (cdr missing) "s" "")
+                   (mapconcat (lambda (p) (format "`%s'" p)) missing ", ")
+                   function
+                   (if (cdr missing) ""
+                     (format "; supply it positionally or as `%s: VALUE'"
+                             (car missing))))))
+        ;; Drop trailing unsupplied optionals; pad interior gaps with nil.
+        (let ((last -1) (i 0))
+          (while (< i (length params))
+            (when (aref filled i) (setq last i))
+            (setq i (1+ i)))
+          (let ((args '()) (i 0))
+            (while (<= i last)
+              (push (aref slots i) args)
+              (setq i (1+ i)))
+            (setq args (nreverse args))
+            (when rest (setq args (append args rest-vals)))
+            args))))))
+
+(defun concept-funcall-with-string-args (function string)
+  "Invoke FUNCTION with arguments parsed from STRING.
+See `concept-funcall-parse-string-args' for the syntax accepted, and
+`concept--funcall-resolve' for how the parsed values are mapped onto
+FUNCTION's formal parameters."
+  (let ((parsed (concept-funcall-parse-string-args string function)))
+    (apply function
+           (concept--funcall-resolve (car parsed) (cdr parsed) function))))
+
+;;; --- END
 
 (defun concept-serialize-temporary-block-at-point ()
   "Serialize a temporary block by turning it into a metadata resource."
