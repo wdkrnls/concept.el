@@ -5873,6 +5873,11 @@ This is intended to enter multiple data concepts at the same time."
   "Search for the next blank line."
   (re-search-forward "^[[:blank:]]*$" nil t))
 
+(defun concept-goto-last-blank-line ()
+  "Search for the next blank line."
+  (beginning-of-line)
+  (re-search-backward "^[[:blank:]]*$" nil t))
+
 (defun concept-goto-next-focus ()
   "Navigate back to the next focus line."
   (interactive)
@@ -6684,10 +6689,14 @@ See also `concept-current-delimiter'."
          (concept-goto-next-attribute-boundary)
          (end-of-line))))
 
-(defun concept-goto-last-thing ()
+(defun concept-goto-last-thing (arg)
   "Navigate backward until the previous thing like the current thing."
-  (interactive)
-  (cond ((concept-on-resource-line)
+  (interactive "P")
+  (cond (arg
+         (if (eq (prefix-numeric-value arg) 4)
+             (concept-goto-last-blank-data-line)
+           (concept-goto-last-blank-line)))
+         ((concept-on-resource-line)
          (concept-goto-last-resource))
         ((concept-on-concept-line)
          (concept-goto-last-concept))
@@ -6698,15 +6707,30 @@ See also `concept-current-delimiter'."
         ((concept-on-exposition-line)
          (concept-goto-last-exposition))))
 
-(defun concept-map-has-more-blank-lines ()
-  (save-excursion
-    (end-of-line)
-    (re-search-forward "^[|~@] *$" nil t)))
+(defun concept-map-has-more-blank-lines (&optional direction)
+  (when (null direction)
+    (setq direction 1))
+  (setq direction (sign direction))
+  (if (eq 1 direction)
+      (save-excursion
+        (end-of-line)
+        (re-search-forward "^[|~@] *$" nil t))
+    (save-excursion
+      (beginning-of-line)
+      (re-search-backward "^[|~@] *$" nil t))))
 
 (defun concept-goto-next-blank-data-line ()
   (interactive)
   (when (concept-map-has-more-blank-lines)
-    (re-search-forward "^[|~@] *$")))
+    (re-search-forward "^[|~@] *$")
+    (move-to-column 2)))
+
+(defun concept-goto-last-blank-data-line ()
+  (interactive)
+  (when (concept-map-has-more-blank-lines -1)
+    (beginning-of-line)
+    (re-search-backward "^[|~@] *$")
+    (move-to-column 2)))
 
 (defun concept-relationship-count ()
   "Count the number of relationships inside of a relationship block.
