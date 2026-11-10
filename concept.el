@@ -9376,6 +9376,8 @@ kill-ring."
         (saved-yank-window-start      yank-window-start)
         (saved-this-command           this-command)
         (completion-ignore-case       t)
+        (completion-styles '(orderless basic))
+        (vertico-sort-override-function #'vertico-sort-length-alpha)
         (kill-ring-max                9999))
     (outline-end-of-subtree)
     (unless (looking-at-p "^[:space:]*$")
