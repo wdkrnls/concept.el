@@ -6049,10 +6049,11 @@ This is intended to enter multiple data concepts at the same time."
         (backward-char))
     (goto-char (point-max))))
 
-(defun concept-goto-next-thing ()
+(defun concept-goto-next-thing (arg)
   "Navigate forward until the next thing like the current thing."
-  (interactive)
-  (cond ((concept-on-resource-line)
+  (interactive "P")
+  (cond (arg (concept-goto-next-blank-line))
+        ((concept-on-resource-line)
          (concept-goto-next-resource))
         ((concept-on-concept-line)
          (concept-goto-next-concept))
@@ -6693,6 +6694,16 @@ See also `concept-current-delimiter'."
          (concept-goto-last-attribute))
         ((concept-on-exposition-line)
          (concept-goto-last-exposition))))
+
+(defun concept-map-has-more-blank-lines ()
+  (save-excursion
+    (end-of-line)
+    (re-search-forward "^[|~@] *$" nil t)))
+
+(defun concept-goto-next-blank-line ()
+  (interactive)
+  (when (concept-map-has-more-blank-lines)
+    (re-search-forward "^[|~@] *$")))
 
 (defun concept-relationship-count ()
   "Count the number of relationships inside of a relationship block.
