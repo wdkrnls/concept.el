@@ -6052,7 +6052,10 @@ This is intended to enter multiple data concepts at the same time."
 (defun concept-goto-next-thing (arg)
   "Navigate forward until the next thing like the current thing."
   (interactive "P")
-  (cond (arg (concept-goto-next-blank-line))
+  (cond (arg
+         (if (eq (prefix-numeric-value arg) 4)
+             (concept-goto-next-blank-data-line)
+           (concept-goto-next-blank-line)))
         ((concept-on-resource-line)
          (concept-goto-next-resource))
         ((concept-on-concept-line)
@@ -6700,7 +6703,7 @@ See also `concept-current-delimiter'."
     (end-of-line)
     (re-search-forward "^[|~@] *$" nil t)))
 
-(defun concept-goto-next-blank-line ()
+(defun concept-goto-next-blank-data-line ()
   (interactive)
   (when (concept-map-has-more-blank-lines)
     (re-search-forward "^[|~@] *$")))
