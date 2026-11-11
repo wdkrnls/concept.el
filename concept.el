@@ -5726,6 +5726,85 @@ This is a wrapper function useful for interactive usage."
       (concept-paste-matches-as-data arg)
     (concept-paste-matches-as-text arg)))
 
+(defun concept--parse-temporary-data-line (line)
+  "Parse LINE into a list of raw temporary-data tokens."
+  (let ((i 0) (n (length line)) (items nil))
+    (while (< i n)
+      (let ((c (aref line i)))
+        (if (memq c '(?\s ?\t))
+            (setq i (1+ i))
+          (let* ((pair  (assoc c concept--funcall-bracket-pairs))
+                 (close (cdr pair))
+                 (start i))
+            (if (null pair)
+                (progn
+                  (while (and (< i n)
+                              (not (memq (aref line i) '(?\s ?\t))))
+                    (setq i (1+ i)))
+                  (push (substring line start i) items))
+              (setq i (1+ i))
+              (let ((depth 1)
+                    (symmetric (eq c close)))
+                (while (and (< i n) (> depth 0))
+                  (let ((cc (aref line i)))
+                    (cond (symmetric (when (eq cc c) (setq depth 0)))
+                          ((eq cc c)     (setq depth (1+ depth)))
+                          ((eq cc close) (setq depth (1- depth)))))
+                  (setq i (1+ i)))
+                (push (substring line start i) items)))))))
+    (nreverse items)))
+
+(defun concept--unwrap-temporary-data-item (item)
+  "Strip one layer of delimiters from ITEM, if present."
+  (if (> (length item) 1)
+      (let* ((open  (aref item 0))
+             (close (cdr (assoc open concept--funcall-bracket-pairs)))
+             (last  (aref item (1- (length item)))))
+        (if (and close (eq last close))
+            (substring item 1 -1)
+          item))
+    item))
+
+(defun concept-split-temporary-data-line ()
+  "Split the current line into one line per temporary data item."
+  (interactive)
+  (let* ((line (concept-current-line))
+         (items (mapcar #'concept--unwrap-temporary-data-item
+                        (concept--parse-temporary-data-line line))))
+    (delete-region (line-beginning-position) (line-end-position))
+    (insert (mapconcat #'identity items "\n"))))
+
+(defun concept-combine-temporary-data-into-line ()
+  "Combine multiple lines of data in a temporary block into one long line."
+  (let ((string (concept-get-temporary-block-string)))
+    (concept-kill-temporary-block-region)
+    (beginning-of-line)
+    (open-line 1)
+    (insert
+     (mapconcat
+      (lambda (line)
+        (if (or (string-match-p concept-group-name-regexp line)
+                (string-match-p "^[[:alnum:]]+$" line))
+            line
+          (let ((delims (concept-pick-needed-data-delimiters line)))
+            (with-temp-buffer
+              (insert delims)
+              (backward-char)
+              (insert line)
+              (buffer-string)))))
+      (string-split string "\n" t "")
+      " "))))
+
+(defun concept-transpose-temporary-data ()
+  "Transpose temporary data in an intelligent way."
+  (interactive)
+  (when (concept-in-temporary-block)
+    (let ((reg (concept-get-temporary-block-region)))
+      (if (= (line-number-at-pos (car reg))
+             (line-number-at-pos (cdr reg)))
+          (concept-split-temporary-data-line)
+        (concept-combine-temporary-data-into-line)))))
+
 (defun concept-isearch-copy-all-matches ()
   "End isearch and copy all matches of its current search.
 
@@ -14671,11 +14750,12 @@ uses majority vote to decide on the prefix/suffix."
 (define-key concept-mode-map (kbd "C-c C-k")     #'concept-kill-data-dwim)
 (define-key concept-mode-map (kbd "C-c f")       #'concept-follow-dwim)
 (define-key concept-mode-map [double-mouse-1]    #'concept-double-click-context-command)
-(define-key concept-mode-map (kbd "C-c M-g ~")   #'concept-next-double-heading)
+(define-key concept-mode-map (kbd "C-c g ~")     #'concept-next-double-heading)
 (define-key concept-mode-map (kbd "C-c y r")     #'concept-consult-yank-from-resources)
 (define-key concept-mode-map (kbd "C-c y c")     #'concept-consult-yank-from-ideas)
 (define-key concept-mode-map (kbd "C-c y i")     #'concept-consult-yank-from-ideas)
-(define-key concept-mode-map (kbd "C-c y p")     #'concept-paste-matches-as-data)
+(define-key concept-mode-map (kbd "C-c y p")     #'concept-paste-matches-dwim)
+(define-key concept-mode-map (kbd "C-c C-t")     #'concept-transpose-temporary-data)
 (define-key concept-mode-map (kbd "C-c y m")     #'concept-copy-minibuffer-history-entry)
 (define-key concept-mode-map (kbd "C-c s c")     #'concept-consult-search-concept-blocks)
 (define-key concept-mode-map (kbd "C-c s r")     #'concept-consult-search-resource-blocks)
