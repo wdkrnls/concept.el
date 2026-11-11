@@ -13900,6 +13900,33 @@ along with it."
       (set-mark end)
       (activate-mark))))
 
+(defun concept-mark-group ()
+  "Mark the current group of data.
+
+This works inside both relationship groups and attribute groups."
+  (interactive)
+  (cond ((and (concept-in-relationship-block)
+              (concept-on-data-concept-line))
+         (concept-goto-first-data-concept-in-relationship-group)
+         (beginning-of-line)
+         (let ((beg (point)))
+           (concept-goto-last-data-concept-in-relationship-group)
+           (let ((end (point)))
+             (goto-char beg)
+             (set-mark end)
+             (activate-mark))))
+        ((and (concept-in-resource-block)
+              (concept-on-exposition-line))
+         (concept-goto-first-exposition-line-in-attribute-group)
+         (beginning-of-line)
+         (let ((beg (point)))
+           (concept-goto-final-exposition-line-in-attribute-group)
+           (forward-char 1)
+           (let ((end (point)))
+             (goto-char beg)
+             (set-mark end)
+             (activate-mark))))))
+
 (defun concept-mark-block (arg)
   "Marks the whole block so you can act on it.
 
@@ -14638,6 +14665,9 @@ uses majority vote to decide on the prefix/suffix."
 (define-key concept-mode-map (kbd "C-c C-M-f")   #'concept-show-followable-mode)
 (define-key concept-mode-map (kbd "C-c M-t")     #'concept-enter-new-tempel-template)
 (define-key concept-mode-map (kbd "C-M-h")       #'concept-mark-block)
+(define-key concept-mode-map (kbd "C-c M-b")     #'concept-mark-block)
+(define-key concept-mode-map (kbd "C-c C-M-b")   #'concept-mark-idea)
+(define-key concept-mode-map (kbd "C-c M-g")     #'concept-mark-group)
 (define-key concept-mode-map (kbd "C-c .")       #'concept-insert-at-point-dwim)
 (define-key concept-mode-map (kbd "C-,")         #'concept-make-shared-with-focus-dwim)
 
