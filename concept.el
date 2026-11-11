@@ -245,16 +245,16 @@
 (require 'url-util)
 (require 'diff)
 
-(defvar concept--consult-available
+(defvar concept--consult-available-at-load
   (require 'consult nil t))
 
-(defvar concept--elpher-avaiable
+(defvar concept--elpher-avaiable-at-load
   (require 'elpher nil t))
 
-(defvar concept--osm-available
+(defvar concept--osm-available-at-load
   (require 'osm nil t))
 
-(defvar concept--dictionary-available
+(defvar concept--dictionary-available-at-load
   (require 'dictionary nil t))
 
 ;;; Reference for internal resources
@@ -9376,6 +9376,7 @@ The query `old\;@new' matches all query blocks with old but not new terms.
 
 (defun concept-search-consult-resource-blocks ()
   "Pick a resource block with buffer preview."
+  ;; TODO: This doesn't seem to be used!
   (interactive)
   (let* ((matches (concept-search-resource-blocks))
          (cands (mapcar #'car matches))
@@ -9416,6 +9417,8 @@ The query `old\;@new' matches all query blocks with old but not new terms.
 (defun concept-consult-search-resource-blocks (arg)
   "Browse matching resource blocks with buffer preview."
   (interactive "P")
+  (unless (require 'concept nil t)
+    (user-error concept--consult-uninstalled-message))
   (let ((buf (current-buffer))
         (found-first-match nil))
     (unwind-protect
@@ -9447,9 +9450,15 @@ The query `old\;@new' matches all query blocks with old but not new terms.
           (delete-overlay concept-consult--preview-overlay)
           (setq concept-consult--preview-overlay nil))))))
 
+(defvar concept--consult-uninstalled-message
+  "Please install the `consult' package from ELPA first!"
+  "Error message indicating that this command needs consult.")
+
 (defun concept-consult-search-concept-blocks (arg)
   "Browse matching concept blocks with buffer preview."
   (interactive "P")
+  (unless (require 'consult nil t)
+    (user-error concept--consult-uninstalled-message))
   (let ((buf (current-buffer)))
     (unwind-protect
         (let* ((matches (concept-search-concept-blocks arg))
@@ -9532,6 +9541,8 @@ It copies the current kill-ring, clears it, fills it with buffer
 resource data, runs the yank logic, then restores the original
 kill-ring."
   (interactive (list nil current-prefix-arg))
+  (unless (require 'consult nil t)
+    (user-error concept--consult-uninstalled-message))
   (let ((saved-kill-ring              (copy-sequence kill-ring))
         (saved-kill-ring-yank-pointer kill-ring-yank-pointer)
         (saved-yank-window-start      yank-window-start)
@@ -9574,6 +9585,8 @@ It copies the current kill-ring, clears it, fills it with buffer
 resource data, runs the yank logic, then restores the original
 kill-ring."
   (interactive (list nil current-prefix-arg))
+  (unless (require 'consult nil t)
+    (user-error concept--consult-uninstalled-message))
   (let ((saved-kill-ring (copy-sequence kill-ring))
         (saved-kill-ring-yank-pointer kill-ring-yank-pointer)
         (saved-yank-window-start yank-window-start)
@@ -9633,7 +9646,7 @@ enough for now."
 
 (defun concept-search-gemipedia (term)
   "Conduct a wikipedia search via gemipedia."
-  (if (package-installed-p 'elpher)
+  (if (require 'elpher nil t)
     (let ((url (concat "gemini://gemi.dev/cgi-bin/wp.cgi/view?"
                        (url-hexify-string term)))
           (elpher-buffer-name (concat "*Gemipedia*<" term ">")))
@@ -9641,7 +9654,7 @@ enough for now."
         (if (bufferp (get-buffer elpher-buffer-name))
             (switch-to-buffer elpher-buffer-name)
           (elpher-go url))))
-    (message "You do not have 'elpher install. Please install it!")))
+    (message "You do not have 'elpher installed. Please install it!")))
 
 (defun concept-parse-date (string)
   "This currently only understands two date formats common in the United
@@ -9680,6 +9693,8 @@ in the tab-bar on an existing frame.  See more options in
 
 Non-interactively, this uses the optional second argument NEW-WINDOW
 instead of `browse-url-new-window-flag'."
+  (unless (require 'elpher nil t)
+    (user-error "Please install `elpher' first to use this procedure!"))
   (let ((url-allow-non-local-files t)
         (start-time (float-time))
         (type (url-type (url-generic-parse-url url))))
@@ -9985,7 +10000,7 @@ When EXPECT-PROMPT is not nil, place into comint mode."
 (defun concept-dictionary-search (string)
   "Make a dictionary search and open it's buffer.
 Whether this works depends on if the dictionary.el package is installed."
-  (if (package-installed-p 'dictionary)
+  (if (require 'dictionary nil t)
       (if (not (stringp string))
           (message "The wrong data was passed to the function: %S" string)
         (dictionary-search string)
@@ -10347,11 +10362,11 @@ modifying `mailcap-user-mime-data'."
                  (concept-eval-elisp code side-effects)))))
           ((and (concept-on-exposition-line)
                 (string= "map" (concept-exposition-parent-key)))
-           (when (package-installed-p 'osm)
+           (when (require 'osm nil t)
              (osm (concept-current-exposition))))
           ((and (concept-on-exposition-line)
                 (string= "place" (concept-exposition-parent-key)))
-           (when (package-installed-p 'osm)
+           (when (require 'osm nil t)
              (osm-search (concept-current-exposition))))
           ((and (concept-on-exposition-line)
                 (string= "date" (concept-exposition-parent-key)))
