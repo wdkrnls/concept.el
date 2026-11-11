@@ -1619,6 +1619,13 @@ reordering resource blocks alphabetically."
     (concept-goto-next-relationship-boundary)
     (backward-char)))
 
+(defun concept-goto-final-exposition-line-in-attribute-group ()
+  "Navigate to the last exposition line in the group."
+  (when (and (concept-in-resource-block)
+             (concept-on-exposition-line))
+    (concept-goto-next-attribute-boundary)
+    (backward-char 2)))
+
 (defun concept-data-concept-partial-sort (&optional max-iter)
   "Interactive tool for automatically reordering concepts.
 The commands `concept-exchange-concept-up' and
@@ -5648,6 +5655,43 @@ This is a wrapper function useful for interactive usage."
   (when (concept-on-relationship-line)
     (concept-change-relationship)))
 
+(defun concept-paste-matches-as-text (only-unique)
+  "Paste data on the kill ring intelligently into a concept map."
+  (interactive "P")
+  (let ((buffer (current-buffer)))
+    (let ((matches
+           (split-string
+            (with-temp-buffer
+              (yank-pop)
+              (buffer-string))
+            "\n" t "")))
+      (insert
+       (mapconcat
+        (lambda (match)
+          (if (string-match-p "^| +[^[{‘]" match)
+              (concept-get-expository-data-from-string match)
+            (replace-regexp-in-string "-" " " match)))
+        (if only-unique
+            (delete-dups matches)
+          matches)
+        "\n")))))
+
+(defun concept-paste-matches-as-text (only-unique)
+  "Paste data on the kill ring intelligently into a concept map."
+  (interactive "P")
+  (let* ((text (if (fboundp 'read-from-kill-ring)
+                   (read-from-kill-ring "Yank: ")
+                 (completing-read "Yank: " kill-ring nil t)))
+         (matches (split-string text "\n" t "")))
+    (insert
+     (mapconcat
+      (lambda (match)
+        (if (string-match-p "^| +[[{‘]" match)
+            (concept-get-expository-data-from-string match)
+          (replace-regexp-in-string "-" " " match)))
+      (if only-unique (delete-dups matches) matches)
+      "\n"))))
+
 (defun concept-paste-matches-as-data (only-unique)
   "Paste data on the kill ring intelligently into a concept map."
   (interactive "P")
@@ -5673,6 +5717,14 @@ This is a wrapper function useful for interactive usage."
           (let ((data (split-string matches "\n" t "[\n\t ]+")))
             (if only-unique (delete-dups data) data))
           "\n| "))))))
+
+(defun concept-paste-matches-dwim (arg)
+  "Paste matches in a helpful way."
+  (interactive "P")
+  (if (or (concept-in-relationship-block)
+          (concept-in-resource-block))
+      (concept-paste-matches-as-data arg)
+    (concept-paste-matches-as-text arg)))
 
 (defun concept-isearch-copy-all-matches ()
   "End isearch and copy all matches of its current search.
@@ -8516,6 +8568,12 @@ number, look in either the forward or backward direction."
          (end   (string-match "[]}’] *$" line)))
     (save-excursion
       (substring-no-properties line (1+ start) end))))
+
+(defun concept-get-expository-data-from-string (string)
+  (let* ((start (string-match "[{[‘]" string))
+         (end   (string-match "[]}’] *$" string)))
+    (save-excursion
+      (substring-no-properties string (1+ start) end))))
 
 (defun concept-get-attribute-data ()
   "Get all the attribute data as a list of strings.
