@@ -5662,27 +5662,6 @@ This is a wrapper function useful for interactive usage."
 (defun concept-paste-matches-as-text (only-unique)
   "Paste data on the kill ring intelligently into a concept map."
   (interactive "P")
-  (let ((buffer (current-buffer)))
-    (let ((matches
-           (split-string
-            (with-temp-buffer
-              (yank-pop)
-              (buffer-string))
-            "\n" t "")))
-      (insert
-       (mapconcat
-        (lambda (match)
-          (if (string-match-p "^| +[^[{‘]" match)
-              (concept-get-expository-data-from-string match)
-            (replace-regexp-in-string "-" " " match)))
-        (if only-unique
-            (delete-dups matches)
-          matches)
-        "\n")))))
-
-(defun concept-paste-matches-as-text (only-unique)
-  "Paste data on the kill ring intelligently into a concept map."
-  (interactive "P")
   (let* ((text (if (fboundp 'read-from-kill-ring)
                    (read-from-kill-ring "Yank: ")
                  (completing-read "Yank: " kill-ring nil t)))
