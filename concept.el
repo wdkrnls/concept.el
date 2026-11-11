@@ -6,7 +6,7 @@
 ;; Maintainer: Kyle Andrews <kyle.c.andrews@gmail.com>
 ;; URL: https://github.com/wdkrnls/concept.el
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "30.1")
+;; Package-Requires: ((emacs  "30.1")
 ;;                    (consult "3.6"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -234,7 +234,6 @@
 (require 'help-fns)
 (require 'outline)
 (require 'peg)
-(require 'consult)
 (require 'imenu)
 (require 'man)
 (require 'mailcap)
@@ -246,12 +245,17 @@
 (require 'url-util)
 (require 'diff)
 
-(when (package-installed-p 'elpher)
-  (require 'elpher))
-(when (package-installed-p 'osm)
-  (require 'osm))
-(when (package-installed-p 'dictionary)
-  (require 'dictionary))
+(defvar concept--consult-available
+  (require 'consult nil t))
+
+(defvar concept--elpher-avaiable
+  (require 'elpher nil t))
+
+(defvar concept--osm-available
+  (require 'osm nil t))
+
+(defvar concept--dictionary-available
+  (require 'dictionary nil t))
 
 ;;; Reference for internal resources
 
