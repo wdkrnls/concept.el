@@ -5671,7 +5671,7 @@ This is a wrapper function useful for interactive usage."
       (lambda (match)
         (if (string-match-p "^| +[[{‘]" match)
             (concept-get-expository-data-from-string match)
-          (replace-regexp-in-string "-" " " match)))
+          (replace-regexp-in-string "^| +" "" match)))
       (if only-unique (delete-dups matches) matches)
       "\n"))))
 
@@ -5680,10 +5680,13 @@ This is a wrapper function useful for interactive usage."
   (interactive "P")
   (when (derived-mode-p 'concept-mode)
     (let ((as-concepts (concept-in-relationship-block))
+          (on-data-line (concept-on-data-line))
           (buffer (current-buffer)))
       (let ((matches
              (with-temp-buffer
                (yank-pop)
+               (goto-char (point-min))
+               (replace-regexp "^| +" "")
                (buffer-string))))
         (insert
          (mapconcat
