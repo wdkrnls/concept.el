@@ -10182,7 +10182,8 @@ When EXPECT-PROMPT is not nil, place into comint mode."
           (switch-to-buffer buf)
         (if expect-prompt
             (compile string t)
-          (compile string))
+          (compile string)
+          (kill-new concept-last-shell-command-hash))
         (when side-effect
           (switch-to-buffer cur))))))
 
