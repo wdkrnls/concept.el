@@ -1315,6 +1315,316 @@ I've been testing several iterations and it's getting to be in a pretty reasonab
 
 I added another command which makes it easy to access strings entered by the user interactively from the minibuffer and paste them into resource blocks. I frequently encountered the situation where I would make a regular expression to filter down to certain related shell commands or elisp variables and I wanted to document what got me to the list of concepts in that particular idea. This minibuffer yanking command really helps make that process less annoying.
 
+### Another concept-consult-yank-from-* command
+
+I'm working on adding a new command which yanks text from elsewhere in the buffer. Unlike the *-ideas and *-resources commands, the *-categories command scans the buffer and then computes new text based on what the current focus concept is and what patterns exist in the buffer. To be clear, the new command will be called: 
+
+> concept-consult-yank-from-categories
+
+It's main feature is that it will insert text into new or blank relationship groups.
+
+It will scan through the concept map identifying categories like `old / new`:
+
+```concept
+~ dogs
+| :include
+| old-dogs
+| new-dogs
+~ things
+| :include
+| things-that-can-happen
+| things-that-can-not-happen
+~ things-that-can-happen
+| :include
+| extreme-things-that-can-happen
+| moderate-things-that-can-happen
+~ extremes
+| :name
+| extreme-things
+~ extreme-things
+| :include
+| more-extreme-things
+| less-extreme-things
+~ less-extreme-things
+| :include
+| much-less-extreme-things
+~ more-extreme-things
+| :include
+| much-more-extreme-things
+~ much-more-extreme-things
+| :include
+| much-more-extreme-things-than-average
+~ much-more-extreme-things-than-average
+| :include
+| most-extreme-things
+| least-extreme-things
+~ most-extreme-things
+| :include
+| best-things
+| worst-things
+~ extreme-things
+| :include
+| best-things
+| worst-things
+~ extreme-things-that-can-happen
+| :include
+| best-things-that-can-happen
+| worst-things-that-can-happen
+~ things
+| :include
+| things-that-wont-happen
+| things-that-will-happen
+```
+
+and when the command is invoked on:
+
+```concept
+~ tricks
+| :include
+| 
+```
+
+the desired relationship group gets filled in from a `completing-read` menu which includes the corresponding completion candidates for that focus concept. Thus, producing (if selected):
+
+```concept
+~ tricks
+| :include
+| old-tricks
+| new-tricks
+```
+
+However, this will not yet allow you to select best or worst because the focus concept is a different named category of the underlying concept. I'm not sure how to deal with that in a general way. It seems like instead there should be a customizable variable which subtract certain special prefixes which break the pattern. If `"extreme"` is removed, then `(best / worst)` becomes a selectable possibility.  However, now that I think about it, I don't want to remove it. I want to expand the focus concept with that prefix.
+
+Therefore, this:
+
+```
+~ tricks
+| :include
+| 
+```
+
+becomes:
+
+```
+~ extreme-tricks
+| :include
+| best-tricks
+| worst-tricks
+```
+
+Obviously, changing the focus concept is a much more extreme option and should only work if current relationship block has no data concepts. However, it represents a next level pattern in the concept maps which should be completable.
+
+Then the pattern to show in the annotation is:
+
+> "[extreme] (best / worst)"
+
+I came up with this example in order to capture the proverb: "old tricks are the best tricks".
+
+```
+~ best-tricks
+| :include
+| old-tricks
+```
+
+### Much ado about comparatives
+
+Another feature I'm interested in tackling is handling the common situation where I need to generate a family of "comparative concepts".
+
+(defun concept-expand-comparative-relationships ()
+ "Automatically construct a population concept family of relationship blocks."
+ ...)
+
+The goal of this expansion is to tackle comparative concepts in a consistent, standardized way.
+
+What is a comparative concept? Let me document some examples.
+
+```
+~ improvements
+| :include
+| larger-improvements
+| smaller-improvements
+```
+
+When a category ends in -er (the Germanic case) or starts with more, much, most, or less, somewhat, or least (the Latin case), then it's probably comparative conceptual relationship block.
+
+```concept
+~ improvements
+| :include
+| larger-improvements
+| smaller-improvements
+grow*
+```
+
+then it becomes:
+
+```concept
+~ improvements
+| :include
+| larger-improvements
+| smaller-improvements
+~ larger-improvements
+| :include
+| much-larger-improvements
+| somewhat-larger-improvements
+~ larger-improvements
+| :include
+| larger-improvements-than-average
+~ larger-improvements-than-average
+| :include
+| much-larger-improvements-than-average
+| somewhat-larger-improvements-than-average
+~ much-larger-improvements
+| :include
+| much-larger-improvements-than-average
+~ much-larger-improvements-than-average
+| :include
+| large-improvements
+~ very-much-larger-improvements-than-average
+| :include
+| largest-improvements
+~ somewhat-larger-improvements
+| :include
+| somewhat-larger-improvements-than-average
+~ smaller-improvements
+| :include
+| much-smaller-improvements
+| somewhat-smaller-improvements
+~ smaller-improvements
+| :include
+| smaller-improvements-than-average
+~ smaller-improvements-than-average
+| :include
+| much-smaller-improvements-than-average
+| somewhat-smaller-improvements-than-average
+~ much-smaller-improvements
+| :include
+| much-smaller-improvements-than-average
+| not-much-smaller-improvements-than-average
+~ much-smaller-improvements-than-average
+| :include
+| very-much-smaller-improvements-than-average
+~ much-smaller-improvements-than-average
+| :include
+| small-improvements
+~ very-much-smaller-improvements-than-average
+| :include
+| smallest-improvements
+~ somewhat-smaller-improvements
+| :include
+| somewhat-smaller-improvements-than-average
+~ improvements
+| :include
+| large-improvements
+| small-improvements
+~ improvements
+| :include
+| extreme-improvements
+| moderate-improvements
+~ extreme-improvements
+| :include
+| somewhat-extreme-improvements
+| very-extreme-improvements
+~ somewhat-extreme-improvements
+| :include
+| much-larger-improvements-than-average
+| much-smaller-improvements-than-average
+~ moderate-improvements
+| :include
+| somewhat-smaller-improvements-than-average
+| average-improvements
+| somewhat-larger-improvements-than-average
+~ very-extreme-improvements
+| :include
+| smallest-improvements
+| largest-improvements
+```
+
+That is quite a mouthful, but it is always the same expansion. Of course, the latin variant works the same:
+
+```concept
+~ improvements
+| :include
+| less-extensive-improvements
+| more-extensive-improvements
+grow*
+```
+
+becomes:
+
+```concept
+~ improvements
+| :include
+| more-extensive-improvements
+| less-extensive-improvements
+~ more-extensive-improvements
+| :include
+| much-more-extensive-improvements
+| somewhat-more-extensive-improvements
+~ more-extensive-improvements
+| :include
+| more-extensive-improvements-than-average
+~ more-extensive-improvements-than-average
+| :include
+| much-more-extensive-improvements-than-average
+| somewhat-more-extensive-improvements-than-average
+~ much-more-extensive-improvements
+| :include
+| much-more-extensive-improvements-than-average
+~ much-more-extensive-improvements-than-average
+| :include
+| extensive-improvements
+~ large-improvements
+| :include
+| most-extensive-improvements
+~ somewhat-more-extensive-improvements
+| :include
+| somewhat-more-extensive-improvements-than-average
+~ less-extensive-improvements
+| :include
+| much-less-extensive-improvements
+| somewhat-less-extensive-improvements
+~ less-extensive-improvements
+| :include
+| less-extensive-improvements-than-average
+~ less-extensive-improvements-than-average
+| :include
+| much-less-extensive-improvements-than-average
+| somewhat-less-extensive-improvements-than-average
+~ much-less-extensive-improvements
+| :include
+| much-less-extensive-improvements-than-average
+~ much-less-extensive-improvements-than-average
+| :include
+| not-extensive-improvements
+~ small-improvements
+| :include
+| least-extensive-improvements
+~ somewhat-less-extensive-improvements
+| :include
+| somewhat-less-extensive-improvements-than-average
+~ improvements
+| :include
+| extensive-improvements
+| not-extensive-improvements
+~ improvements
+| :include
+| extreme-improvements
+~ extreme-improvements
+| :include
+| least-extensive-improvements
+| most-extensive-improvements
+```
+
+In both cases the number of conceptual relationship blocks is quite large and quite tricky to get right, and that is why it's worth a dedicated template expansion function.
+
+### More built-in completion sources for Emacs Lisp bound to C-c .
+
+I am also working on a new set of menus for accessing Emacs Lisp symbols.
+
+Unlike the existing globally available completion sources, I wanted to be able to filter down to symbols provided by specific Emacs libraries.
+
+This work is still in progress.
+
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
 <!-- End: -->
