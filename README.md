@@ -1445,7 +1445,7 @@ What is a comparative concept? Let me document some examples.
 | smaller-improvements
 ```
 
-When a category ends in -er (the Germanic case) or starts with more, much, most, or less, somewhat, or least (the Latin case), then it's probably comparative conceptual relationship block.
+When a category ends in -er (the Germanic case) or starts with more, much, most, or less, somewhat, or least (the Latin case), then it's probably part of a comparative conceptual relationship block.
 
 ```concept
 ~ improvements
