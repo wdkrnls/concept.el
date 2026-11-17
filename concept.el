@@ -6077,16 +6077,20 @@ This is intended to enter multiple data concepts at the same time."
 
 (defun concept-insert-elisp-call-name-at-point (function)
   "Insert the name of a FUNCTION at point."
+  ;; TODO: Remove calls that end with - from the candidates
   (interactive
    (list
-    (completing-read
-     "Call: "
-     #'help--symbol-completion-table
-     (lambda (x)
-       (and (fboundp x) (not (commandp (symbol-function x)))))
-     t)))
+    (let ((help-enable-completion-autoload nil))
+      (completing-read
+       "Call: "
+       #'help--symbol-completion-table
+       (lambda (x)
+         (and (fboundp x)
+              ;; (not (autoloadp (symbol-function x)))
+              (not (commandp (symbol-function x)))
+              (not (string-match-p "-\\'" (symbol-name x)))))
+       t))))
   (insert function "-calls"))
-
 
 (defun concept-insert-emacs-face-name-at-point (face)
   "Insert the name of a FACE at point."
