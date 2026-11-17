@@ -1207,6 +1207,7 @@ selected line then this will return nil.
 
 (defun concept-next-focus ()
   "Navigate to the next focus block"
+  ;; TODO: this looks similar to concept-goto-next-focus and seems redundant
   (save-excursion
     (concept-goto-current-focus)
     (condition-case err
@@ -8240,6 +8241,7 @@ These brackets can hold just about any kind of data."
 
 (defun concept-expand-combinatorial-relationship-block ()
   "Expand a combinatorial block."
+  ;; TODO: rename this so that it isn't confused with template expansion functions
   (interactive)
   (let ((line-move-visual nil))
     (when (and (concept-in-relationship-block)
@@ -9737,6 +9739,7 @@ The query `old\;@new' matches all query blocks with old but not new terms.
 (defun concept-copy-all-ideas ()
   "Copy all the ideas in the buffer.
 This is used for completion tasks such as yanking from ideas."
+  ;; TODO: why is this a command?
   (interactive)
   (save-excursion
     (goto-char (point-min))
