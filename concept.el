@@ -14624,6 +14624,69 @@ SYMBOL is inserted with a suffix naming its class, e.g. \"foo-calls\"."
       (concat trimmed "-" (alist-get class concept--library-class-suffixes)))))
   (insert symbol))
 
+(defun concept-insert-emacs-library-at-point (library)
+  "Insert the package name PACKAGE as text at point."
+  (interactive
+   (list
+    (let* ((libs (delq nil (mapcar #'car load-history)))
+           (libs
+            (nconc (delq nil
+                         (mapcar
+                          (lambda (l)
+                            (setq l (file-name-nondirectory l))
+                            (while
+                                (not (equal (setq l (file-name-sans-extension l)) l)))
+                            l)
+                          libs))
+                   libs)))
+      (let* ((pick (completing-read
+                    "Library: " libs
+                    (lambda (lib)
+                      (and
+                       (null (file-name-extension lib))
+                       (not (or (string-match-p "/" lib)
+                                (string-match-p "loaddefs$" lib)
+                                (string-match-p "autoloads$" lib)))))
+                    t))
+             (trimmed (string-trim-right pick)))
+        (concat trimmed "-" "libraries")))))
+  (insert library))
+
+(defun concept-insert-emacs-library-from-package-at-point (symbol)
+  (interactive
+   (list
+    (let* ((library
+            (completing-read
+             "Library: "
+             (delete-dups (mapcar (lambda (e) (file-name-base (car e)))
+                                  load-history))
+             nil t))
+           (table (concept--library-completion-table
+                   (concept--library-entries library)))
+           (name (completing-read "Symbol: " (car table) nil t))
+           (trimmed (string-trim-right name))
+           (class (or (car (gethash trimmed (cdr table))) 'symbol)))
+      (concat trimmed "-" (alist-get class concept--library-class-suffixes)))))
+  (insert symbol))
+
+(defun concept-insert-emacs-package-at-point (package)
+  "Insert the package name PACKAGE as text at point."
+  (interactive
+   (list
+    (progn
+      (require 'finder-inf nil t)
+      ;; Load the package list if necessary (but don't activate them).
+      (unless package--initialized
+        (package-initialize t))
+      (let ((packages (append (mapcar #'car package-alist)
+                              (mapcar #'car package-archive-contents)
+                              (mapcar #'car package--builtins))))
+        (setq packages (mapcar #'symbol-name packages))
+        (let* ((pick (completing-read "Package: " packages nil t))
+               (trimmed (string-trim-right pick)))
+          (concat trimmed "-" "packages"))))))
+  (insert package))
+
 (defcustom concept-insert-at-point-command-menu
   '(("Emacs Lisp"
      "Call"
@@ -14638,8 +14701,14 @@ SYMBOL is inserted with a suffix naming its class, e.g. \"foo-calls\"."
      "Face"
      concept-insert-emacs-face-name-at-point)
     ("Emacs Lisp"
-     "Library"
+     "Symbol"
      concept-insert-emacs-symbol-from-library-at-point)
+    ("Emacs Lisp"
+     "Library"
+     concept-insert-emacs-library-at-point)
+    ("Emacs Lisp"
+     "Package"
+     concept-insert-emacs-package-at-point)
     ("UNIX Shell"
      "Environment Variable"
      concept-insert-environment-variable-name-at-point)
