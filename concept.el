@@ -12616,7 +12616,57 @@ each concept map.")
           (insert-buffer-substring-no-properties map-buf))))
     (with-current-buffer concept-map-concept-buffer
       (concept-map--take-buffer-snapshot))))
-  
+
+(defcustom concept-recent-edits-max 128
+  "Maximum number of recently edited blocks to remember per buffer.
+
+Once the history exceeds this many entries, the oldest are
+discarded.  Buffer-local; each file has its own history."
+  :type '(integer 1 *)
+  :safe #'natnump
+  :group 'concept)
+
+(defvar-local concept-recent-edits-ring nil
+  "Markers to recently edited ideas in the concept map, most recent first.")
+
+(defvar-local concept-recent-edits--tick nil)
+
+(defun concept-recent-edits--record (beg _end _old-len)
+  (unless (eq (buffer-chars-modified-tick) concept-recent-edits--tick)
+    (setq concept-recent-edits--tick (buffer-chars-modified-tick))
+    (let ((start (save-excursion
+                   (goto-char beg)
+                   (concept-beginning-of-idea))))
+      (when start
+        (message "beg=%S start=%S ring-len=%d"
+                 beg start (length concept-recent-edits-ring))
+      ;; Move an existing entry for this idea to the front, else push new.
+        (setq concept-recent-edits-ring
+              (cons (copy-marker start)
+                    (seq-remove (lambda (m) (= (marker-position m) start))
+                                concept-recent-edits-ring)))
+        (while (> (length concept-recent-edits-ring) concept-recent-edits-max)
+          (set-marker (car (last concept-recent-edits-ring)) nil)
+          (setq concept-recent-edits-ring (butlast concept-recent-edits-ring)))))))
+
+(defun concept-recent-edits ()
+  "Jump to a recently edited idea."
+  (interactive)
+  (let ((mark-ring nil)
+        (global-mark-ring nil))
+    (consult-mark concept-recent-edits-ring)))
+
+(define-minor-mode concept-recent-edits-mode nil
+  :lighter nil
+  (if concept-recent-edits-mode
+      (add-hook 'after-change-functions #'concept-recent-edits--record nil t)
+    (remove-hook 'after-change-functions #'concept-recent-edits--record t)
+    (mapc (lambda (m) (set-marker m nil)) concept-recent-edits-ring)
+    (setq concept-recent-edits-ring nil)))
+
+(add-hook 'concept-mode-hook
+          #'concept-recent-edits-mode)
+
 (defvar-local concept-map-network-relationship-regexp
     ".+"
   "Buffer local setting for picking the relationships added to the network
@@ -13828,6 +13878,14 @@ Unlike `outline-end-of-subtree', this recognizes temporary blocks and acts accor
                   (backward-char)
                   (looking-at ":"))
             (backward-char))))))))
+
+(defun concept-beginning-of-idea ()
+  (when (or (concept-in-relationship-block)
+            (concept-in-resource-block))
+    (save-excursion
+      (concept-goto-current-focus)
+      (goto-char (line-beginning-position))
+      (point))))
 
 (defun concept-backward (arg)
   "Move backward intelligently to an editable place in the concept map."
