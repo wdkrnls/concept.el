@@ -30,7 +30,7 @@
 ;; short, it allows users to construct concept maps. The theory of concept
 ;; mapping it builds on top of is based on ideas from the psychologists David
 ;; Ausibel and Joseph D. Novak. The latter building on top of the former's work
-;; studying how best students can learn for understanding, as opposed to
+;; studying how best students can learn for understanding, as opposed to for
 ;; memorization: what they call 'Meaningful Learning'. Novak, in particular,
 ;; focused much of his research in educational psychology on exploring how David
 ;; Ausibel's ideas pertained to concept maps. He along with Gowin further
