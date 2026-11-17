@@ -244,6 +244,7 @@
 (require 'url-parse)
 (require 'url-util)
 (require 'diff)
+(require 'transient)
 
 (defvar concept--consult-available-at-load
   (require 'consult nil t))
@@ -6034,7 +6035,41 @@ This is intended to enter multiple data concepts at the same time."
        (set-marker marker nil)))
     (exit-minibuffer)))
 
+(defun concept--minibuffer-string-insert (str)
+  (with-selected-window (or (active-minibuffer-window)
+                            (error "No active minibuffer"))
+    (delete-minibuffer-contents)
+    (insert str)))
+
+(defun concept-minibuffer-insert-public-elisp-regexp ()
+  (interactive)
+  (concept--minibuffer-string-insert
+   "\\([^-]+-\\)+[^-]+\\'"))
+
+(defun concept-minibuffer-insert-private-elisp-regexp ()
+  (interactive)
+  (concept--minibuffer-string-insert
+   "\\`[^-]+\\(--[^-]+\\)+\\(-[^-]+\\)*$"))
+
+(defun concept-minibuffer-insert-max-length-regexp (length)
+  (interactive
+   (list (let ((enable-recursive-minibuffers t))
+           (read-number "Max Length: "))))
+  (concept--minibuffer-string-insert
+   (format
+    "\\`[^\\n]\\{0,%d\\}\\'" length)))
+
+(transient-define-prefix concept-minibuffer-query-helper ()
+  ""
+  ["Concept Query Helper"
+   ("P" "Public Elisp" concept-minibuffer-insert-public-elisp-regexp)
+   ("p" "Private Elisp" concept-minibuffer-insert-private-elisp-regexp)
+   ("M" "Max Length" concept-minibuffer-insert-max-length-regexp)
+   ])
+
 (with-eval-after-load 'vertico
+  (define-key vertico-map (kbd "C-c C-q")
+              #'concept-minibuffer-query-helper)
   (define-key vertico-map (kbd "C-c C-a")
               #'concept-vertico-insert-current-candidates))
 
