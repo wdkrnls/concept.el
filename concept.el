@@ -6015,7 +6015,9 @@ This is intended to enter multiple data concepts at the same time."
                                    (string-match ":" prompt))))))
                  (if (string-suffix-p "s" raw-suffix)
                      raw-suffix
-                   (concat raw-suffix "s"))))
+                   (if (string-suffix-p "y" raw-suffix)
+                       (concat (substring raw-suffix nil (1- (length raw-suffix))) "ies")
+                     (concat raw-suffix "s")))))
               (text (mapconcat
                      (lambda (x)
                        (let ((name (string-trim-right x)))
