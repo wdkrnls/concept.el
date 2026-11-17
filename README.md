@@ -1452,7 +1452,7 @@ When a category ends in -er (the Germanic case) or starts with more, much, most,
 | :include
 | larger-improvements
 | smaller-improvements
-grow*
+compare*
 ```
 
 then it becomes:
@@ -1546,7 +1546,7 @@ That is quite a mouthful, but it is always the same expansion. Of course, the la
 | :include
 | less-extensive-improvements
 | more-extensive-improvements
-grow*
+compare*
 ```
 
 becomes:
@@ -1621,9 +1621,14 @@ In both cases the number of conceptual relationship blocks is quite large and qu
 
 I am also working on a new set of menus for accessing Emacs Lisp symbols.
 
-Unlike the existing globally available completion sources, I wanted to be able to filter down to symbols provided by specific Emacs libraries.
+Unlike the existing globally available completion sources for commands, calls, and variables, I also wanted to be able to filter down to symbols provided by a specific Emacs library. I'm also interested in discovering what libraries and packages actually exist.
 
-This work is still in progress.
+This is still a work in progress.
+
+### Interactively exploring recent history
+
+One of the strengths of concept maps is that you can insert new ideas anywhere in the file. However, when files get too large, it would be nice to be able to see where in the file changes have been made recently.
+
 
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
