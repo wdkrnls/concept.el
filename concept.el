@@ -3174,7 +3174,9 @@ primary SUBJECT, and one or more OBJECTS."
 
 (defun concept-expand-categorized-relationships (concept relationship &rest categories)
   "Construct a relationship block with outer defined classes.
-Compare this with `concept-expand-categorized-inner-relationships'."
+Compare this with `concept-expand-categorized-inner-relationships'. See
+also `concept-consult-yank-from-categories' which auto-completes those
+category groups that already exist."
   (concat
    (format "~ %s\n| :%s"
            concept relationship)
