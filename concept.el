@@ -4703,53 +4703,95 @@ A PHRASE is a hypen separated string without spaces."
          (keep (max 0 (- (length parts) n))))
     (string-join (reverse (seq-take (reverse parts) keep)) "-")))
 
+(defun concept--expand-list-check-regexps (regexps)
+  "Signal a `user-error' if any element of REGEXPS is not a valid regexp."
+  (dolist (re regexps)
+    (condition-case err
+        (string-match re "")
+      (error
+       (user-error "Not a valid regexp: %S (%s)%s" re (error-message-string err)
+                   (if (stringp re)
+                       (format "; for a literal name use %S" (regexp-quote re))
+                     ""))))))
+
+(defun concept--expand-list-match-include (string includes)
+  "Return the position in STRING where the first INCLUDE regexp matches.
+
+INCLUDES is a list of regexps, tried in order; the first one matching
+STRING at a position greater than zero determines the result.  A match
+at position zero means STRING is itself the include with no prefix
+before it, so nil is returned then too, as when nothing matches.
+
+Regexps are assumed valid; see `concept--expand-list-check-regexps'."
+  (catch 'found
+    (dolist (include includes)
+      (let ((beg (string-match include string)))
+        (when (and beg (< 0 beg))
+          (throw 'found beg))))))
+
+(defun concept--prefix-before-include (string includes &optional offset)
+  "Return the part of STRING before its first INCLUDE regexp match.
+
+Matching follows `concept--expand-list-match-include'.  OFFSET, when
+non-nil, shifts the end of the returned substring by that many
+characters, e.g. -1 to drop the separator just before the match.
+Return nil when no INCLUDE matches."
+  (let ((beg (concept--expand-list-match-include string includes)))
+    (when beg
+      (substring string 0 (max 0 (+ (or offset 0) beg))))))
+
+(defun concept--check-affix (value name)
+  "Return VALUE as a string, or signal a `user-error'.
+VALUE may be a string, a function of a string returning a string,
+or nil (which becomes the empty string).  NAME is used in the error."
+  (cond ((null value) "")
+        ((stringp value) value)
+        ((and (functionp value) (stringp (funcall value ""))) value)
+        (t (user-error "%s should be a string or a function of a string which returns a string!  Got: %S"
+                       name value))))
+
 (defun concept-expand-list-resources (includes &optional excludes focus prefix suffix)
-  "Generate the data needed to more quickly construct a resource template.
+  "Generate the data needed to quickly construct a resource template.
+
 This function takes two lists of strings as arguments: INCLUDES and
-EXCLUDES. These define substrings which indicate the suffixes of core
-concepts. When PREFIX or SUFFIX are non-nil, then it is expected to hold
-a string which is inserted in the line before the main body of the
-text. When FOCUS is non-nil, the focus concept is included in the
+EXCLUDES.  These are regexps which indicate the suffixes of core
+concepts.  When PREFIX or SUFFIX are non-nil, then it is expected to
+hold a string which is inserted in the line before the main body of the
+text.  When FOCUS is non-nil, the focus concept is included in the
 consideration of possible exposition lines added to the resulting
-resource block. This command automatically removes any duplicate lines."
-  (if (null prefix)
-      (setq prefix "")
-    (unless (or (stringp prefix) (and (functionp prefix) (stringp (funcall prefix ""))))
-      (user-error "PREFIX should be a string or a function of a string which returns a string! Got: %S" prefix)))
-  (if (null suffix)
-      (setq suffix "")
-    (unless (or (stringp suffix) (and (functionp suffix) (stringp (funcall suffix ""))))
-      (user-error "SUFFIX should be a string or a function of a string which returns a string! Got: %S" suffix)))
-  (let ((N (concept--max-words includes)))
-    (save-excursion
-      (concept-goto-last-relationship)
+resource block.  This command automatically removes any duplicate
+lines."
+  (setq prefix (concept--check-affix prefix "PREFIX")
+        suffix (concept--check-affix suffix "SUFFIX"))
+  (concept--expand-list-check-regexps (append includes excludes))
+  (concept--max-words includes)         ; called for its side effect
+  (save-excursion
+    (concept-goto-last-relationship)
+    (let* ((all (append includes excludes))
+           (candidates
+            (delete-dups
+             (delq nil
+                   (mapcar (lambda (z)
+                             (concept--prefix-before-include z includes -1))
+                           (seq-filter
+                            (lambda (x)
+                              (and (concept--expand-list-match-include x includes)
+                                   (not (seq-some (lambda (y) (string-match-p y x))
+                                                  excludes))))
+                            (append
+                             (when (and focus (not (member focus all)))
+                               (list (concept-current-focus)))
+                             (nreverse (concept-get-child-concepts)))))))))
+      (unless candidates
+        (user-error "No concept matches %S%s" includes
+                    (if excludes (format " (excluding %S)" excludes) "")))
       (mapconcat
        (lambda (string)
          (format "| {%s%s%s}"
                  (if (functionp prefix) (funcall prefix string) prefix)
                  string
                  (if (functionp suffix) (funcall suffix string) suffix)))
-       (delete-dups
-        (mapcar
-         (lambda (z)
-           (concept--prefix-before-include z includes -1))
-         (seq-filter
-          (lambda (x)
-            (and (not (seq-some
-                       (lambda (y)
-                         (string-match-p y x))
-                       excludes))
-                 (seq-some
-                  (lambda (y)
-                    (string-match-p y x))
-                  includes)))
-          (append
-           (when (and focus
-                      (not (member
-                            focus
-                            (append includes excludes))))
-               (list (concept-current-focus)))
-           (nreverse (concept-get-child-concepts))))))
+       candidates
        "\n"))))
 
 (defun concept-cycle-expression-brackets ()
