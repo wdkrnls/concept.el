@@ -4,18 +4,20 @@
 
 ## Introduction
 
-**Conceptual** knowledge is an often underappreciated third form of knowledge which underlies the more commonly studied **relational** and **procedural** forms of knowledge. Those more celebrated forms of knowledge answer the questions:
+**Conceptual** knowledge is the underappreciated third form of knowledge that underlies the more commonly studied **relational** and **procedural** forms of knowledge. Those more celebrated forms of knowledge answer the fundamental questions:
 
-* What is the case?
+* What happens?
 * How does it happen?
 
-The specifications for these more commonly studied forms of knowledge seem to come from nowhere, residing somehow in our heads. Their underlying genius often lost with the progression of time. After which, they need to be uncovered anew, often by fresh eyes.
+The specifications for these more commonly studied forms of knowledge seem to come from nowhere, residing somehow in our heads. Their underlying genius often lost with the progression of time. After which, they need to be uncovered anew with fresh eyes.
 
-Defining effective procedures or coherent relational databases requires firm grounding in domain knowledge. That knowledge is largely conceptual. It doesn't involve calculation, but it captures and organizes patterns in reality which we intuitively map inside our heads into our own verbal understanding. Thus, the conceptual form of knowledge could be thought of as answering the question:
+Defining effective procedures and efficient relational databases requires a firm grounding in domain knowledge. That knowledge is conceptual in nature. It doesn't involve calculations, but it captures and organizes fundamental patterns in the fabric of reality we intuitively map inside our heads onto our own verbal understanding. In short, the conceptual form of knowledge is what we use to answer the question:
 
 * What does it mean?
 
-In this computer age, **conceptual** knowledge is still largely captured in free-form documents such as scientific articles, school textbooks, and blog tutorials. While modern search tools powered by probabilistic models and advanced data structures can help us sort through such documents, this package proposes a radically different way of managing it: through porting it from a linear prose structure which occassionally forces readers through sections that make little sense to them in an effort to slog through, into an inherently hierarchical structure where chasing meaning is the primary goal. This new structure closely reflects how we as humans actually think and learn according to educational psychologies.
+In this computer age, **conceptual** knowledge is still almost wholly captured in free-form documents like scientific journal articles, school textbooks, and blog tutorials. Modern search tools powered by probabilistic models and advanced data structures can help us sort through such documents to find what we want to know. However, they leave us to remember.
+
+this package proposes a radically different way of managing it: through porting it from a linear prose structure which occassionally forces readers through sections that make little sense to them in an effort to slog through, into an inherently hierarchical structure where chasing meaning is the primary goal. This new structure closely reflects how we as humans actually think and learn according to educational psychologies.
 
 The text representation of this format is pretty straightforward. A concept map consists of a text file. For convenience, let's say its a text with a `.map` file extension. Inside of this text file are a series of *ideas*. An idea captures a group of closely related thoughts. There are two kinds of thoughts as far as conceptual knowledge is concerned. There are thoughts which form propositions meaningful inside of some system to thus construct our (often more or less erroneous) understanding, and then there are thoughts which ground our abstract understanding in facts, evidence, and educational materials.
 
@@ -136,13 +138,19 @@ The weird and completely miraculous thing is that in practice, we humans hold ma
 | thoughts
 ```
 
-Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. It might seem egregious and unnecessary to be so explicit, but for advanced knowledge work explicitness is widely-recognized as a best practice. This is particularly true in highly multi-disciplinary situations where team members come with wildly different skill-sets and expertise collaborate together. So, why do you have this feeling? It is an alien way of working that is widely discouraged.
+Take your time to read through that and I think you will find that this sort of knowledge capture is quite fundamental. It might seem egregious and unnecessary to be so explicit, but for advanced knowledge work explicitness is widely-recognized as the best practice. It is encoded, for example, in the Zen of Python:
 
-There is much to quibble about in the above concept map. It leaves a lot left unsaid and ambiguous. We certainly see that ambiguity, but the point here is to recognize that there is value in constructing large concept maps: they give us the hooks to (re-)organize our thoughts so that they can be productively criticized and improved upon.
+```python
+import this
+```
 
-It is only through criticism, preferably open criticism and preferably criticism we apply to our own thoughts, that help our thinking processes improve. Laying out all the conceptual ideas a team knows about the problem they are trying to solve can be a revelation for many people working together on a large project. We believe strongly that the best plan can only emerge once everyone on a team gains a comprehensive view of the possibilities before them for solving the problem at hand.
+This is particularly true in highly multi-disciplinary situations where team members come with wildly different skill-sets and expertise collaborate together. So, why do you have this feeling? It is an alien way of working that is widely discouraged.
 
-The text format used by `concept.el` is designed to be familiar and comfortable to people with experience writing a little bit of lisp code.  Concepts, resources, relationships, and attribute keywords are intended to be assigned identifiers which look like a readable subset of valid lisp symbols. This should be familiar to most people using Emacs as their editor. Once you accept this restriction on naming, you buy into a set of constraints which facilitate the creation of a bunch of very useful editing tools for making huge concept maps quickly.
+There is much to quibble about in the above concept map, and any concept map. Understanding usually resides next to misunderstanding.  It leaves a lot left unsaid and ambiguous. We certainly see that ambiguity, but the point here is to recognize that there is value in constructing large concept maps: they give us the hooks to (re-)organize our thoughts so that they can be productively criticized and improved upon.
+
+It is only through criticism, preferably open criticism and preferably criticism we apply to our own thoughts, that help our thinking processes improve. Laying out all the conceptual ideas a team knows about the problem they are trying to solve can be a revelation for many people working together on a large project. We believe strongly that the best plan can only emerge once everyone on a team shares a comprehensive view of the possibilities that lay before them for solving the problem at hand.
+
+The text format used by `concept.el` is designed to be familiar and comfortable to people with experience writing a little bit of lisp code.  Concepts, resources, relationships, and attribute keywords are intended to be assigned identifiers which look like a readable subset of valid lisp symbols. This should be familiar to most people using Emacs as their editor. Once you accept this restriction on naming, you buy into a set of constraints which facilitate the creation of a bunch of useful editing tools for making huge concept maps quickly.
 
 These editing tools include:
 
