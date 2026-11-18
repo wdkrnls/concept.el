@@ -1647,6 +1647,13 @@ This is still a work in progress.
 
 One of the strengths of concept maps is that you can insert new ideas anywhere in the file. However, when files get too large, it would be nice to be able to see where in the file changes have been made recently.
 
+### Sorting within regions
+
+I was thinking about implementing a combine* expansion template, when I realized combining many ideas in general would really benefit from first sorting them. Not all the ideas. Just the relevant ones in the region. This region could be made using special temporary blocks or via the traditional way with M-x `concept-mark-idea`.
+
+I haven't implemented a local sort for ideas. This seems like a really good idea. Then I could just repeatedly slurp them up into the first idea that is relevant within the freshly sorted region.
+
+This flavor of local sort seems very useful for concept map editing and editing based analysis, just as global sorts are quite useful for analyzing the whole concept map.
 
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
