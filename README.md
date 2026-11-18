@@ -443,14 +443,24 @@ It can be very convenient to use (e.g. tempel or tempo) templates to insert *res
   (add-hook 'prog-mode-hook 'tempel-setup-capf)
   (add-hook 'text-mode-hook 'tempel-setup-capf))
 
+(defun safe-tempel-expand (&optional force)
+  "Expand the template at point, rolling the buffer back if it errors."
+  (interactive "P")
+  (let ((current-prefix-arg force))
+    (atomic-change-group
+      (call-interactively #'tempel-expand)))
+  (setq this-command 'tempel-expand))
+
 (with-eval-after-load 'tempel
-  (define-key concept-mode-map (kbd "C-c t") #'tempel-expand)
+  (define-key concept-mode-map (kbd "C-c t") #'safe-tempel-expand)
   (define-key concept-mode-map (kbd "C-c n") #'tempel-next)
   (define-key concept-mode-map (kbd "C-c C-c") #'tempel-done)
   (define-key concept-mode-map (kbd "C-c p") #'tempel-previous))
 
 (require 'tempel)
 ```
+
+Note that I don't use the stock tempel-expand since I have found that while developing my templates I make a lot of mistakes which pollute the template buffer, often in bizarre ways. With the safe version, if an error is signalled, nothing is included into the buffer.
 
 You can use `M-i` to make new attribute group keywords. However, by default these show up as `note:`. You'll have to edit these using either standard text editing commands or via `C-u C-c e` which calls a minibuffer editing interface. The standard way involves typing `C-r note:`. Press `ENTER`. Now press `C-M-k` to delete the whole name for sure. However, in this case `M-d` would work just as well. The minibuffer editing interface provides the advantage of validating the input for you and rejecting your change if it doesn't match. However, it has the disadvantage that you cannot just hit `TAB` or equivalently `C-M-i` and get ubiquitous text completion.
 
