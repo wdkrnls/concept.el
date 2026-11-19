@@ -245,6 +245,7 @@
 (require 'url-util)
 (require 'diff)
 (require 'transient)
+(require 'find-func)
 
 (defvar concept--consult-available-at-load
   (require 'consult nil t))
@@ -14819,25 +14820,112 @@ SYMBOL is inserted with a suffix naming its class, e.g. \"foo-calls\"."
         (concat trimmed "-" "libraries")))))
   (insert library))
 
+(defvar concept--primitive-sources nil
+  "Cache mapping primitive names to \"src/FILE.c\".")
+
+(defun concept--primitive-source-file (name)
+  "Return the C source file of primitive NAME, or nil.
+Requires the Emacs C sources (see `find-function-C-source-directory')."
+  (unless concept--primitive-sources
+    (setq concept--primitive-sources (make-hash-table :test #'equal))
+    (when-let* ((dir find-function-C-source-directory))
+      (dolist (file (directory-files dir t "\\`[^.]+\\.c\\'"))
+        (with-temp-buffer
+          (insert-file-contents file)
+          (goto-char (point-min))
+          (while (re-search-forward "DEFUN[A-Z_]* (\"\\([^\"]+\\)\"" nil t)
+            (puthash (match-string 1)
+                     (concat "src/" (file-name-nondirectory file))
+                     concept--primitive-sources))))))
+  (gethash name concept--primitive-sources))
+
+(defun concept--primitive-entries ()
+  "Return a sorted list of symbols naming primitives and special forms."
+  (let (acc)
+    (mapatoms
+     (lambda (s)
+       (when (and (fboundp s)
+                  (not (string-prefix-p "(" (symbol-name s)))
+                  (or (subr-primitive-p (symbol-function s))
+                      (special-form-p s)))
+         (push s acc))))
+    (sort acc #'string<)))
+
+(defun concept--primitive-alias (s)
+  "Return the canonical name S is an alias of, or nil if S is canonical.
+A subr object remembers the name given in its DEFUN; an alias shares
+that object but lives under a different symbol, so the names disagree."
+  (let ((fn (symbol-function s)))
+    (cond
+     ((symbolp fn) (unless (eq fn s) (symbol-name fn)))
+     ((subr-primitive-p fn)
+      (let ((canonical (format "%s" (subr-name fn))))  ; string or symbol
+        (unless (equal canonical (symbol-name s))
+          canonical))))))
+
+(defun concept--primitive-info (symbols)
+  "Return a hash mapping each primitive name to a list (TYPE FILE ALIAS).
+TYPE is \"primitive-function\" or \"special-form\", FILE is the
+\"src/...\" C source (falling back to the alias target's file), and
+ALIAS is the canonical name when the symbol is an alias, else nil."
+  (let ((info (make-hash-table :test #'equal)))
+    (dolist (s symbols)
+      (let* ((name  (symbol-name s))
+             (alias (concept--primitive-alias s)))
+        (puthash name
+                 (list (if (special-form-p s) "special-form" "primitive-function")
+                       (or (concept--primitive-source-file name)
+                           (and alias (concept--primitive-source-file alias))
+                           "")
+                       alias)
+                 info)))
+    info))
+
+(defun concept--primitive-completion-table (symbols)
+  "Return a cons (COLLECTION . INFO) for primitive SYMBOLS.
+INFO maps each name to a list (TYPE FILE ALIAS)."
+  (let* ((name-width (apply #'max 0 (mapcar (lambda (s)
+                                              (length (symbol-name s)))
+                                            symbols)))
+         (type-width (length "primitive-function"))
+         (name-pad (format "%%-%ds" name-width))
+         (type-pad (format "%%-%ds" type-width))
+         (info (concept--primitive-info symbols)))
+    (cons
+     (lambda (string pred action)
+       (if (eq action 'metadata)
+           `(metadata
+             (category . concept-primitive)
+             (group-function
+              . ,(lambda (cand transform)
+                   (if transform
+                       cand
+                     (if (equal (car (gethash (string-trim-right cand) info))
+                                "special-form")
+                         "Special forms"
+                       "Functions"))))
+             (annotation-function
+              . ,(lambda (cand)
+                   (when-let* ((rec (gethash (string-trim-right cand) info)))
+                     (format "  %s  %s%s"
+                             (format type-pad (nth 0 rec))
+                             (nth 1 rec)
+                             (if (nth 2 rec)
+                                 (format "  (alias of %s)" (nth 2 rec))
+                               ""))))))
+         (complete-with-action
+          action
+          (mapcar (lambda (s) (format name-pad (symbol-name s))) symbols)
+          string pred)))
+     info)))
+
 (defun concept-insert-emacs-primitive-at-point (call)
   (interactive
    (list
-    (let* ((primitive-calls
-            (let (acc)
-              (mapatoms
-               (lambda (s)
-                 (when (and (fboundp s)
-                            (not (string-prefix-p "(" (symbol-name s)))
-                            (or (subr-primitive-p (symbol-function s))
-                                (special-form-p s)))
-                   (push (symbol-name s) acc))))
-              (sort acc #'string<)))
-           (pick (completing-read
-                  "Call: " primitive-calls
-                  nil
-                  t))
-           (trimmed (string-trim-right pick)))
-      (concat trimmed "-calls"))))
+    (let* ((table (concept--primitive-completion-table
+                   (concept--primitive-entries)))
+           (name (completing-read "Call: " (car table) nil t)))
+      (concat (string-trim-right name) "-calls"))))
   (insert call))
 
 (defun concept-insert-emacs-library-from-package-at-point (symbol)
