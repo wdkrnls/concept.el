@@ -7179,10 +7179,14 @@ initially be at the block position used by the other size functions."
   "Menu paths ending in functions that measure the block at point.")
 
 (defvar-local concept--lts-size-function nil
-  "Counting function last selected in this buffer.")
+  "Size function last selected in this buffer.")
+
+(defvar-local concept-largest-to-smallest-ring nil
+  "Block markers most recently presented by Consult.
+Despite the historical name, this is a list, not an actual ring.")
 
 (defun concept--lts-read-size-function ()
-  "Select a counting function through the hierarchical size menu."
+  "Select and return a counting function through the size menu."
   (let ((path nil))
     (catch 'done
       (while t
@@ -7193,8 +7197,10 @@ initially be at the block position used by the other size functions."
                  concept-largest-to-smallest-size-menu))
                (choices
                 (delete-dups
-                 (mapcar (lambda (entry) (nth (length path) entry))
-                         matching))))
+                 (mapcar
+                  (lambda (entry)
+                    (nth (length path) entry))
+                  matching))))
           (let* ((choice
                   (completing-read
                    (if path
@@ -7213,8 +7219,11 @@ initially be at the block position used by the other size functions."
 
 (defun concept--lts-make-ring (size-function)
   "Return (MARKER . SIZE) entries ordered by SIZE-FUNCTION.
-Equal-sized blocks retain their original buffer order."
-  (let (blocks seen (order 0))
+The largest blocks come first.  Blocks with equal sizes retain their
+original buffer order."
+  (let (blocks
+        seen
+        (order 0))
     (save-excursion
       (concept--goto-first-heading)
       (while (and (not (eobp))
@@ -7235,16 +7244,34 @@ Equal-sized blocks retain their original buffer order."
                  (and (= (nth 1 a) (nth 1 b))
                       (< (nth 2 a) (nth 2 b)))))))))
 
+(defun concept--lts-visible-candidate-width (candidate)
+  "Return CANDIDATE's width, excluding invisible Consult suffixes."
+  (let ((position 0)
+        (end (length candidate))
+        (width 0))
+    (while (< position end)
+      (let ((next
+             (or (next-single-property-change
+                  position 'invisible candidate)
+                 end)))
+        (unless (get-text-property position 'invisible candidate)
+          (setq width
+                (+ width (string-width candidate position next))))
+        (setq position next)))
+    width))
+
 (defun concept-goto-block-from-largest-to-smallest (arg)
   "Jump to a relationship block, with candidates ordered by size.
-With prefix ARG, select and remember the size measurement."
+With prefix ARG, select and remember the size measurement.  Without
+ARG, reuse the measurement previously selected in this buffer."
   (interactive "P")
   (when arg
     (setq concept--lts-size-function
           (concept--lts-read-size-function)))
   (unless concept--lts-size-function
     (user-error "No size function selected; use C-u to select one"))
-  (let ((entries (concept--lts-make-ring concept--lts-size-function)))
+  (let ((entries
+         (concept--lts-make-ring concept--lts-size-function)))
     (unless entries
       (user-error "No relationship blocks found"))
     (setq concept-largest-to-smallest-ring
@@ -7264,7 +7291,24 @@ With prefix ARG, select and remember the size measurement."
                   'concept--lts-size (cdr entry)
                   candidate)
                  candidate)
-               raw-candidates entries)))
+               raw-candidates
+               entries))
+             ;; Ignore invisible text when choosing the annotation column.
+             (annotation-column
+              (+ 2
+                 (apply
+                  #'max 0
+                  (mapcar #'concept--lts-visible-candidate-width
+                          raw-candidates))))
+             (annotation-width
+              (apply
+               #'max
+               (mapcar
+                (lambda (entry)
+                  (length (number-to-string (cdr entry))))
+                entries)))
+             ;; For width 4, this produces "%4d".
+             (number-pad (format "%%%dd" annotation-width)))
         (consult--read
          candidates
          :prompt "Go to block: "
@@ -7276,11 +7320,19 @@ With prefix ARG, select and remember the size measurement."
          :add-history (thing-at-point 'symbol)
          :annotate
          (lambda (candidate)
-           (let ((size (get-text-property
-                        0 'concept--lts-size candidate)))
+           (let ((size
+                  (get-text-property
+                   0 'concept--lts-size candidate)))
              (when size
-               (propertize (format "  %d" size)
-                           'face 'shadow))))
+               (concat
+                ;; Align using the actual display engine rather than
+                ;; appending spaces to the completion candidate itself.
+                (propertize
+                 " "
+                 'display `(space :align-to ,annotation-column))
+                (propertize
+                 (format number-pad size)
+                 'face 'shadow)))))
          :state (consult--jump-state))))))
 
 (defun concept-in-last-relationship-in-block-p ()
@@ -15636,6 +15688,7 @@ uses majority vote to decide on the prefix/suffix."
 (define-key concept-mode-map (kbd "C-c M-p x")     #'concept-map-export-to-table)
 (define-key concept-mode-map (kbd "C-c M-p d")     #'concept-map-diff-snapshot-and-source)
 (define-key concept-mode-map (kbd "C-c M-p e")     #'concept-recent-edits)
+(define-key concept-mode-map (kbd "C-c M-p b")     #'concept-goto-block-from-largest-to-smallest)
 (define-key concept-mode-map (kbd "C-c e")         #'concept-edit-dwim)
 (define-key concept-mode-map (kbd "M-;")           #'concept-split-dwim)
 (define-key concept-mode-map (kbd "C-c M-;")       #'concept-swap-data-with-focus)
