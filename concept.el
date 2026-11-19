@@ -14685,7 +14685,7 @@ Entries such as (require . FEATURE), (provide . FEATURE) and
                      (symbolp (cdr entry)))
                 entry)
                ((and entry (symbolp entry)) (cons 'defvar entry))))
-            (my-library-definitions library)))
+            (concept--library-definitions library)))
 
 (defun concept--symbol-short-doc (sym)
   "Return the first line of SYM's documentation, or nil."
@@ -14773,14 +14773,21 @@ SYMBOL is inserted with a suffix naming its class, e.g. \"foo-calls\"."
     (let* ((library
             (completing-read
              "Library: "
-             (delete-dups (mapcar (lambda (e) (file-name-base (car e)))
-                                  load-history))
+             (delete-dups
+              (delq nil
+                    (mapcar
+                     (lambda (e)
+                       (let ((file (file-name-base (car e))))
+                         (when (not (string-match-p "\\(autoload\||loaddefs\\)" file))
+                           file)))
+                     load-history)))
              nil t))
            (table (concept--library-completion-table
                    (concept--library-entries library)))
            (name (completing-read "Symbol: " (car table) nil t))
            (trimmed (string-trim-right name))
            (class (or (car (gethash trimmed (cdr table))) 'symbol)))
+      (setq concept-insert-at-point-command-menu-last-emacs-library library)
       (concat trimmed "-" (alist-get class concept--library-class-suffixes)))))
   (insert symbol))
 
@@ -14811,6 +14818,27 @@ SYMBOL is inserted with a suffix naming its class, e.g. \"foo-calls\"."
              (trimmed (string-trim-right pick)))
         (concat trimmed "-" "libraries")))))
   (insert library))
+
+(defun concept-insert-emacs-primitive-at-point (call)
+  (interactive
+   (list
+    (let* ((primitive-calls
+            (let (acc)
+              (mapatoms
+               (lambda (s)
+                 (when (and (fboundp s)
+                            (not (string-prefix-p "(" (symbol-name s)))
+                            (or (subr-primitive-p (symbol-function s))
+                                (special-form-p s)))
+                   (push (symbol-name s) acc))))
+              (sort acc #'string<)))
+           (pick (completing-read
+                  "Call: " primitive-calls
+                  nil
+                  t))
+           (trimmed (string-trim-right pick)))
+      (concat trimmed "-calls"))))
+  (insert call))
 
 (defun concept-insert-emacs-library-from-package-at-point (symbol)
   (interactive
@@ -14852,6 +14880,9 @@ SYMBOL is inserted with a suffix naming its class, e.g. \"foo-calls\"."
      "Call"
      concept-insert-elisp-call-name-at-point)
     ("Emacs Lisp"
+     "Primitive"
+     concept-insert-emacs-primitive-at-point)
+    ("Emacs Lisp"
      "Variable"
      concept-insert-emacs-variable-name-at-point)
     ("Emacs Lisp"
@@ -14861,7 +14892,7 @@ SYMBOL is inserted with a suffix naming its class, e.g. \"foo-calls\"."
      "Face"
      concept-insert-emacs-face-name-at-point)
     ("Emacs Lisp"
-     "Symbol"
+     "Load Path"
      concept-insert-emacs-symbol-from-library-at-point)
     ("Emacs Lisp"
      "Library"
@@ -14884,9 +14915,13 @@ interactive command."
   :type '(repeat sexp)
   :group 'convenience)
 
-(defvar concept-insert-at-point-command-menu-last-command
+(defvar-local concept-insert-at-point-command-menu-last-command
   #'concept-insert-concept-at-point
   "Last command selected from `concept-insert-at-point-command-menu'.")
+
+(defvar-local concept-insert-at-point-command-menu-last-emacs-library
+  nil
+  "Last Emacs library selected from `concept-insert-emacs-symbol-from-library-at-point'.")
 
 (defun concept-insert-at-point-dwim (dont-repeat-last-command)
   "Choose and run a command from `concept-insert-at-point-command-menu'.
