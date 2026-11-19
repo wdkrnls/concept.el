@@ -12699,9 +12699,23 @@ discarded.  Buffer-local; each file has its own history."
 (defun concept-recent-edits ()
   "Jump to a recently edited idea."
   (interactive)
-  (let ((mark-ring nil)
-        (global-mark-ring nil))
-    (consult-mark concept-recent-edits-ring)))
+  (if (require 'consult nil t)
+      (let ((mark-ring nil)
+            (global-mark-ring nil))
+        (if (null concept-recent-edits-ring)
+            (message "No recent edits to the concept map!")
+          (consult--read
+           (consult--mark-candidates
+            concept-recent-edits-ring)
+           :prompt "Go to edited idea: "
+           :category 'consult-location
+           :sort nil
+           :require-match t
+           :lookup #'consult--lookup-location
+           :history '(:input consult--line-history)
+           :add-history (thing-at-point 'symbol)
+           :state (consult--jump-state)))))
+  (message concept--consult-uninstalled-message))
 
 (define-minor-mode concept-recent-edits-mode nil
   :lighter nil
@@ -15367,6 +15381,7 @@ uses majority vote to decide on the prefix/suffix."
 (define-key concept-mode-map (kbd "C-c M-p p")     #'concept-map-check-parse)
 (define-key concept-mode-map (kbd "C-c M-p x")     #'concept-map-export-to-table)
 (define-key concept-mode-map (kbd "C-c M-p d")     #'concept-map-diff-snapshot-and-source)
+(define-key concept-mode-map (kbd "C-c M-p e")     #'concept-recent-edits)
 (define-key concept-mode-map (kbd "C-c e")         #'concept-edit-dwim)
 (define-key concept-mode-map (kbd "M-;")           #'concept-split-dwim)
 (define-key concept-mode-map (kbd "C-c M-;")       #'concept-swap-data-with-focus)
