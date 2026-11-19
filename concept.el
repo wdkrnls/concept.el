@@ -4740,7 +4740,7 @@ Return nil when no INCLUDE matches."
     (when beg
       (substring string 0 (max 0 (+ (or offset 0) beg))))))
 
-(defun concept--check-affix (value name)
+(defun concept--expand-list-check-affix (value name)
   "Return VALUE as a string, or signal a `user-error'.
 VALUE may be a string, a function of a string returning a string,
 or nil (which becomes the empty string).  NAME is used in the error."
@@ -4761,8 +4761,8 @@ text.  When FOCUS is non-nil, the focus concept is included in the
 consideration of possible exposition lines added to the resulting
 resource block.  This command automatically removes any duplicate
 lines."
-  (setq prefix (concept--check-affix prefix "PREFIX")
-        suffix (concept--check-affix suffix "SUFFIX"))
+  (setq prefix (concept--expand-list-check-affix prefix "PREFIX")
+        suffix (concept--expand-list-check-affix suffix "SUFFIX"))
   (concept--expand-list-check-regexps (append includes excludes))
   (concept--max-words includes)         ; called for its side effect
   (save-excursion
