@@ -1655,6 +1655,26 @@ I haven't implemented a local sort for ideas. This seems like a really good idea
 
 This flavor of local sort seems very useful for concept map editing and editing based analysis, just as global sorts are quite useful for analyzing the whole concept map.
 
+### Interactive menus of interactive menus
+
+The concept-follow-dwim interface helps the concept mapper reify the meaning of their ideas by grounding them in externally felt computations. However, concept.el doesn't yet provide much in the way of help in organizing tours of these follows. However, when trying to troubleshoot issues, tours are exactly what are needed to pinpoint causes and document symptoms.
+
+consult-buffer provides a nice way of giving a tour of buffers. The trick is to curate the list of buffers included inside of consult-buffer. Well, instead we can make a command like consult-buffer, but which generates the follow command again from the right location on the concept map and switches to the resulting buffer if it exists, or just exits and shows the messages that follow generated.
+
+The point is to have a history of important sets of follows: tours. How do you identify what sets of follows are important? You could place them inside the same resource block specially annotated with the names of the resource attribute keywords which should be run in a tour.
+
+```
+@ resource
+| shell-command:
+| {echo "Hello, World!"}
+| {echo "Hi, there!"}
+| {echo "Oh, hai!"}
+| show-tour:
+| {shell-command}
+```
+
+So, ideally there are two entry points to making a tour: a prefix argument to concept-follow-dwim when inside an exposition line that causes it to run all the follows for all exposition lines in the attribute group. The other way, is to execute the exposition line holding shell-command. That should cause all the exposition lines under shell command to execute. If there are multiple exposition lines under `show-tour`, then all of those should execute with the C-u prefix. But besides execution, the more important part is producing and organizing menus of what tours have been run so that can be found interactively. And, ideally, the first level of tours menu should be able to hold tours of buffers you just want to visit and which don't have any follow infastructure at all. Think of tours as little micro projects within a bigger project. The trick lays in making the tours discoverable and creatable. Imagine there was a make-buffer-tour command where you can then quickly navigate between those sets of buffers and you could bind that to a single keybinding followwing the tour where a C-u allows you to change the default tour. So you first lock-in a tour, then you press that command to pick buffers among the currenty active tour. This seems like a very useful supporting package which could be widely useful beyond concept.el.
+
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
 <!-- End: -->
