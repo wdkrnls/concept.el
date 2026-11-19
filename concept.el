@@ -7152,6 +7152,137 @@ relationship line is found."
              (line-number-at-pos pt0)
              1))))))
 
+(defun concept-relationship-group-max-concept-count ()
+  "Return the largest data-concept count among groups in this block.
+Return 0 if the block has no relationship groups.  Point should
+initially be at the block position used by the other size functions."
+  (save-excursion
+    (concept-goto-current-focus)
+    (let ((remaining (concept-relationship-group-count))
+          counts)
+      (while (< 0 remaining)
+        (concept-goto-next-relationship)
+        ;; That helper finishes immediately before the group line.
+        (push (concept-relationship-group-concept-count) counts)
+        ;; Ensure the next search advances beyond the current group.
+        (end-of-line)
+        (setq remaining (1- remaining)))
+      (if counts
+          (apply #'max counts)
+        0))))
+
+(defvar concept-largest-to-smallest-size-menu
+  '(("Relationship" "Total"   concept-relationship-count)
+    ("Relationship" "Groups"  concept-relationship-group-count)
+    ("Relationship" "Maximum" concept-relationship-group-max-concept-count)
+    ("Resource"     "Blocks"  concept-resource-block-count))
+  "Menu paths ending in functions that measure the block at point.")
+
+(defvar-local concept--lts-size-function nil
+  "Counting function last selected in this buffer.")
+
+(defun concept--lts-read-size-function ()
+  "Select a counting function through the hierarchical size menu."
+  (let ((path nil))
+    (catch 'done
+      (while t
+        (let* ((matching
+                (seq-filter
+                 (lambda (entry)
+                   (equal path (seq-take entry (length path))))
+                 concept-largest-to-smallest-size-menu))
+               (choices
+                (delete-dups
+                 (mapcar (lambda (entry) (nth (length path) entry))
+                         matching))))
+          (let* ((choice
+                  (completing-read
+                   (if path
+                       (format "%s: " (car (last path)))
+                     "Measure size by: ")
+                   choices nil t))
+                 (new-path (append path (list choice)))
+                 (entry
+                  (seq-find
+                   (lambda (entry)
+                     (equal new-path (butlast entry)))
+                   matching)))
+            (if entry
+                (throw 'done (car (last entry)))
+              (setq path new-path))))))))
+
+(defun concept--lts-make-ring (size-function)
+  "Return (MARKER . SIZE) entries ordered by SIZE-FUNCTION.
+Equal-sized blocks retain their original buffer order."
+  (let (blocks seen (order 0))
+    (save-excursion
+      (concept--goto-first-heading)
+      (while (and (not (eobp))
+                  (not (memq (point) seen)))
+        (push (point) seen)
+        (push (list (point-marker)
+                    (funcall size-function)
+                    order)
+              blocks)
+        (setq order (1+ order))
+        (concept-goto-next-focus)))
+    (mapcar
+     (lambda (entry)
+       (cons (nth 0 entry) (nth 1 entry)))
+     (sort blocks
+           (lambda (a b)
+             (or (> (nth 1 a) (nth 1 b))
+                 (and (= (nth 1 a) (nth 1 b))
+                      (< (nth 2 a) (nth 2 b)))))))))
+
+(defun concept-goto-block-from-largest-to-smallest (arg)
+  "Jump to a relationship block, with candidates ordered by size.
+With prefix ARG, select and remember the size measurement."
+  (interactive "P")
+  (when arg
+    (setq concept--lts-size-function
+          (concept--lts-read-size-function)))
+  (unless concept--lts-size-function
+    (user-error "No size function selected; use C-u to select one"))
+  (let ((entries (concept--lts-make-ring concept--lts-size-function)))
+    (unless entries
+      (user-error "No relationship blocks found"))
+    (setq concept-largest-to-smallest-ring
+          (mapcar #'car entries))
+    (if (not (require 'consult nil t))
+        (message "%s" concept--consult-uninstalled-message)
+      (let* ((mark-ring nil)
+             (global-mark-ring nil)
+             (raw-candidates
+              (consult--mark-candidates
+               concept-largest-to-smallest-ring))
+             (candidates
+              (seq-mapn
+               (lambda (candidate entry)
+                 (put-text-property
+                  0 (length candidate)
+                  'concept--lts-size (cdr entry)
+                  candidate)
+                 candidate)
+               raw-candidates entries)))
+        (consult--read
+         candidates
+         :prompt "Go to block: "
+         :category 'consult-location
+         :sort nil
+         :require-match t
+         :lookup #'consult--lookup-location
+         :history '(:input consult--line-history)
+         :add-history (thing-at-point 'symbol)
+         :annotate
+         (lambda (candidate)
+           (let ((size (get-text-property
+                        0 'concept--lts-size candidate)))
+             (when size
+               (propertize (format "  %d" size)
+                           'face 'shadow))))
+         :state (consult--jump-state))))))
+
 (defun concept-in-last-relationship-in-block-p ()
   "Test if the curent relationship is the last relationship in the block."
   (when (and (concept-in-relationship-block)
