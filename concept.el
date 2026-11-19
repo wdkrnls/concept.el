@@ -12697,7 +12697,7 @@ discarded.  Buffer-local; each file has its own history."
           (setq concept-recent-edits-ring (butlast concept-recent-edits-ring)))))))
 
 (defun concept-recent-edits ()
-  "Jump to a recently edited idea."
+  "Jump to a recently edited idea in the current concept map."
   (interactive)
   (if (require 'consult nil t)
       (let ((mark-ring nil)
@@ -12714,8 +12714,8 @@ discarded.  Buffer-local; each file has its own history."
            :lookup #'consult--lookup-location
            :history '(:input consult--line-history)
            :add-history (thing-at-point 'symbol)
-           :state (consult--jump-state)))))
-  (message concept--consult-uninstalled-message))
+           :state (consult--jump-state))))
+    (message concept--consult-uninstalled-message)))
 
 (define-minor-mode concept-recent-edits-mode nil
   :lighter nil
