@@ -1649,7 +1649,7 @@ One of the strengths of concept maps is that you can insert new ideas anywhere i
 
 ### Sorting within regions
 
-I was thinking about implementing a combine* expansion template, when I realized combining many ideas in general would really benefit from first sorting them. Not all the ideas. Just the relevant ones in the region. This region could be made using special temporary blocks or via the traditional way with M-x `concept-mark-idea`.
+I was thinking about implementing a `combine*` expansion template, when I realized combining many ideas in general would really benefit from first sorting them. Not all the ideas. Just the relevant ones in the region. This region could be made using special temporary blocks or via the traditional way with M-x `concept-mark-idea`.
 
 I haven't implemented a local sort for ideas. This seems like a really good idea. Then I could just repeatedly slurp them up into the first idea that is relevant within the freshly sorted region.
 
