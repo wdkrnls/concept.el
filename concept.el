@@ -2295,7 +2295,7 @@ Unlike `concept-kill-data-dwim', this doesn't remove any data."
   (message "Data copied to kill ring: %s"
            (replace-regexp-in-string
             "\n+" " "
-            (string-trim (current-kill 0)))))
+            (truncate-string-to-width (string-trim (current-kill 0)) 60 nil nil " ... (truncated)"))))
 
 (defun concept-kill-data-dwim ()
   "Kill just the data associated with a concept map element.
