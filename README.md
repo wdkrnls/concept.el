@@ -15,9 +15,9 @@ Defining effective procedures and efficient relational databases requires a firm
 
 * What does it mean?
 
-In this computer age, **conceptual** knowledge is still almost wholly captured in free-form documents like scientific journal articles, school textbooks, and blog tutorials. Modern search tools powered by probabilistic models and advanced data structures can help us sort through such documents to find what we want to know. However, they leave us to remember.
+In this computer age, **conceptual** knowledge is still almost wholly captured in free-form documents like scientific journal articles, school textbooks, and blog tutorials. Modern search tools powered by probabilistic and generative models combined with advanced and efficient data structures can help us sort through such documents to find what we want to know. However, they still leave it up to us to understand and remember.
 
-this package proposes a radically different way of managing it: through porting it from a linear prose structure which occassionally forces readers through sections that make little sense to them in an effort to slog through, into an inherently hierarchical structure where chasing meaning is the primary goal. This new structure closely reflects how we as humans actually think and learn according to educational psychologies.
+This package proposes a radically different way of managing understanding: through porting it from a linear prose structure which occassionally forces readers to barrel through sections that make little sense to them, into an inherently hierarchical structure where chasing meaning is the primary goal. This new structure closely reflects how we as humans actually think and learn according to educational psychologies.
 
 The text representation of this format is pretty straightforward. A concept map consists of a text file. For convenience, let's say its a text with a `.map` file extension. Inside of this text file are a series of *ideas*. An idea captures a group of closely related thoughts. There are two kinds of thoughts as far as conceptual knowledge is concerned. There are thoughts which form propositions meaningful inside of some system to thus construct our (often more or less erroneous) understanding, and then there are thoughts which ground our abstract understanding in facts, evidence, and educational materials.
 
