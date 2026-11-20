@@ -2265,6 +2265,38 @@ the current data."
   (backward-sexp)
   (kill-line))
 
+(defun concept-copy-data-dwim ()
+  "Copy the data associated with a concept map element at point.
+Unlike `concept-kill-data-dwim', this doesn't remove any data."
+  (interactive)
+  (save-excursion
+    (cond ((and (concept-on-exposition-line)
+                (concept-inside-delimiters-p))
+           (let* ((opening (concept-current-delimiter))
+                  (closing (concept-closing-delimiter opening))
+                  (beg (search-backward opening (line-beginning-position) t))
+                  (end (search-forward closing (line-end-position) t)))
+             (copy-region-as-kill (1+ beg) (1- end))))
+          ((concept-on-relationship-line)
+           (end-of-line)
+           (backward-sexp)
+           (copy-region-as-kill (point) (line-end-position)))
+          ((concept-on-attribute-line)
+           (beginning-of-line)
+           (re-search-forward "[ ]+")
+           (let ((end (save-excursion
+                        (search-forward ":" (line-end-position) t))))
+             (copy-region-as-kill (point) (if end (1- end) (point-max)))))
+          ((or (concept-on-concept-line)
+               (concept-on-resource-line))
+           (end-of-line)
+           (backward-sexp)
+           (copy-region-as-kill (point) (line-end-position)))))
+  (message "Data copied to kill ring: %s"
+           (replace-regexp-in-string
+            "\n+" " "
+            (string-trim (current-kill 0)))))
+
 (defun concept-kill-data-dwim ()
   "Kill just the data associated with a concept map element.
 Unlike `concept-kill-dwim', this leaves the conceptual element entry in
@@ -15656,6 +15688,7 @@ uses majority vote to decide on the prefix/suffix."
 (define-key concept-mode-map (kbd "M-<up>")        #'concept-exchange-up-dwim)
 (define-key concept-mode-map (kbd "C-c k")         #'concept-kill-dwim)
 (define-key concept-mode-map (kbd "C-c C-k")       #'concept-kill-data-dwim)
+(define-key concept-mode-map (kbd "C-c M-w")       #'concept-copy-data-dwim)
 (define-key concept-mode-map (kbd "C-c f")         #'concept-follow-dwim)
 (define-key concept-mode-map [double-mouse-1]      #'concept-double-click-context-command)
 (define-key concept-mode-map (kbd "C-c g ~")       #'concept-next-double-heading)
