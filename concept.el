@@ -10493,6 +10493,69 @@ When EXPECT-PROMPT is not nil, place into comint mode."
         (when side-effect
           (switch-to-buffer cur))))))
 
+(defun concept--in-git-repo-p ()
+  "Non-nil if `default-directory' is inside a git work tree."
+  (unless (executable-find "git")
+    (user-error "git is not installed. Please install it first before using this command!"))
+  (let ((dir (or (and buffer-file-name (file-name-directory buffer-file-name))
+                 default-directory)))
+    (zerop (call-process "git" nil nil nil
+                         "-C" dir "rev-parse" "--is-inside-work-tree"))))
+
+(defun concept--most-recent-git-buffer (&rest excluded)
+  "Return the most recently used file buffer that's inside a git repo.
+EXCLUDED is a list of buffer names or buffer objects to skip."
+  (let ((skip (delq nil (mapcar #'get-buffer excluded))))
+    (seq-find (lambda (buf)
+                (with-current-buffer buf
+                  (and buffer-file-name
+                       (concept--in-git-repo-p))))
+              (seq-difference (buffer-list) skip))))
+
+(defun concept--git-file-info ()
+  "Return a plist of repo path, file path, branch, and short SHA."
+  (unless (executable-find "git")
+    (user-error "git is not installed. Please install it first before using this command!"))
+  (unless (concept--in-git-repo-p)
+    (user-error "No git repository detected!"))
+  (let* ((file (buffer-file-name))
+         (dir (or (and file (file-name-directory file))
+                  default-directory))
+         (git (lambda (args)
+                (string-trim
+                 (shell-command-to-string
+                  (format "git -C %s %s 2>/dev/null"
+                          (shell-quote-argument dir) args)))))
+         (sha (funcall git "rev-parse HEAD"))
+         (info (list :repository (funcall git "rev-parse --show-toplevel")
+                     :file       file
+                     :hash       (unless (string-empty-p sha) sha)
+                     :branch     (funcall git "rev-parse --abbrev-ref HEAD"))))
+    (let ((s (format "%S" info)))          ; plist -> string
+      (when (use-region-p) (kill-new s))
+      (message "%s" s))
+    info))
+
+(defun concept-expand-git-file-resources ()
+  "Expand metadata about the previously visited git-backed file."
+  (interactive)
+  (unless (derived-mode-p 'concept-mode)
+    (user-error "This is not a concept map. Aborting!"))
+  (when-let* ((mapbuf (current-buffer))
+              (gitbuf (concept--most-recent-git-buffer mapbuf))
+              (file-info (with-current-buffer gitbuf (concept--git-file-info))))
+    (let ((text (with-temp-buffer
+                  (insert "@ source")
+                  (while file-info
+                    (let ((key   (pop file-info))
+                          (value (pop file-info)))
+                      (insert (format "\n| %s:\n| {%s}"
+                                      (substring (symbol-name key) 1)
+                                      value))))
+                  (buffer-string))))
+      (atomic-change-group
+        (insert text)))))
+
 (defun concept-follow-man (page)
   "Follow to the man page synchronously."
   (let ((Man-notify-method 'pushy)
