@@ -12903,8 +12903,9 @@ discarded.  Buffer-local; each file has its own history."
                    (goto-char beg)
                    (concept-beginning-of-idea))))
       (when start
-        (message "Recording edit: beg=%S start=%S ring-len=%d"
-                 beg start (length concept-recent-edits-ring))
+        (when nil ; useful for debugging
+          (message "Recording edit: beg=%S start=%S ring-len=%d"
+                   beg start (length concept-recent-edits-ring)))
       ;; Move an existing entry for this idea to the front, else push new.
         (setq concept-recent-edits-ring
               (cons (copy-marker start)
