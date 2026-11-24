@@ -10602,8 +10602,9 @@ more pieces of data associated with it."
 
 A bare info document has a single info attribute with zero or more exposition lines."
   (save-excursion
-    (concept-goto-last-resource)
-    (concept-resource-is-bare "info" "document")))
+    (when (< 0 (concept-resource-block-count))
+      (concept-goto-last-resource)
+      (concept-resource-is-bare "info" "document"))))
 
 (defun concept-expand-info-node-resources ()
   "Expand metadata about the previously visited Info-mode buffer."
