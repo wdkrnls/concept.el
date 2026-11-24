@@ -10656,364 +10656,526 @@ If it is false, then it is refuted with a counterexample."
       (message "%s" (can-prove-explain-argument statement))
     (message "The canprove package is not installed!")))
 
-(defun concept-follow-dwim ()
+(defun concept-current-line-of-data-group ()
+  "Returns the index of the current line in the data group.
+
+See also `concept-get-attribute-data' and `concept-get-child-concepts'
+where this index can be helpful."
+  (cond ((concept-on-data-concept-line)
+         (let ((end (line-number-at-pos))
+               (beg (concept-current-relationship-line)))
+           (- end beg 1)))
+        ((concept-on-exposition-line)
+         (let ((end (line-number-at-pos))
+               (beg (concept-current-attribute-line)))
+           (- end beg 1)))
+        (t
+         (user-error "This command only makes sense inside of relationship or attribute groups!"))))
+
+(defun concept--line-number-list (start count)
+  "Return COUNT consecutive numbers beginning at START."
+  (number-sequence start (+ start (1- count))))
+
+(defun concept--anchor-buffer (file)
+  "Return the buffer visiting FILE, visiting it if necessary.
+Signals `user-error' when FILE is neither visited nor readable."
+  (let ((buffer (get-file-buffer file)))
+    (cond (buffer buffer)
+          ((file-readable-p file) (find-file-noselect file))
+          (t (user-error "The follow tour's map file is gone: %s" file)))))
+
+(defun concept-follow-anchor (file anchor)
+  "In the buffer visiting FILE, move to ANCHOR's line and follow it.
+ANCHOR is a plist (:line N :text DATA) recorded when the tour was built; N is
+only a hint, and the line is re-resolved by matching DATA against exposition
+lines near it, so edits elsewhere in the map do not redirect the stop.
+
+FILE is a path rather than a buffer so the tour stays printable and resolves
+to whichever buffer visits that map at run time.
+
+This is public because it is named inside stored stop forms: it is part of
+the tour format, not an implementation detail."
+  (with-current-buffer (concept--anchor-buffer file)
+    (let ((line (concept--resolve-anchor anchor)))
+      (unless line
+        (user-error "Cannot find %S in %s" (plist-get anchor :text) file))
+      (goto-line line)
+      (concept-follow-dwim nil))))
+
+(defcustom concept-follow-anchor-radius 500
+  "How many lines to either side of a stop's recorded line to search.
+If the target has drifted further than this (because of a large edit),
+the stop signals instead of finding an unrelated line.  Larger values
+trade speed for tolerance of big insertions or deletions above the group."
+  :type 'integer)
+
+(defun concept--exposition-holds-p (lno data)
+  "Non-nil if buffer line LNO is an exposition line whose data is DATA.
+DATA is bare (as `concept-current-exposition' returns it), so `foo' cannot
+match a line whose data is `foo-calls'."
+  (when (and (>= lno 1) (<= lno (line-number-at-pos (point-max))))
+    (save-excursion
+      (goto-line lno)
+      (and (concept-on-exposition-line)
+           (equal (string-trim (or (concept-current-exposition) ""))
+                  (string-trim data))))))
+
+(defun concept--resolve-anchor (anchor)
+  "Return the line number ANCHOR describes, or nil.
+ANCHOR is a plist (:line N :text DATA).  The recorded line is tried first;
+otherwise lines within `concept-follow-anchor-radius' are tried nearest first.
+A line qualifies when it is an exposition line whose data is exactly DATA."
+  (let* ((wanted (max 1 (or (plist-get anchor :line) 1)))
+         (data (plist-get anchor :text))
+         (limit (min concept-follow-anchor-radius
+                     (line-number-at-pos (point-max))))
+         (d 0) found)
+    (when data
+      (while (and (not found) (<= d limit))
+        (cond ((concept--exposition-holds-p (- wanted d) data)
+               (setq found (- wanted d)))
+              ((and (/= d 0)
+                    (concept--exposition-holds-p (+ wanted d) data))
+               (setq found (+ wanted d))))
+        (setq d (1+ d))))
+    found))
+
+(defun concept--follow-tour (&optional n)
+  "Build a follow tour for the attribute group at point and enter it.
+
+With N nil, every exposition line in the group becomes a stop.  With N a
+positive number, only the lines from point onward are used, at most N of
+them."
+  (unless (concept-on-exposition-line)
+    (user-error "Cursor must rest on an exposition line!"))
+  (when (and n (<= n 0))
+    (user-error "Stop count must be positive"))
+  (let* ((file (buffer-file-name))
+         (attribute (concept-current-attribute))
+         (total (save-excursion
+                  (concept-goto-last-attribute)
+                  (length (concept-get-attribute-data))))
+         (idx (concept-current-line-of-data-group))
+         (start (if n idx 0))
+         (count (if n (min n (- total idx)) total))
+         (header (save-excursion
+                   (concept-goto-last-attribute)
+                   (line-number-at-pos)))
+         (line (line-number-at-pos))
+         (stamp (format-time-string "%Y-%m-%d %H:%M:%S")))
+    (unless file
+      (user-error "Follow tours require a buffer visiting a file"))
+    (when (<= count 0)
+      (user-error "No followable data at or after point"))
+    (let ((name (format "follow %s:%d on %s at %s with %d stops"
+                        (buffer-name) line attribute stamp count))
+          (k 0)
+          stops)
+      (while (< k count)
+        (let* ((jn (+ start k))
+               (lno (+ header 1 jn))
+               (text (save-excursion
+                       (goto-line lno)
+                       (concept-current-exposition))))
+          (unless text
+            (user-error "No exposition data on line %d of %s" lno file))
+          (push (list :label (truncate-string-to-width
+                              text 60 nil nil " ... (truncated)")
+                      :form (list 'concept-follow-anchor
+                                  file
+                                  (list 'quote (list :line lno :text text))))
+                stops))
+        (setq k (1+ k)))
+      (setq stops (nreverse stops))
+      (tr--register-tour (list :name name :end nil :stops stops))
+      (tr-switch-tour name)
+      name)))
+
+(defun concept-follow-tour (arg)
+  "Construct a tour and then jump into it's stop menu.
+
+Tours are provided by touring.el which first needs to be installed.
+
+ARG determines the maximum number of stops in the tour. If ARG is a
+list, then the maximum number of stops equals the number of exposition
+lines at point."
+  (unless (require 'touring nil t)
+    (user-error "The touring.el package is not installed!"))
+  (if (listp arg)
+      (concept--follow-tour)
+    (concept--follow-tour (prefix-numeric-value arg))))
+
+(defun concept-follow-dwim (arg)
   "Follow the link if it recognizes the attribute group keyword and the file type.
 If the keyword is `file' but the file is not one of the recognized types
 that can be opened from Emacs, then try and `mailcap-view-file' to open
 an external file viewer. It is recommended to configure these via
 modifying `mailcap-user-mime-data'."
-  (interactive)
+  (interactive "P")
   (when (concept-in-resource-block)
-    (cond ((and (concept-on-exposition-line)
-                (string= "info" (concept-exposition-parent-key)))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (concept-info-follow)))
-          ((and (concept-on-exposition-line)
-                (string= "man" (concept-exposition-parent-key)))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (concept-follow-man
-              (concept-get-expository-data))))
-          ((let ((key (concept-exposition-parent-key)))
-             (and (concept-on-exposition-line)
-                  (member key  '("file-path" "directory"))))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (dired
-              (concept-get-expository-data))))
-          ((and (concept-on-exposition-line)
-                (string= "line" (concept-exposition-parent-key)))
-           (let ((keys (concept-resource-block-keys))
-                 (value (concept-get-expository-data)))
-             (cond ((member "man" keys)
-                    (concept-goto-key-in-resource-block "man")
-                    (forward-line)
-                    (let ((mbuf (concept-follow-dwim)))
-                      (sit-for 0.1)
-                      (when (buffer-live-p mbuf)
-                        (with-current-buffer mbuf
-                          (concept--goto-line (string-to-number value))))))
-                   ((and (member "emacs-package" keys)
-                         (member "file-name" keys))
-                    (let ((line (concept-get-expository-data)))
+    (if arg
+        (concept-follow-tour arg)
+      (cond ((and (concept-on-exposition-line)
+                  (string= "info" (concept-exposition-parent-key)))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (concept-info-follow)))
+            ((and (concept-on-exposition-line)
+                  (string= "man" (concept-exposition-parent-key)))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (concept-follow-man
+                (concept-get-expository-data))))
+            ((and (concept-on-exposition-line)
+                  (string= "tour" (concept-exposition-parent-key)))
+             (let ((keys (concept-resource-block-keys))
+                   (target (string-trim (concept-current-exposition))))
+               (if (and (member target keys)
+                        (< 0 (concept-attribute-group-data-count)))
+                   (save-excursion
+                     (concept-goto-key-in-resource-block target)
+                     (forward-line 1)
+                     (concept-follow-dwim '(4)))
+                 (user-error "Touring key %s not defined in block!" target))))
+            ((let ((key (concept-exposition-parent-key)))
+               (and (concept-on-exposition-line)
+                    (member key  '("file-path" "directory"))))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (dired
+                (concept-get-expository-data))))
+            ((and (concept-on-exposition-line)
+                  (string= "line" (concept-exposition-parent-key)))
+             (let ((keys (concept-resource-block-keys))
+                   (value (concept-get-expository-data)))
+               (cond ((member "man" keys)
+                      (concept-goto-key-in-resource-block "man")
+                      (forward-line)
+                      (let ((mbuf (concept-follow-dwim)))
+                        (sit-for 0.1)
+                        (when (buffer-live-p mbuf)
+                          (with-current-buffer mbuf
+                            (concept--goto-line (string-to-number value))))))
+                     ((and (member "emacs-package" keys)
+                           (member "file-name" keys))
+                      (let ((line (concept-get-expository-data)))
+                        (concept-goto-key-in-resource-block "file-name")
+                        (forward-line)
+                        (let ((fbuf (concept-follow-dwim)))
+                          (when (buffer-live-p fbuf)
+                            (with-current-buffer fbuf
+                              (concept--goto-line (string-to-number line))))))))))
+            ((and (concept-on-exposition-line)
+                  (or (string= "pdf-page" (concept-exposition-parent-key))
+                      (string= "page"     (concept-exposition-parent-key))))
+             (let ((keys (concept-resource-block-keys))
+                   (value (concept-get-expository-data)))
+               (cond ((member "file" keys)
+                      (concept-goto-key-in-resource-block "file")
+                      (forward-line)
+                      (when (concept--is-pdf (concept-get-expository-data))
+                        (let ((fbuf (concept-follow-dwim)))
+                          (sit-for 0.1)
+                          (when (buffer-live-p fbuf)
+                            (with-current-buffer fbuf
+                              (pdf-view-goto-page (string-to-number value))))))))))
+            ((and (concept-on-exposition-line)
+                  (string= "file-name" (concept-exposition-parent-key)))
+             (let ((keys (concept-resource-block-keys))
+                   (value (concept-get-expository-data)))
+               (when (member "emacs-package" keys)
+                 (save-excursion
+                   (concept-goto-key-in-resource-block "emacs-package")
+                   (forward-line)
+                   (let* ((pkg (concept-get-expository-data))
+                          (pkg-file (concat (file-name-directory (locate-library pkg)) value)))
+                     (when (and (or (package-installed-p (intern (file-name-nondirectory pkg)))
+                                    (locate-library pkg))
+                                (file-exists-p pkg-file))
+                       (find-file pkg-file)))))))
+            ((and (concept-on-exposition-line)
+                  (string= "search-phrase" (concept-exposition-parent-key)))
+             (let ((keys (concept-resource-block-keys))
+                   (value (concept-get-expository-data)))
+               (cond ((member "file" keys)
+                      (concept-goto-key-in-resource-block "file")
+                      (forward-line)
+                      (cond ((not (concept--is-file-binary-p (concept-get-expository-data)))
+                             (let ((fbuf (concept-follow-dwim)))
+                               (when (buffer-live-p fbuf)
+                                 (with-current-buffer fbuf
+                                   (goto-char (point-min))
+                                   (occur value nil)))))
+                            ((concept--is-pdf (concept-get-expository-data))
+                             (let ((pbuf (concept-follow-dwim)))
+                               (sit-for 0.1)
+                               (when (buffer-live-p pbuf)
+                                 (with-current-buffer pbuf
+                                   (pdf-occur value)))))))
+                     ((member "man" keys)
+                      (concept-goto-key-in-resource-block "man")
+                      (forward-line)
+                      (let ((mbuf (concept-follow-dwim)))
+                        (when (buffer-live-p mbuf)
+                          (with-current-buffer mbuf
+                            (occur value)))))
+                     ((member "url" keys)
+                      (save-excursion
+                        (concept-goto-key-in-resource-block "url")
+                        (forward-line)
+                        (re-search-forward "[^| ]" (line-end-position) t)
+                        (let ((wbuf (concept-follow-dwim)))
+                          (sit-for 0.1)
+                          (when (buffer-live-p wbuf)
+                            (with-current-buffer wbuf
+                              (occur value))))))
+                     ((and (member "emacs-package" keys)
+                           (member "file-name" keys))
                       (concept-goto-key-in-resource-block "file-name")
                       (forward-line)
                       (let ((fbuf (concept-follow-dwim)))
                         (when (buffer-live-p fbuf)
                           (with-current-buffer fbuf
-                            (concept--goto-line (string-to-number line))))))))))
-          ((and (concept-on-exposition-line)
-                (or (string= "pdf-page" (concept-exposition-parent-key))
-                    (string= "page"     (concept-exposition-parent-key))))
-           (let ((keys (concept-resource-block-keys))
-                 (value (concept-get-expository-data)))
-             (cond ((member "file" keys)
-                    (concept-goto-key-in-resource-block "file")
-                    (forward-line)
-                    (when (concept--is-pdf (concept-get-expository-data))
+                            (occur value)))))
+                     ((member "directory" keys)
+                      (let ((dir (save-excursion
+                                   (concept-goto-key-in-resource-block "directory")
+                                   (forward-line)
+                                   (file-name-directory (concept-current-exposition)))))
+                        (consult-grep dir value)))
+                     ((member "info" keys)
+                      (concept-goto-key-in-resource-block "info")
+                      (forward-line)
+                      (concept-follow-dwim)
+                      (with-current-buffer "*info*"
+                        (goto-char (point-min))
+                        (occur value))))))
+            ((and (concept-on-exposition-line)
+                  (string= "argument" (concept-exposition-parent-key)))
+             (save-excursion
+               (concept-goto-last-attribute)
+               (let ((statement (mapconcat
+                                 (lambda (data)
+                                   (string-remove-suffix "." (string-trim data)))
+                                 (concept-get-attribute-data)
+                                 ". ")))
+                 (concept-can-prove-argument statement))))
+            ((and (concept-on-exposition-line)
+                  (string= "point" (concept-exposition-parent-key)))
+             (let ((keys (concept-resource-block-keys))
+                   (value (concept-get-expository-data)))
+               (cond ((member "file" keys)
+                      (concept-goto-key-in-resource-block "file")
+                      (forward-line)
+                      (cond ((not (concept--is-file-binary-p (concept-get-expository-data)))
+                             (let ((fbuf (concept-follow-dwim)))
+                               (when (buffer-live-p fbuf)
+                                 (with-current-buffer fbuf
+                                   (goto-char (string-to-number value))))))))
+                     ((member "man" keys)
+                      (concept-goto-key-in-resource-block "man")
+                      (forward-line)
+                      (let ((mbuf (concept-follow-dwim)))
+                        (when (buffer-live-p mbuf)
+                          (with-current-buffer mbuf
+                            (goto-char (string-to-number value))))))
+                     ((and (member "emacs-package" keys)
+                           (member "file-name" keys))
+                      (concept-goto-key-in-resource-block "file-name")
+                      (forward-line)
                       (let ((fbuf (concept-follow-dwim)))
-                        (sit-for 0.1)
                         (when (buffer-live-p fbuf)
                           (with-current-buffer fbuf
-                            (pdf-view-goto-page (string-to-number value))))))))))
-          ((and (concept-on-exposition-line)
-                (string= "file-name" (concept-exposition-parent-key)))
-           (let ((keys (concept-resource-block-keys))
-                 (value (concept-get-expository-data)))
-             (when (member "emacs-package" keys)
-               (save-excursion
-                 (concept-goto-key-in-resource-block "emacs-package")
-                 (forward-line)
-                 (let* ((pkg (concept-get-expository-data))
-                        (pkg-file (concat (file-name-directory (locate-library pkg)) value)))
-                   (when (and (or (package-installed-p (intern (file-name-nondirectory pkg)))
-                                  (locate-library pkg))
-                              (file-exists-p pkg-file))
-                     (find-file pkg-file)))))))
-          ((and (concept-on-exposition-line)
-                (string= "search-phrase" (concept-exposition-parent-key)))
-           (let ((keys (concept-resource-block-keys))
-                 (value (concept-get-expository-data)))
-             (cond ((member "file" keys)
-                    (concept-goto-key-in-resource-block "file")
-                    (forward-line)
-                    (cond ((not (concept--is-file-binary-p (concept-get-expository-data)))
-                           (let ((fbuf (concept-follow-dwim)))
-                             (when (buffer-live-p fbuf)
-                               (with-current-buffer fbuf
-                                 (goto-char (point-min))
-                                 (occur value nil)))))
-                          ((concept--is-pdf (concept-get-expository-data))
-                           (let ((pbuf (concept-follow-dwim)))
-                             (sit-for 0.1)
-                             (when (buffer-live-p pbuf)
-                               (with-current-buffer pbuf
-                                 (pdf-occur value)))))))
-                   ((member "man" keys)
-                    (concept-goto-key-in-resource-block "man")
-                    (forward-line)
-                    (let ((mbuf (concept-follow-dwim)))
-                      (when (buffer-live-p mbuf)
-                        (with-current-buffer mbuf
-                          (occur value)))))
-                   ((member "url" keys)
-                    (save-excursion
-                      (concept-goto-key-in-resource-block "url")
+                            (goto-char (string-to-number value))))))
+                     ((member "info" keys)
+                      (concept-goto-key-in-resource-block "info")
                       (forward-line)
-                      (re-search-forward "[^| ]" (line-end-position) t)
-                      (let ((wbuf (concept-follow-dwim)))
-                        (sit-for 0.1)
-                        (when (buffer-live-p wbuf)
-                          (with-current-buffer wbuf
-                            (occur value))))))
-                   ((and (member "emacs-package" keys)
-                         (member "file-name" keys))
-                    (concept-goto-key-in-resource-block "file-name")
-                    (forward-line)
-                    (let ((fbuf (concept-follow-dwim)))
-                      (when (buffer-live-p fbuf)
-                        (with-current-buffer fbuf
-                          (occur value)))))
-                   ((member "directory" keys)
-                    (let ((dir (save-excursion
-                                 (concept-goto-key-in-resource-block "directory")
-                                 (forward-line)
-                                 (file-name-directory (concept-current-exposition)))))
-                      (consult-grep dir value)))
-                   ((member "info" keys)
-                    (concept-goto-key-in-resource-block "info")
-                    (forward-line)
-                    (concept-follow-dwim)
-                    (with-current-buffer "*info*"
-                      (goto-char (point-min))
-                      (occur value))))))
-          ((and (concept-on-exposition-line)
-                (string= "argument" (concept-exposition-parent-key)))
-           (save-excursion
-             (concept-goto-last-attribute)
-             (let ((statement (mapconcat
-                              (lambda (data)
-                                (string-remove-suffix "." (string-trim data)))
-                              (concept-get-attribute-data)
-                              ". ")))
-               (concept-can-prove-argument statement))))
-          ((and (concept-on-exposition-line)
-                (string= "point" (concept-exposition-parent-key)))
-           (let ((keys (concept-resource-block-keys))
-                 (value (concept-get-expository-data)))
-             (cond ((member "file" keys)
-                    (concept-goto-key-in-resource-block "file")
-                    (forward-line)
-                    (cond ((not (concept--is-file-binary-p (concept-get-expository-data)))
-                           (let ((fbuf (concept-follow-dwim)))
-                             (when (buffer-live-p fbuf)
-                               (with-current-buffer fbuf
-                                 (goto-char (string-to-number value))))))))
-                   ((member "man" keys)
-                    (concept-goto-key-in-resource-block "man")
-                    (forward-line)
-                    (let ((mbuf (concept-follow-dwim)))
-                      (when (buffer-live-p mbuf)
-                        (with-current-buffer mbuf
-                          (goto-char (string-to-number value))))))
-                   ((and (member "emacs-package" keys)
-                         (member "file-name" keys))
-                    (concept-goto-key-in-resource-block "file-name")
-                    (forward-line)
-                    (let ((fbuf (concept-follow-dwim)))
-                      (when (buffer-live-p fbuf)
-                        (with-current-buffer fbuf
-                          (goto-char (string-to-number value))))))
-                   ((member "info" keys)
-                    (concept-goto-key-in-resource-block "info")
-                    (forward-line)
-                    (concept-follow-dwim)
-                    (with-current-buffer "*info*"
-                      (goto-char (point-min))
-                      (goto-char (string-to-number value)))))))
-          ((and (concept-on-exposition-line)
-                (let ((key (concept-exposition-parent-key)))
-                  (member key (list "definition" "synonym" "dictionary"))))
-           (concept-dictionary-search (concept-current-exposition)))
-          ((and (concept-on-exposition-line)
-                (string= "url" (concept-exposition-parent-key)))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (let ((browse-url-browser-function 'concept-browse-url))
-               (browse-url (concept-current-exposition)))))
-          ((and (concept-on-exposition-line)
-                (string= "search" (concept-exposition-parent-key)))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (let ((browse-url-browser-function 'concept-browse-url))
-               (concept-search-duckduckgo (concept-current-exposition)))))
-          ((and (concept-on-exposition-line)
-                (let ((key (concept-exposition-parent-key)))
-                  (or (string= "wikipedia" key)
-                      (string= "gemipedia" key)
-                      (string= "wiki" key))))
-           (save-excursion
-             (concept-search-gemipedia (concept-current-exposition))))
-          ((and (concept-on-exposition-line)
-                (string= "emacs-package" (concept-exposition-parent-key)))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (concept-describe-package-follow (thing-at-point 'sexp t))))
-          ((and (concept-on-exposition-line)
-                (string= "emacs-library" (concept-exposition-parent-key)))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (apropos-library (thing-at-point 'sexp t))))
-          ((and (concept-on-exposition-line)
-                (or (string= "M-x" (concept-exposition-parent-key))
-                    (string= "emacs-command" (concept-exposition-parent-key))))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (call-interactively (intern (thing-at-point 'sexp t)))))
-          ((and (concept-on-exposition-line)
-                (string= "emacs-buffer" (concept-exposition-parent-key)))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (let ((buf-id (concept-get-expository-data)))
-               (if (member buf-id (mapcar #'buffer-name (buffer-list)))
-                   (switch-to-buffer buf-id)
-                 (progn
-                   (message "An exact match for %s could not be found. This is the closest match!" buf-id)
-                   (concept-switch-to-buffer-with-longest-common-substring buf-id))))))
-          ((and (concept-on-exposition-line)
-                (string= "emacs-symbol" (concept-exposition-parent-key)))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (concept-describe-symbol-follow (thing-at-point 'sexp t))))
-          ((and (concept-on-exposition-line)
-                (or (string= "emacs-keybinding" (concept-exposition-parent-key))
-                    (string= "kbd" (concept-exposition-parent-key))))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (concept-describe-keybinding-follow (concept-get-expository-data))))
-          ((and (concept-on-exposition-line)
-                (or (string= "shell-command" (concept-exposition-parent-key))
-                    (string= "shell" (concept-exposition-parent-key))))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (let ((resource-keys (concept-resource-block-keys)))
-               (let ((default-directory
-                      (file-name-as-directory
-                       (or
-                        (and (member "directory" resource-keys)
-                             (let ((proposed-directory
-                                    (save-excursion
-                                      (concept-goto-key-in-resource-block "directory")
-                                      (forward-line)
-                                      (concept-get-expository-data))))
-                               (when (file-exists-p proposed-directory)
-                                 (expand-file-name proposed-directory))))
-                        default-directory)))
-                     (should-run (not (member "dont-run" resource-keys))))
-                 (if should-run
-                     (concept-shell-command
-                      (concept-get-expository-data)
-                      (member "prompt" resource-keys)
-                      (member "side-effect" resource-keys))
-                      (message "The shell command at point was not run because the `dont-run:' keyword was set!"))))))
-          ((and (concept-on-exposition-line)
-                (or (string= "emacs-lisp" (concept-exposition-parent-key))
-                    (string= "lisp" (concept-exposition-parent-key))))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (let ((code
-                    (concept-get-expository-data))
-                   (default-directory
-                    (or
-                     (and (member "directory" (concept-resource-block-keys))
+                      (concept-follow-dwim)
+                      (with-current-buffer "*info*"
+                        (goto-char (point-min))
+                        (goto-char (string-to-number value)))))))
+            ((and (concept-on-exposition-line)
+                  (let ((key (concept-exposition-parent-key)))
+                    (member key (list "definition" "synonym" "dictionary"))))
+             (concept-dictionary-search (concept-current-exposition)))
+            ((and (concept-on-exposition-line)
+                  (string= "url" (concept-exposition-parent-key)))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (let ((browse-url-browser-function 'concept-browse-url))
+                 (browse-url (concept-current-exposition)))))
+            ((and (concept-on-exposition-line)
+                  (string= "search" (concept-exposition-parent-key)))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (let ((browse-url-browser-function 'concept-browse-url))
+                 (concept-search-duckduckgo (concept-current-exposition)))))
+            ((and (concept-on-exposition-line)
+                  (let ((key (concept-exposition-parent-key)))
+                    (or (string= "wikipedia" key)
+                        (string= "gemipedia" key)
+                        (string= "wiki" key))))
+             (save-excursion
+               (concept-search-gemipedia (concept-current-exposition))))
+            ((and (concept-on-exposition-line)
+                  (string= "emacs-package" (concept-exposition-parent-key)))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (concept-describe-package-follow (thing-at-point 'sexp t))))
+            ((and (concept-on-exposition-line)
+                  (string= "emacs-library" (concept-exposition-parent-key)))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (apropos-library (thing-at-point 'sexp t))))
+            ((and (concept-on-exposition-line)
+                  (or (string= "M-x" (concept-exposition-parent-key))
+                      (string= "emacs-command" (concept-exposition-parent-key))))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (call-interactively (intern (thing-at-point 'sexp t)))))
+            ((and (concept-on-exposition-line)
+                  (string= "emacs-buffer" (concept-exposition-parent-key)))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (let ((buf-id (concept-get-expository-data)))
+                 (if (member buf-id (mapcar #'buffer-name (buffer-list)))
+                     (switch-to-buffer buf-id)
+                   (progn
+                     (message "An exact match for %s could not be found. This is the closest match!" buf-id)
+                     (concept-switch-to-buffer-with-longest-common-substring buf-id))))))
+            ((and (concept-on-exposition-line)
+                  (string= "emacs-symbol" (concept-exposition-parent-key)))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (concept-describe-symbol-follow (thing-at-point 'sexp t))))
+            ((and (concept-on-exposition-line)
+                  (or (string= "emacs-keybinding" (concept-exposition-parent-key))
+                      (string= "kbd" (concept-exposition-parent-key))))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (concept-describe-keybinding-follow (concept-get-expository-data))))
+            ((and (concept-on-exposition-line)
+                  (or (string= "shell-command" (concept-exposition-parent-key))
+                      (string= "shell" (concept-exposition-parent-key))))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (let ((resource-keys (concept-resource-block-keys)))
+                 (let ((default-directory
+                        (file-name-as-directory
+                         (or
+                          (and (member "directory" resource-keys)
+                               (let ((proposed-directory
+                                      (save-excursion
+                                        (concept-goto-key-in-resource-block "directory")
+                                        (forward-line)
+                                        (concept-get-expository-data))))
+                                 (when (file-exists-p proposed-directory)
+                                   (expand-file-name proposed-directory))))
+                          default-directory)))
+                       (should-run (not (member "dont-run" resource-keys))))
+                   (if should-run
+                       (concept-shell-command
+                        (concept-get-expository-data)
+                        (member "prompt" resource-keys)
+                        (member "side-effect" resource-keys))
+                     (message "The shell command at point was not run because the `dont-run:' keyword was set!"))))))
+            ((and (concept-on-exposition-line)
+                  (or (string= "emacs-lisp" (concept-exposition-parent-key))
+                      (string= "lisp" (concept-exposition-parent-key))))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (let ((code
+                      (concept-get-expository-data))
+                     (default-directory
+                      (or
+                       (and (member "directory" (concept-resource-block-keys))
+                            (save-excursion
+                              (concept-goto-key-in-resource-block "directory")
+                              (forward-line)
+                              (expand-file-name (concept-get-expository-data))))
+                       default-directory))
+                     (side-effects
+                      (or (member "side-effect" (concept-resource-block-keys))))
+                     (target-buffer
+                      (if (member "emacs-buffer" (concept-resource-block-keys))
+                          (concept--closest-buffer-by-longest-common-substring
+                           (save-excursion
+                             (concept-goto-key-in-resource-block "emacs-buffer")
+                             (forward-line)
+                             (concept-get-expository-data)))
+                        (current-buffer))))
+                 (with-current-buffer target-buffer
+                   (concept-eval-elisp code side-effects)))))
+            ((and (concept-on-exposition-line)
+                  (string= "map" (concept-exposition-parent-key)))
+             (when (require 'osm nil t)
+               (osm (concept-current-exposition))))
+            ((and (concept-on-exposition-line)
+                  (string= "place" (concept-exposition-parent-key)))
+             (when (require 'osm nil t)
+               (osm-search (concept-current-exposition))))
+            ((and (concept-on-exposition-line)
+                  (string= "date" (concept-exposition-parent-key)))
+             (let ((diary-file
+                    (or (when (member "diary" (concept-resource-block-keys))
                           (save-excursion
-                            (concept-goto-key-in-resource-block "directory")
+                            (concept-goto-key-in-resource-block "diary")
                             (forward-line)
                             (expand-file-name (concept-get-expository-data))))
-                     default-directory))
-                   (side-effects
-                    (or (member "side-effect" (concept-resource-block-keys))))
-                   (target-buffer
-                    (if (member "emacs-buffer" (concept-resource-block-keys))
-                        (concept--closest-buffer-by-longest-common-substring
-                         (save-excursion
-                           (concept-goto-key-in-resource-block "emacs-buffer")
-                           (forward-line)
-                           (concept-get-expository-data)))
-                      (current-buffer))))
-               (with-current-buffer target-buffer
-                 (concept-eval-elisp code side-effects)))))
-          ((and (concept-on-exposition-line)
-                (string= "map" (concept-exposition-parent-key)))
-           (when (require 'osm nil t)
-             (osm (concept-current-exposition))))
-          ((and (concept-on-exposition-line)
-                (string= "place" (concept-exposition-parent-key)))
-           (when (require 'osm nil t)
-             (osm-search (concept-current-exposition))))
-          ((and (concept-on-exposition-line)
-                (string= "date" (concept-exposition-parent-key)))
-           (let ((diary-file
-                  (or (when (member "diary" (concept-resource-block-keys))
-                        (save-excursion
-                          (concept-goto-key-in-resource-block "diary")
-                          (forward-line)
-                          (expand-file-name (concept-get-expository-data))))
-                      diary-file)))
-             (concept-open-calendar (concept-current-exposition) diary-file)))
-          ((and (concept-on-exposition-line)
-                (string= "file" (concept-exposition-parent-key))
-                (member (concept-current-resource-name) '("video" "audio" "media")))
-           (let* ((keys (concept-resource-block-keys))
-                  (file (concept-current-exposition))
-                  (start-time (when (member "start-time" keys)
-                                (save-excursion
-                                  (concept-goto-key-in-resource-block "start-time")
-                                  (forward-line)
-                                  (concept-current-exposition))))
-                  (stop-time (when (member "stop-time" keys)
-                               (save-excursion
-                                 (concept-goto-key-in-resource-block "stop-time")
-                                 (forward-line)
-                                 (concept-current-exposition))))
-                  (loop (member "loop-playback" keys))
-                  (speed (when (member "playback-speed" keys)
-                           (save-excursion
-                             (concept-goto-key-in-resource-block "playback-speed")
-                             (forward-line)
-                             (string-to-number (concept-current-exposition)))))
-                  (subtitles (when (member "subtitles" keys)
-                               (save-excursion
-                                 (concept-goto-key-in-resource-block "subtitles")
-                                 (forward-line)
-                                 (concept-current-exposition))))
-                  (no-window (member "hide-window" keys)))
-           (concept-play-audio-or-video file start-time stop-time loop speed subtitles no-window)))
-          ((and (concept-on-exposition-line)
-                (string= "file" (concept-exposition-parent-key)))
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward "[^| ]" (line-end-position) t)
-             (let ((data (concept-get-expository-data)))
-               (if (or (not (concept--is-file-binary-p data))
-                       (concept--is-image-file data)
-                       (concept--is-pdf data))
-                   (concept-find-file)
-                 (mailcap-view-file data))))))))
+                        diary-file)))
+               (concept-open-calendar (concept-current-exposition) diary-file)))
+            ((and (concept-on-exposition-line)
+                  (string= "file" (concept-exposition-parent-key))
+                  (member (concept-current-resource-name) '("video" "audio" "media")))
+             (let* ((keys (concept-resource-block-keys))
+                    (file (concept-current-exposition))
+                    (start-time (when (member "start-time" keys)
+                                  (save-excursion
+                                    (concept-goto-key-in-resource-block "start-time")
+                                    (forward-line)
+                                    (concept-current-exposition))))
+                    (stop-time (when (member "stop-time" keys)
+                                 (save-excursion
+                                   (concept-goto-key-in-resource-block "stop-time")
+                                   (forward-line)
+                                   (concept-current-exposition))))
+                    (loop (member "loop-playback" keys))
+                    (speed (when (member "playback-speed" keys)
+                             (save-excursion
+                               (concept-goto-key-in-resource-block "playback-speed")
+                               (forward-line)
+                               (string-to-number (concept-current-exposition)))))
+                    (subtitles (when (member "subtitles" keys)
+                                 (save-excursion
+                                   (concept-goto-key-in-resource-block "subtitles")
+                                   (forward-line)
+                                   (concept-current-exposition))))
+                    (no-window (member "hide-window" keys)))
+               (concept-play-audio-or-video file start-time stop-time loop speed subtitles no-window)))
+            ((and (concept-on-exposition-line)
+                  (string= "file" (concept-exposition-parent-key)))
+             (save-excursion
+               (beginning-of-line)
+               (re-search-forward "[^| ]" (line-end-position) t)
+               (let ((data (concept-get-expository-data)))
+                 (if (or (not (concept--is-file-binary-p data))
+                         (concept--is-image-file data)
+                         (concept--is-pdf data))
+                     (concept-find-file)
+                   (mailcap-view-file data)))))))))
 
 (defun concept-copy-current-file-path ()
   "Copy the current buffer's file path to the kill ring."
