@@ -10528,6 +10528,15 @@ EXCLUDED is a list of buffer names or buffer objects to skip."
                        (concept--in-git-repo-p))))
               (seq-difference (buffer-list) skip))))
 
+(defun concept--most-recent-file-buffer (&rest excluded)
+  "Return the most recently used file buffer.
+EXCLUDED is a list of buffer names or buffer objects to skip."
+  (let ((skip (delq nil (mapcar #'get-buffer excluded))))
+    (seq-find (lambda (buf)
+                (with-current-buffer buf
+                  buffer-file-name))
+              (seq-difference (buffer-list) skip))))
+
 (defun concept--most-recent-info-buffer (&rest excluded)
   "Return the most recently used file buffer that's inside a git repo.
 EXCLUDED is a list of buffer names or buffer objects to skip."
@@ -10609,6 +10618,15 @@ A bare info document has a single info attribute with zero or more exposition li
       (concept-goto-last-resource)
       (concept-resource-is-bare "info" "document"))))
 
+(defun concept--last-resource-was-bare-file-document ()
+  "Test whether the last resource was a bare file document.
+
+A bare file document has a single info attribute with zero or more exposition lines."
+  (save-excursion
+    (when (< 0 (concept-resource-block-count))
+      (concept-goto-last-resource)
+      (concept-resource-is-bare "file" "document"))))
+
 (defun concept-expand-info-node-resources ()
   "Expand metadata about the previously visited Info-mode buffer."
   (interactive)
@@ -10623,6 +10641,23 @@ A bare info document has a single info attribute with zero or more exposition li
                      (insert "@ document")
                      (insert "\n| info:\n"))
                    (insert (format "| {%s}" inode))
+                   (buffer-string))))
+      text)))
+
+(defun concept-expand-file-resources ()
+  "Expand metadata about the previously visited file."
+  (interactive)
+  (unless (derived-mode-p 'concept-mode)
+    (user-error "This is not a concept map. Aborting!"))
+  (when-let* ((mapbuf (current-buffer))
+              (filebuf (concept--most-recent-file-buffer mapbuf))
+              (file (with-current-buffer filebuf (buffer-file-name))))
+    (let* ((prev-file (concept--last-resource-was-bare-file-document))
+           (text (with-temp-buffer
+                   (unless prev-file
+                     (insert "@ document")
+                     (insert "\n| file:\n"))
+                   (insert (format "| {%s}" file))
                    (buffer-string))))
       text)))
 
