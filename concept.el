@@ -10946,7 +10946,7 @@ modifying `mailcap-user-mime-data'."
                (cond ((member "man" keys)
                       (concept-goto-key-in-resource-block "man")
                       (forward-line)
-                      (let ((mbuf (concept-follow-dwim)))
+                      (let ((mbuf (concept-follow-dwim nil)))
                         (sit-for 0.1)
                         (when (buffer-live-p mbuf)
                           (with-current-buffer mbuf
@@ -10956,7 +10956,7 @@ modifying `mailcap-user-mime-data'."
                       (let ((line (concept-get-expository-data)))
                         (concept-goto-key-in-resource-block "file-name")
                         (forward-line)
-                        (let ((fbuf (concept-follow-dwim)))
+                        (let ((fbuf (concept-follow-dwim nil)))
                           (when (buffer-live-p fbuf)
                             (with-current-buffer fbuf
                               (concept--goto-line (string-to-number line))))))))))
@@ -10969,7 +10969,7 @@ modifying `mailcap-user-mime-data'."
                       (concept-goto-key-in-resource-block "file")
                       (forward-line)
                       (when (concept--is-pdf (concept-get-expository-data))
-                        (let ((fbuf (concept-follow-dwim)))
+                        (let ((fbuf (concept-follow-dwim nil)))
                           (sit-for 0.1)
                           (when (buffer-live-p fbuf)
                             (with-current-buffer fbuf
@@ -10996,13 +10996,13 @@ modifying `mailcap-user-mime-data'."
                       (concept-goto-key-in-resource-block "file")
                       (forward-line)
                       (cond ((not (concept--is-file-binary-p (concept-get-expository-data)))
-                             (let ((fbuf (concept-follow-dwim)))
+                             (let ((fbuf (concept-follow-dwim nil)))
                                (when (buffer-live-p fbuf)
                                  (with-current-buffer fbuf
                                    (goto-char (point-min))
                                    (occur value nil)))))
                             ((concept--is-pdf (concept-get-expository-data))
-                             (let ((pbuf (concept-follow-dwim)))
+                             (let ((pbuf (concept-follow-dwim nil)))
                                (sit-for 0.1)
                                (when (buffer-live-p pbuf)
                                  (with-current-buffer pbuf
@@ -11010,7 +11010,7 @@ modifying `mailcap-user-mime-data'."
                      ((member "man" keys)
                       (concept-goto-key-in-resource-block "man")
                       (forward-line)
-                      (let ((mbuf (concept-follow-dwim)))
+                      (let ((mbuf (concept-follow-dwim nil)))
                         (when (buffer-live-p mbuf)
                           (with-current-buffer mbuf
                             (occur value)))))
@@ -11019,7 +11019,7 @@ modifying `mailcap-user-mime-data'."
                         (concept-goto-key-in-resource-block "url")
                         (forward-line)
                         (re-search-forward "[^| ]" (line-end-position) t)
-                        (let ((wbuf (concept-follow-dwim)))
+                        (let ((wbuf (concept-follow-dwim nil)))
                           (sit-for 0.1)
                           (when (buffer-live-p wbuf)
                             (with-current-buffer wbuf
@@ -11028,7 +11028,7 @@ modifying `mailcap-user-mime-data'."
                            (member "file-name" keys))
                       (concept-goto-key-in-resource-block "file-name")
                       (forward-line)
-                      (let ((fbuf (concept-follow-dwim)))
+                      (let ((fbuf (concept-follow-dwim nil)))
                         (when (buffer-live-p fbuf)
                           (with-current-buffer fbuf
                             (occur value)))))
@@ -11041,7 +11041,7 @@ modifying `mailcap-user-mime-data'."
                      ((member "info" keys)
                       (concept-goto-key-in-resource-block "info")
                       (forward-line)
-                      (concept-follow-dwim)
+                      (concept-follow-dwim nil)
                       (with-current-buffer "*info*"
                         (goto-char (point-min))
                         (occur value))))))
@@ -11063,14 +11063,14 @@ modifying `mailcap-user-mime-data'."
                       (concept-goto-key-in-resource-block "file")
                       (forward-line)
                       (cond ((not (concept--is-file-binary-p (concept-get-expository-data)))
-                             (let ((fbuf (concept-follow-dwim)))
+                             (let ((fbuf (concept-follow-dwim nil)))
                                (when (buffer-live-p fbuf)
                                  (with-current-buffer fbuf
                                    (goto-char (string-to-number value))))))))
                      ((member "man" keys)
                       (concept-goto-key-in-resource-block "man")
                       (forward-line)
-                      (let ((mbuf (concept-follow-dwim)))
+                      (let ((mbuf (concept-follow-dwim nil)))
                         (when (buffer-live-p mbuf)
                           (with-current-buffer mbuf
                             (goto-char (string-to-number value))))))
@@ -11078,14 +11078,14 @@ modifying `mailcap-user-mime-data'."
                            (member "file-name" keys))
                       (concept-goto-key-in-resource-block "file-name")
                       (forward-line)
-                      (let ((fbuf (concept-follow-dwim)))
+                      (let ((fbuf (concept-follow-dwim nil)))
                         (when (buffer-live-p fbuf)
                           (with-current-buffer fbuf
                             (goto-char (string-to-number value))))))
                      ((member "info" keys)
                       (concept-goto-key-in-resource-block "info")
                       (forward-line)
-                      (concept-follow-dwim)
+                      (concept-follow-dwim nil)
                       (with-current-buffer "*info*"
                         (goto-char (point-min))
                         (goto-char (string-to-number value)))))))
