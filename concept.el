@@ -10240,8 +10240,8 @@ instead of `browse-url-new-window-flag'."
         (let ((manual-name
                (concept-get-expository-data)))
           (when manual-name
-            (info manual-name))))
-    (concept-info-follow-at-point))
+            (info manual-name)))
+    (concept-info-follow-at-point)))
 
 (defun concept-find-file ()
   "Find files on the current line."
