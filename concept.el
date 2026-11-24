@@ -4799,6 +4799,9 @@ text.  When FOCUS is non-nil, the focus concept is included in the
 consideration of possible exposition lines added to the resulting
 resource block.  This command automatically removes any duplicate
 lines."
+  ;; TODO: would be nice if it looked up to the last match and wasn't greedy
+  ;; example: inhibit-local-variables-regexps-variables should return:
+  ;;            inhibit-local-variables-regexps
   (setq prefix (concept--expand-list-check-affix prefix "PREFIX")
         suffix (concept--expand-list-check-affix suffix "SUFFIX"))
   (concept--expand-list-check-regexps (append includes excludes))
