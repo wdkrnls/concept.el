@@ -10612,14 +10612,14 @@ A bare info document has a single info attribute with zero or more exposition li
     (user-error "This is not a concept map. Aborting!"))
   (when-let* ((mapbuf (current-buffer))
               (infobuf (concept--most-recent-info-buffer mapbuf))
-              (inode (with-current-buffer infobuf (concept--info-node-name)))
-              (prev-info (concept--last-resource-was-bare-info-document)))
-    (let ((text (with-temp-buffer
-                  (unless prev-info
-                    (insert "@ document")
-                    (insert "\n| info:\n"))
-                  (insert (format "| {%s}" inode))
-                  (buffer-string))))
+              (inode (with-current-buffer infobuf (concept--info-node-name))))
+    (let* ((prev-info (concept--last-resource-was-bare-info-document))
+           (text (with-temp-buffer
+                   (unless prev-info
+                     (insert "@ document")
+                     (insert "\n| info:\n"))
+                   (insert (format "| {%s}" inode))
+                   (buffer-string))))
       text)))
 
 (defun concept-follow-man (page)
