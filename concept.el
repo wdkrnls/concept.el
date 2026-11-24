@@ -253,6 +253,9 @@
 (defvar concept--canprove-available-at-load
   (require 'canprove nil t))
 
+(defvar concept--touring-available-at-load
+  (require 'touring nil t))
+
 (defvar concept--elpher-avaiable-at-load
   (require 'elpher nil t))
 
