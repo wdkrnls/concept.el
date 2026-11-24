@@ -5280,6 +5280,16 @@ Sort these names in order of usage frequency."
         (re-search-backward "^| +:")
         (line-number-at-pos)))))
 
+(defun concept-current-attribute-line ()
+  "Get the line number of the current attribute."
+  (when (and (concept-in-resource-block)
+             (concept-on-data-line))
+    (if (concept-on-attribute-line)
+        (line-number-at-pos)
+      (save-excursion
+        (concept-goto-last-attribute)
+        (line-number-at-pos)))))
+
 (defun concept-current-resource ()
   "Get the current resource and return as a string."
   (when (concept-in-resource-block)
