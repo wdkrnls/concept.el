@@ -10525,6 +10525,15 @@ EXCLUDED is a list of buffer names or buffer objects to skip."
                        (concept--in-git-repo-p))))
               (seq-difference (buffer-list) skip))))
 
+(defun concept--most-recent-info-buffer (&rest excluded)
+  "Return the most recently used file buffer that's inside a git repo.
+EXCLUDED is a list of buffer names or buffer objects to skip."
+  (let ((skip (delq nil (mapcar #'get-buffer excluded))))
+    (seq-find (lambda (buf)
+                (with-current-buffer buf
+                  (derived-mode-p 'Info-mode)))
+              (seq-difference (buffer-list) skip))))
+
 (defun concept--git-file-info ()
   "Return a plist of repo path, file path, branch, and short SHA."
   (unless (executable-find "git")
@@ -10568,6 +10577,50 @@ EXCLUDED is a list of buffer names or buffer objects to skip."
                   (buffer-string))))
       (atomic-change-group
         (insert text)))))
+
+(defun concept--info-node-name ()
+  (if (derived-mode-p 'Info-mode)
+      (let ((kill-ring nil))
+        (Info-copy-current-node-name)
+        (car kill-ring))
+    (user-error "It only makes sense to copy an Info node name from an info buffer!")))
+
+(defun concept-resource-is-bare (keyword name)
+  "Test if a resource is simple.
+Simple, in the sense that it only has one attribute keyword with zero or
+more pieces of data associated with it."
+  (unless (concept-in-resource-block)
+    (user-error "Not called in a resource block!"))
+  (and (eq 1 (concept-resource-keyword-count))
+       (let ((key (car (concept-resource-block-keys)))
+             (nm  (concept-current-resource-name)))
+         (and (string= key keyword)
+              (string= nm  name)))))
+
+(defun concept--last-resource-was-bare-info-document ()
+  "Test whether the last resource was a bare info document.
+
+A bare info document has a single info attribute with zero or more exposition lines."
+  (save-excursion
+    (concept-goto-last-resource)
+    (concept-resource-is-bare "info" "document")))
+
+(defun concept-expand-info-node-resources ()
+  "Expand metadata about the previously visited Info-mode buffer."
+  (interactive)
+  (unless (derived-mode-p 'concept-mode)
+    (user-error "This is not a concept map. Aborting!"))
+  (when-let* ((mapbuf (current-buffer))
+              (infobuf (concept--most-recent-info-buffer mapbuf))
+              (inode (with-current-buffer infobuf (concept--info-node-name)))
+              (prev-info (concept--last-resource-was-bare-info-document)))
+    (let ((text (with-temp-buffer
+                  (unless prev-info
+                    (insert "@ document")
+                    (insert "\n| info:\n"))
+                  (insert (format "| {%s}" inode))
+                  (buffer-string))))
+      text)))
 
 (defun concept-follow-man (page)
   "Follow to the man page synchronously."
