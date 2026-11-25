@@ -1335,7 +1335,9 @@ I added another command which makes it easy to access strings entered by the use
 
 ### Another concept-consult-yank-from-* command
 
-I'm working on adding a new command which yanks text from elsewhere in the buffer. Unlike the *-ideas and *-resources commands, the *-categories command scans the buffer and then computes new text based on what the current focus concept is and what patterns exist in the buffer. To be clear, the new command will be called: 
+I'm working on adding a new command which yanks text from elsewhere in the buffer. Unlike the *-ideas and *-resources commands, the *-categories command scans the buffer and then computes a new relationship group based on what the current focus concept is and what patterns exist elsewhere in the buffer. Potentially, with the right prefix argument, a customizable variable could be used to also search across other concept map buffers as well. The same feature would be a welcome addition to the other consult-yank commands as well. In particular, it would look at the set difference between what is in those buffers and what is in the current buffer.
+
+To be clear, the new command will be called:
 
 > concept-consult-yank-from-categories
 
