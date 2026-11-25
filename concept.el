@@ -10546,7 +10546,7 @@ EXCLUDED is a list of buffer names or buffer objects to skip."
               (seq-difference (buffer-list) skip))))
 
 (defun concept--most-recent-info-buffer (&rest excluded)
-  "Return the most recently used file buffer that's inside a git repo.
+  "Return the most recently used info buffer.
 EXCLUDED is a list of buffer names or buffer objects to skip."
   (let ((skip (delq nil (mapcar #'get-buffer excluded))))
     (seq-find (lambda (buf)
@@ -10620,7 +10620,8 @@ more pieces of data associated with it."
 (defun concept--last-resource-was-bare-info-document ()
   "Test whether the last resource was a bare info document.
 
-A bare info document has a single info attribute with zero or more exposition lines."
+A bare info document has a single attribute with zero or more exposition
+lines."
   (save-excursion
     (when (< 0 (concept-resource-block-count))
       (concept-goto-last-resource)
@@ -10629,7 +10630,8 @@ A bare info document has a single info attribute with zero or more exposition li
 (defun concept--last-resource-was-bare-file-document ()
   "Test whether the last resource was a bare file document.
 
-A bare file document has a single info attribute with zero or more exposition lines."
+A bare file document has a single attribute with zero or more exposition
+lines."
   (save-excursion
     (when (< 0 (concept-resource-block-count))
       (concept-goto-last-resource)
