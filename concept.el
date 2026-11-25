@@ -10211,11 +10211,11 @@ instead of `browse-url-new-window-flag'."
                      t)
            (while (and (not concept-eww-buffer-has-rendered)
                        (< (- (float-time) start-time) 30))
-             (accept-process-output nil 0.1)))
-          (remove-hook 'eww-after-render-hook
-                       'concept-set-eww-buffer-as-rendered
-                       t)
-          (current-buffer))))
+             (accept-process-output nil 0.1))
+           (remove-hook 'eww-after-render-hook
+                        'concept-set-eww-buffer-as-rendered
+                        t)
+           (current-buffer)))))
 
 (defconst concept-info-ref-regexp
   "(\\([^()\n]+\\)) *\\([[:alnum:]]+ \\)*[[:alnum:]]+"
@@ -10905,6 +10905,11 @@ lines at point."
       (concept--follow-tour)
     (concept--follow-tour (prefix-numeric-value arg))))
 
+(defun concept--follow-occur (value)
+  (occur value)
+  (pop-to-buffer "*Occur*")
+  (forward-line))
+
 (defun concept-follow-dwim (arg)
   "Follow the link if it recognizes the attribute group keyword and the file type.
 If the keyword is `file' but the file is not one of the recognized types
@@ -10917,17 +10922,11 @@ modifying `mailcap-user-mime-data'."
         (concept-follow-tour arg)
       (cond ((and (concept-on-exposition-line)
                   (string= "info" (concept-exposition-parent-key)))
-             (save-excursion
-               (beginning-of-line)
-               (re-search-forward "[^| ]" (line-end-position) t)
-               (concept-info-follow)))
+             (save-excursion (concept-info-follow)))
             ((and (concept-on-exposition-line)
                   (string= "man" (concept-exposition-parent-key)))
              (save-excursion
-               (beginning-of-line)
-               (re-search-forward "[^| ]" (line-end-position) t)
-               (concept-follow-man
-                (concept-get-expository-data))))
+               (concept-follow-man (concept-get-expository-data))))
             ((and (concept-on-exposition-line)
                   (string= "tour" (concept-exposition-parent-key)))
              (let ((keys (concept-resource-block-keys))
@@ -10943,10 +10942,7 @@ modifying `mailcap-user-mime-data'."
                (and (concept-on-exposition-line)
                     (member key  '("file-path" "directory"))))
              (save-excursion
-               (beginning-of-line)
-               (re-search-forward "[^| ]" (line-end-position) t)
-               (dired
-                (concept-get-expository-data))))
+               (dired (concept-get-expository-data))))
             ((and (concept-on-exposition-line)
                   (string= "line" (concept-exposition-parent-key)))
              (let ((keys (concept-resource-block-keys))
@@ -10987,15 +10983,20 @@ modifying `mailcap-user-mime-data'."
              (let ((keys (concept-resource-block-keys))
                    (value (concept-get-expository-data)))
                (when (member "emacs-package" keys)
-                 (save-excursion
-                   (concept-goto-key-in-resource-block "emacs-package")
-                   (forward-line)
-                   (let* ((pkg (concept-get-expository-data))
-                          (pkg-file (concat (file-name-directory (locate-library pkg)) value)))
-                     (when (and (or (package-installed-p (intern (file-name-nondirectory pkg)))
-                                    (locate-library pkg))
-                                (file-exists-p pkg-file))
-                       (find-file pkg-file)))))))
+                 (let (fbuf)
+                   (save-excursion
+                     (concept-goto-key-in-resource-block "emacs-package")
+                     (forward-line)
+                     (let* ((pkg (concept-get-expository-data))
+                            (pkg-file (file-name-concat (file-name-directory (locate-library pkg)) value))
+                            (pkg-file-se (file-name-sans-extension pkg-file))
+                            (pkg-p (file-exists-p pkg-file))
+                            (pkg-se-p (file-exists-p pkg-file-se)))
+                       (when (and (or (package-installed-p (intern (file-name-nondirectory pkg)))
+                                      (locate-library pkg))
+                                  (or pkg-p pkg-se-p))
+                         (setq fbuf (if pkg-p (find-file pkg-file) (find-file pkg-file-se))))))
+                   fbuf))))
             ((and (concept-on-exposition-line)
                   (string= "search-phrase" (concept-exposition-parent-key)))
              (let ((keys (concept-resource-block-keys))
@@ -11007,31 +11008,30 @@ modifying `mailcap-user-mime-data'."
                              (let ((fbuf (concept-follow-dwim nil)))
                                (when (buffer-live-p fbuf)
                                  (with-current-buffer fbuf
-                                   (goto-char (point-min))
-                                   (occur value nil)))))
+                                   (concept--follow-occur value)))))
                             ((concept--is-pdf (concept-get-expository-data))
                              (let ((pbuf (concept-follow-dwim nil)))
                                (sit-for 0.1)
                                (when (buffer-live-p pbuf)
                                  (with-current-buffer pbuf
-                                   (pdf-occur value)))))))
+                                   (pdf-occur value t)))))))
                      ((member "man" keys)
                       (concept-goto-key-in-resource-block "man")
                       (forward-line)
                       (let ((mbuf (concept-follow-dwim nil)))
                         (when (buffer-live-p mbuf)
                           (with-current-buffer mbuf
-                            (occur value)))))
+                            (concept--follow-occur value)))))
                      ((member "url" keys)
                       (save-excursion
                         (concept-goto-key-in-resource-block "url")
                         (forward-line)
-                        (re-search-forward "[^| ]" (line-end-position) t)
                         (let ((wbuf (concept-follow-dwim nil)))
-                          (sit-for 0.1)
+                          (sit-for 0.5)
                           (when (buffer-live-p wbuf)
+                            (message "Buffer size is %d" (buffer-size))
                             (with-current-buffer wbuf
-                              (occur value))))))
+                              (concept--follow-occur value))))))
                      ((and (member "emacs-package" keys)
                            (member "file-name" keys))
                       (concept-goto-key-in-resource-block "file-name")
@@ -11039,7 +11039,7 @@ modifying `mailcap-user-mime-data'."
                       (let ((fbuf (concept-follow-dwim nil)))
                         (when (buffer-live-p fbuf)
                           (with-current-buffer fbuf
-                            (occur value)))))
+                            (concept--follow-occur value)))))
                      ((member "directory" keys)
                       (let ((dir (save-excursion
                                    (concept-goto-key-in-resource-block "directory")
@@ -11051,8 +11051,7 @@ modifying `mailcap-user-mime-data'."
                       (forward-line)
                       (concept-follow-dwim nil)
                       (with-current-buffer "*info*"
-                        (goto-char (point-min))
-                        (occur value))))))
+                        (concept--follow-occur value))))))
             ((and (concept-on-exposition-line)
                   (string= "argument" (concept-exposition-parent-key)))
              (save-excursion
@@ -11104,15 +11103,10 @@ modifying `mailcap-user-mime-data'."
             ((and (concept-on-exposition-line)
                   (string= "url" (concept-exposition-parent-key)))
              (save-excursion
-               (beginning-of-line)
-               (re-search-forward "[^| ]" (line-end-position) t)
-               (let ((browse-url-browser-function 'concept-browse-url))
-                 (browse-url (concept-current-exposition)))))
+               (concept-browse-url (concept-current-exposition))))
             ((and (concept-on-exposition-line)
                   (string= "search" (concept-exposition-parent-key)))
              (save-excursion
-               (beginning-of-line)
-               (re-search-forward "[^| ]" (line-end-position) t)
                (let ((browse-url-browser-function 'concept-browse-url))
                  (concept-search-duckduckgo (concept-current-exposition)))))
             ((and (concept-on-exposition-line)
