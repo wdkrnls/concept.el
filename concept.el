@@ -10554,6 +10554,15 @@ EXCLUDED is a list of buffer names or buffer objects to skip."
                   (derived-mode-p 'Info-mode)))
               (seq-difference (buffer-list) skip))))
 
+(defun concept--most-recent-man-buffer (&rest excluded)
+  "Return the most recently used man page buffer.
+EXCLUDED is a list of buffer names or buffer objects to skip."
+  (let ((skip (delq nil (mapcar #'get-buffer excluded))))
+    (seq-find (lambda (buf)
+                (with-current-buffer buf
+                  (derived-mode-p 'Man-mode)))
+              (seq-difference (buffer-list) skip))))
+
 (defun concept--git-file-info ()
   "Return a plist of repo path, file path, branch, and short SHA."
   (unless (executable-find "git")
@@ -10637,6 +10646,16 @@ lines."
       (concept-goto-last-resource)
       (concept-resource-is-bare "file" "document"))))
 
+(defun concept--last-resource-was-bare-man-page ()
+  "Test whether the last resource was a bare man page document.
+
+A bare man page document has a single attribute with zero or more
+exposition lines."
+  (save-excursion
+    (when (< 0 (concept-resource-block-count))
+      (concept-goto-last-resource)
+      (concept-resource-is-bare "man" "document"))))
+
 (defun concept-expand-info-node-resources ()
   "Expand metadata about the previously visited Info-mode buffer."
   (interactive)
@@ -10651,6 +10670,40 @@ lines."
                      (insert "@ document")
                      (insert "\n| info:\n"))
                    (insert (format "| {%s}" inode))
+                   (buffer-string))))
+      text)))
+
+(defun concept--man-page-name ()
+  "Find the name of the current man page."
+  (when (eq major-mode 'Man-mode)
+    (let ((entry (substring-no-properties (buffer-name))))
+      (let (manual)
+        (cond ((string-match "[*]Man \\([[:digit:]]+\\) \\([^* ]+\\)[*]" entry)
+               (let* ((manual-number (match-string 1 entry))
+                      (manual-name   (match-string 2 entry)))
+                 (setq manual (format "%s(%s)" manual-name manual-number))))
+              ((string-match "[*]Man \\([^* ]+\\)[*]" entry)
+               (setq manual (match-string 1 entry)))
+              (t (error "Failed to parse man-page name!")))
+        (when (called-interactively-p)
+          (message manual))
+        (kill-new manual)
+        manual))))
+
+(defun concept-expand-man-page-resources ()
+  "Expand metadata about the previously visited man page buffer."
+  (interactive)
+  (unless (derived-mode-p 'concept-mode)
+    (user-error "This is not a concept map. Aborting!"))
+  (when-let* ((mapbuf  (current-buffer))
+              (manbuf  (concept--most-recent-man-buffer mapbuf))
+              (manpage (with-current-buffer manbuf (concept--man-page-name))))
+    (let* ((prev-manpage (concept--last-resource-was-bare-man-page))
+           (text (with-temp-buffer
+                   (unless prev-manpage
+                     (insert "@ document")
+                     (insert "\n| man:\n"))
+                   (insert (format "| {%s}" manpage))
                    (buffer-string))))
       text)))
 
