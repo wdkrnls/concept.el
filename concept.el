@@ -325,15 +325,15 @@
     ("^\\(~\\) \\(.*\\)"
      (1 'concept-subject)
      (2 'concept-subject))
-    ("^\\(|\\) \\({.*}\\|\\[.*\\]\\|‘.*’\\)"
-     (1 'concept-thought)
-     (2 'concept-attribute nil :lax-match))
-    ("^| \\(.+:\\)"
-     (1 'concept-feature nil :lax-match))
-    ("^| \\(:.+\\)"
-     (1 'concept-relationship nil :lax-match))
     ("^| \\(.+\\)"
-     (1 'concept-object nil :lax-match)))
+     (1 'concept-object))
+    ("^\\(|\\) \\({.*}\\|\\[.*\\]\\|‘.*’\\)"
+     (1 'concept-thought t)
+     (2 'concept-attribute t))
+    ("^| \\([^ \t\n:]+:[ \t]*$\\)"
+     (1 'concept-feature t))
+    ("^| \\(:.+\\)"
+     (1 'concept-relationship t)))
   "Fontification of CONCEPT files.")
 
 (defconst concept-heading-alist
@@ -347,7 +347,7 @@
 This applies to the standard list interfaces.")
 
 (defvar concept-subject-or-object-line-regexp
-  "^[~|] +[^][:{}‘’ ]+ *$"
+  "^[~|] +[^][:{‘~\n\t ][^~\n\t ]*[^]}’:.~-\n\t ] *$"
   "Regular expression for detecting valid subject or object concepts.")
 
 (defvar concept-object-name-regexp
@@ -11841,7 +11841,8 @@ This function can be slow to execute on large buffers."
               (subject
                (and subject-intro group-name ending))
               (group-name
-               (substring (+ (not disallowed) (any))))
+               (substring (and (+ (not disallowed) (any))
+                               (* (and (+ ":") (+ (not disallowed) (any)))))))
               (disallowed (or " " ":" ";" "\t" "\n"))
               (relationship-group
                (and data-intro ":" relationship ending))
