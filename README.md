@@ -1677,6 +1677,14 @@ The point is to have a history of important sets of follows: tours. How do you i
 
 So, ideally there are two entry points to making a tour: a prefix argument to concept-follow-dwim when inside an exposition line that causes it to run all the follows for all exposition lines in the attribute group. The other way, is to execute the exposition line holding shell-command. That should cause all the exposition lines under shell command to execute. If there are multiple exposition lines under `show-tour`, then all of those should execute with the C-u prefix. But besides execution, the more important part is producing and organizing menus of what tours have been run so that can be found interactively. And, ideally, the first level of tours menu should be able to hold tours of buffers you just want to visit and which don't have any follow infastructure at all. Think of tours as little micro projects within a bigger project. The trick lays in making the tours discoverable and creatable. Imagine there was a make-buffer-tour command where you can then quickly navigate between those sets of buffers and you could bind that to a single keybinding followwing the tour where a C-u allows you to change the default tour. So you first lock-in a tour, then you press that command to pick buffers among the currenty active tour. This seems like a very useful supporting package which could be widely useful beyond concept.el.
 
+### Find calls, variables, and other completions from my last visited elisp file
+
+I'm really enjoying my template expansion functions which operate on the last visited file of a given major mode, or the last file visiting buffer which has a git repository backing it. In general, there is some condition which makes finding those files possible. I want to make something similar for concept completions. M-x `imenu` already shows a lot, but I need the completions to fit inside of the world of concept maps.
+
+I've also thought it would be nice to have a variant which shows completions based on the current point or region of the last visited file. This allows more tightly chosen lists of candidates, which when combined with tours from `touring.el`, is a great way for a concept map user to build up an understanding of how an elisp call works.
+
+Obviously, this can eventually be extended to other language environments like R. However, let's first get it implemented in Emacs Lisp.
+
 <!-- Local Variables: -->
 <!-- jinx-local-words: "Gemtext Gephi canonicalization comint cond dired elisp mailcap minibuffer notmuch tempel" -->
 <!-- End: -->
