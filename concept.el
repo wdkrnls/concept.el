@@ -256,6 +256,9 @@
 (defvar concept--touring-available-at-load
   (require 'touring nil t))
 
+(defvar concept--guts-available-at-load
+  (require 'guts nil t))
+
 (defvar concept--elpher-avaiable-at-load
   (require 'elpher nil t))
 
@@ -10545,6 +10548,15 @@ EXCLUDED is a list of buffer names or buffer objects to skip."
                   buffer-file-name))
               (seq-difference (buffer-list) skip))))
 
+(defun concept--most-recent-elisp-buffer (&rest excluded)
+  "Return the most recently used emacs lisp buffer.
+EXCLUDED is a list of buffer names or buffer objects to skip."
+  (let ((skip (delq nil (mapcar #'get-buffer excluded))))
+    (seq-find (lambda (buf)
+                (with-current-buffer buf
+                  (derived-mode-p 'emacs-lisp-mode)))
+              (seq-difference (buffer-list) skip))))
+
 (defun concept--most-recent-info-buffer (&rest excluded)
   "Return the most recently used info buffer.
 EXCLUDED is a list of buffer names or buffer objects to skip."
@@ -15397,6 +15409,88 @@ SYMBOL is inserted with a suffix naming its class, e.g. \"foo-calls\"."
       (concat trimmed "-" (alist-get class concept--library-class-suffixes)))))
   (insert symbol))
 
+(defun concept--buffer-entries (&optional buffer)
+  "Return an alist (TYPE . SYMBOL) of definitions in BUFFER.
+BUFFER defaults to `concept--most-recent-elisp-buffer'.  The result
+has the same shape as `concept--library-entries', so it can be fed
+straight to `concept--library-completion-table'."
+  (with-current-buffer (or buffer (concept--most-recent-elisp-buffer))
+    (save-excursion
+      (save-restriction
+        (widen)
+        (goto-char (point-min))
+        (let (entries)
+          (while (progn (forward-comment (point-max)) (not (eobp)))
+            (condition-case nil
+                (let* ((form (read (current-buffer)))
+                       (head (car-safe form))
+                       (sym  (car-safe (cdr-safe form))))
+                  (when (and (consp sym) (eq (car sym) 'quote))
+                    (setq sym (cadr sym)))
+                  (when (and head (symbolp head)
+                             (string-match-p "\\`\\(cl-\\)?def" (symbol-name head))
+                             sym (symbolp sym))
+                    (push (cons head sym) entries)))
+              (error (forward-line 1))))
+          (nreverse entries))))))
+
+(defun concept--buffer-completion-table (&optional buffer)
+  "Completion table for definitions in BUFFER (see `concept--buffer-entries')."
+  (concept--library-completion-table (concept--buffer-entries buffer)))
+
+(defun concept-insert-emacs-symbol-from-last-file (symbol)
+  "Insert SYMBOL, from a definition given in the last visited elisp file.
+SYMBOL is inserted with a suffix naming its class, e.g. \"foo-calls\"."
+  ;; TODO: this always places -symbols as the suffix when C-c C-a is pressed in
+  ;;       the minibuffer.
+  (interactive
+   (list
+    (let* ((mapbuf (current-buffer))
+           (lispbuf (concept--most-recent-elisp-buffer mapbuf))
+           (table   (concept--buffer-completion-table lispbuf))
+           (name (completing-read "Symbol: " (car table) nil t))
+           (trimmed (string-trim-right name))
+           (class (or (car (gethash trimmed (cdr table))) 'symbol)))
+      (concat trimmed "-" (alist-get class concept--library-class-suffixes)))))
+  (insert symbol))
+
+(defconst concept--guts-type-classes
+  '((functions . defun) (macros . defmacro) (variables . defvar))
+  "Mapping of guts categories to `concept--library-type-classes' keys.
+Custom variables are deliberately omitted: guts already includes every
+custom variable in its `variables' list, and `defvar' classifies to the
+same `variable' class, so mapping them again would just duplicate them.")
+
+(defun concept--guts-entries (&optional buffer beg end)
+  "Return an alist (TYPE . SYMBOL) for the expression in BUFFER.
+BEG and END, if given, delimit the expression; otherwise the active
+region or the enclosing expression at point is used."
+  (with-current-buffer (or buffer (concept--most-recent-elisp-buffer))
+    (let (entries)
+      (pcase-dolist (`(,category . ,syms)
+                     (guts-analyze-expression-symbols beg end))
+        (let ((type (alist-get category concept--guts-type-classes)))
+          (when type
+            (dolist (sym syms) (push (cons type sym) entries)))))
+      (nreverse entries))))
+
+(defun concept--guts-completion-table (&optional buffer)
+  "Completion table for the expression at point in BUFFER."
+  (concept--library-completion-table (concept--guts-entries buffer)))
+
+(defun concept-insert-emacs-symbol-from-expression ()
+  "Insert a symbol used by the expression at point in the last elisp file.
+The expression (or active region) is taken from
+`concept--most-recent-elisp-buffer'.  The symbol is inserted with a
+suffix naming its class, e.g. \"foo-calls\"."
+  (interactive)
+  (let* ((lispbuf (concept--most-recent-elisp-buffer))
+         (table   (concept--guts-completion-table lispbuf))
+         (name    (completing-read "Symbol: " (car table) nil t))
+         (trimmed (string-trim-right name))
+         (class   (or (car (gethash trimmed (cdr table))) 'symbol)))
+    (insert (concat trimmed "-" (alist-get class concept--library-class-suffixes)))))
+
 (defun concept-insert-emacs-library-at-point (library)
   "Insert the package name PACKAGE as text at point."
   (interactive
@@ -15593,6 +15687,12 @@ INFO maps each name to a list (TYPE FILE ALIAS)."
     ("Emacs Lisp"
      "Package"
      concept-insert-emacs-package-at-point)
+    ("Emacs Lisp"
+     "Last File"
+     concept-insert-emacs-symbol-from-last-file)
+    ("Emacs Lisp"
+     "Last Expression"
+     concept-insert-emacs-symbol-from-expression)
     ("UNIX Shell"
      "Environment Variable"
      concept-insert-environment-variable-name-at-point)
